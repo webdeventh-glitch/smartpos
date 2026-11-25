@@ -188,6 +188,14 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
         );
       }
     }
+    // Persist initial trial timestamp if missing so the 30-day countdown advances properly
+    if (settings.trialStartDate.trim().isEmpty) {
+      settings = settings.copyWith(
+        trialStartDate: DateTime.now().toIso8601String(),
+      );
+      await dbService.updateBusinessSettings(settings);
+    }
+
     await QulopService.checkCurrentQulop(settings);
     await CloudSyncService.initialize(settings);
     try {

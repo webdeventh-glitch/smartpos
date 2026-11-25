@@ -64,24 +64,30 @@ class QulopService {
   static String? _cachedHardwareId;
   static String? _cachedMacAddress;
 
-  /// Detects the physical Hardware ID (Motherboard UUID / Disk Serial / MAC Address)
+  /// Detects the physical Hardware ID (Motherboard UUID / Disk Serial / MachineGuid / MAC Address)
   static Future<String> getHardwareId() async {
     if (_cachedHardwareId != null) return _cachedHardwareId!;
     try {
       if (Platform.isWindows) {
-        // 1. Try querying Motherboard UUID via PowerShell
+        bool isDegenerateHex(String hex) {
+          return hex.isEmpty ||
+              hex.replaceAll('0', '').isEmpty ||
+              hex.replaceAll('F', '').isEmpty;
+        }
+
+        // 1. Try querying Motherboard UUID via PowerShell (5s timeout for cold CLR boot)
         try {
           final res = await Process.run('powershell', [
             '-NoProfile',
             '-Command',
             '(Get-CimInstance -ClassName Win32_ComputerSystemProduct).UUID'
-          ]).timeout(const Duration(seconds: 2));
+          ]).timeout(const Duration(seconds: 5));
           if (res.exitCode == 0 && res.stdout != null) {
             final uuid = res.stdout.toString().trim();
             if (uuid.length >= 10 && !uuid.toLowerCase().contains('error')) {
               final clean =
                   uuid.replaceAll(RegExp(r'[^A-Fa-f0-9]'), '').toUpperCase();
-              if (clean.length >= 12) {
+              if (clean.length >= 12 && !isDegenerateHex(clean)) {
                 _cachedHardwareId =
                     'HWID-${clean.substring(0, clean.length >= 16 ? 16 : clean.length)}';
                 return _cachedHardwareId!;
@@ -99,13 +105,14 @@ class QulopService {
             '-NoProfile',
             '-Command',
             '(Get-CimInstance -ClassName Win32_DiskDrive)[0].SerialNumber'
-          ]).timeout(const Duration(seconds: 2));
+          ]).timeout(const Duration(seconds: 5));
           if (res.exitCode == 0 && res.stdout != null) {
             final diskSerial = res.stdout.toString().trim();
             final clean = diskSerial
                 .replaceAll(RegExp(r'[^A-Fa-f0-9]'), '')
                 .toUpperCase();
             if (clean.length >= 6 &&
+                !isDegenerateHex(clean) &&
                 !diskSerial.toLowerCase().contains('error')) {
               _cachedHardwareId =
                   'HWID-${clean.substring(0, clean.length >= 16 ? 16 : clean.length)}';
@@ -116,13 +123,42 @@ class QulopService {
           AppLogger.warning(
               'QulopService', 'WMI disk serial lookup failed', e, st);
         }
+
+        // 3. Fast Windows Registry MachineGuid fallback (~10ms, survives NIC switches)
+        try {
+          final res = await Process.run('reg', [
+            'query',
+            r'HKLM\SOFTWARE\Microsoft\Cryptography',
+            '/v',
+            'MachineGuid',
+          ]).timeout(const Duration(seconds: 3));
+          if (res.exitCode == 0 && res.stdout != null) {
+            final match = RegExp(r'MachineGuid\s+REG_SZ\s+([A-Za-z0-9-]+)',
+                    caseSensitive: false)
+                .firstMatch(res.stdout.toString());
+            if (match != null) {
+              final clean = match
+                  .group(1)!
+                  .replaceAll(RegExp(r'[^A-Fa-f0-9]'), '')
+                  .toUpperCase();
+              if (clean.length >= 12 && !isDegenerateHex(clean)) {
+                _cachedHardwareId =
+                    'HWID-${clean.substring(0, clean.length >= 16 ? 16 : clean.length)}';
+                return _cachedHardwareId!;
+              }
+            }
+          }
+        } catch (e, st) {
+          AppLogger.warning(
+              'QulopService', 'Registry MachineGuid lookup failed', e, st);
+        }
       }
     } catch (e, st) {
       AppLogger.warning('QulopService',
           'Hardware ID detection failed, falling back to MAC', e, st);
     }
 
-    // 3. Fallback to physical MAC address
+    // 4. Fallback to physical MAC address
     final mac = await getDeviceMacAddress();
     final clean = normalizeMac(mac);
     _cachedHardwareId = 'HWID-$clean';
@@ -175,9 +211,26 @@ class QulopService {
     return _cachedMacAddress!;
   }
 
-  /// Normalizes MAC address or Hardware ID string (removes hyphens/colons, uppercase)
+  /// Normalizes MAC address, Hardware ID (`HWID-...`), or wildcard (`ANY`/`WILDCARD`) string
   static String normalizeMac(String mac) {
-    return mac.replaceAll(RegExp(r'[^A-Fa-f0-9]'), '').toUpperCase();
+    final upper = mac.trim().toUpperCase();
+    if (upper == 'ANY' || upper == 'WILDCARD') {
+      return upper;
+    }
+    if (upper.startsWith('HWID')) {
+      final suffix = upper.substring(4).replaceAll(RegExp(r'[^A-Za-z0-9]'), '');
+      return 'HWID$suffix';
+    }
+    return upper.replaceAll(RegExp(r'[^A-Fa-f0-9]'), '');
+  }
+
+  static String _legacyHexNormalize(String value) {
+    return value.replaceAll(RegExp(r'[^A-Fa-f0-9]'), '').toUpperCase();
+  }
+
+  /// Removes WhatsApp markdown backticks and accidental whitespace/newlines from pasted keys.
+  static String sanitizeKeyInput(String rawKey) {
+    return rawKey.replaceAll('`', '').replaceAll(RegExp(r'\s+'), '').trim();
   }
 
   /// Map 3-letter tier code to human-readable label
@@ -283,10 +336,14 @@ class QulopService {
     );
   }
 
-  /// Validates a Qulop key against the current host machine MAC address and expiration
-  static Future<QulopStatus> verifyQulopKey(String rawKey,
-      {String? hostMacOverride}) async {
-    final key = rawKey.trim();
+  /// Validates a Qulop key against the current host machine MAC/HWID and expiration.
+  /// Pass [ignoreHardwareCheck] = true when inspecting key metadata on a vendor PC.
+  static Future<QulopStatus> verifyQulopKey(
+    String rawKey, {
+    String? hostMacOverride,
+    bool ignoreHardwareCheck = false,
+  }) async {
+    final key = sanitizeKeyInput(rawKey);
     if (key.isEmpty) {
       return const QulopStatus(
         isValid: false,
@@ -360,7 +417,8 @@ class QulopService {
     // Decode payload
     Map<String, dynamic> data;
     try {
-      final jsonStr = utf8.decode(base64Url.decode(payloadBase64));
+      final jsonStr =
+          utf8.decode(base64Url.decode(base64Url.normalize(payloadBase64)));
       data = jsonDecode(jsonStr) as Map<String, dynamic>;
     } catch (e, st) {
       AppLogger.warning(
@@ -374,32 +432,48 @@ class QulopService {
     }
 
     final clientName = data['c'] as String? ?? 'Valued Client';
-    final targetMac = (data['m'] as String? ?? '').toUpperCase();
+    final targetMac = (data['m'] as String? ?? '').trim().toUpperCase();
     final expiryStr = data['e'] as String? ?? '';
     final issueStr = data['i'] as String? ?? '';
 
     // Hardware Lock Check
-    final currentMac = hostMacOverride != null
-        ? normalizeMac(hostMacOverride)
-        : normalizeMac(await getDeviceMacAddress());
-    final currentHwId = normalizeMac(await getHardwareId());
+    final isWildcard = targetMac == 'WILDCARD' || targetMac == 'ANY';
     final cleanTarget = normalizeMac(targetMac);
 
-    final isMatched = cleanTarget == currentMac ||
-        cleanTarget == currentHwId ||
-        targetMac == 'WILDCARD' ||
-        targetMac == 'ANY';
+    if (!ignoreHardwareCheck) {
+      final currentMac = hostMacOverride != null
+          ? normalizeMac(hostMacOverride)
+          : normalizeMac(await getDeviceMacAddress());
+      final currentHwId =
+          hostMacOverride != null ? '' : normalizeMac(await getHardwareId());
 
-    if (!isMatched) {
-      return QulopStatus(
-        isValid: false,
-        tier: QulopTier.invalid,
-        tierLabel: 'Hardware Mismatch',
-        message:
-            'This key is locked to machine ($targetMac). Current machine is ($currentMac).',
-        clientName: clientName,
-        targetMac: targetMac,
-      );
+      // Accept legacy keys where 'HWID-' had non-hex letters stripped to 'D...'
+      final legacyTargetHex = _legacyHexNormalize(targetMac);
+      final legacyHwHex =
+          currentHwId.isNotEmpty ? _legacyHexNormalize(currentHwId) : '';
+
+      final isMatched = isWildcard ||
+          (cleanTarget.isNotEmpty &&
+              (cleanTarget == currentMac ||
+                  (currentHwId.isNotEmpty &&
+                      (cleanTarget == currentHwId ||
+                          (legacyTargetHex.isNotEmpty &&
+                              legacyTargetHex == legacyHwHex)))));
+
+      if (!isMatched) {
+        final machineSummary = currentHwId.isNotEmpty
+            ? '$currentHwId / MAC $currentMac'
+            : currentMac;
+        return QulopStatus(
+          isValid: false,
+          tier: QulopTier.invalid,
+          tierLabel: 'Hardware Mismatch',
+          message:
+              'This key is locked to machine ($targetMac). Current machine is ($machineSummary).',
+          clientName: clientName,
+          targetMac: targetMac,
+        );
+      }
     }
 
     DateTime? expiryDate;
@@ -412,6 +486,16 @@ class QulopService {
         AppLogger.warning(
             'QulopService', 'Invalid license expiry date "$expiryStr"', e, st);
         expiryDate = null;
+      }
+      if (expiryDate == null) {
+        return QulopStatus(
+          isValid: false,
+          tier: QulopTier.invalid,
+          tierLabel: 'Corrupted Key',
+          message: 'License expiration date "$expiryStr" is invalid.',
+          clientName: clientName,
+          targetMac: targetMac,
+        );
       }
     }
 
@@ -434,7 +518,7 @@ class QulopService {
       );
     }
 
-    if (expiryDate != null && expiryDate.isBefore(today)) {
+    if (expiryDate.isBefore(today)) {
       return QulopStatus(
         isValid: false,
         tier: QulopTier.expired,
@@ -448,8 +532,7 @@ class QulopService {
       );
     }
 
-    final remaining =
-        expiryDate != null ? expiryDate.difference(today).inDays : 9999;
+    final remaining = expiryDate.difference(today).inDays;
     final isNearExpiry = remaining <= 7 && tierCode != 'LFT';
 
     QulopTier qulopTier;

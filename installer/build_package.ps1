@@ -102,7 +102,7 @@ exit
 Set-Content -Path $LauncherPath -Value $LauncherContent -Encoding ASCII
 
 # 4. Create Standalone Portable Zip
-$ZipPath = Join-Path $DistDir "SmartPOS_Portable_v1.1.zip"
+$ZipPath = Join-Path $DistDir "SmartPOS_Portable_v1.1.1.zip"
 Write-Host "[2/3] Creating Portable Distribution Zip: $ZipPath..." -ForegroundColor Yellow
 if (Test-Path $ZipPath) {
     Remove-Item $ZipPath -Force
@@ -137,23 +137,30 @@ foreach ($path in $IsccPaths) {
 
 if ($IsccExe) {
     Write-Host "       Found Inno Setup at: $IsccExe" -ForegroundColor Cyan
-    Write-Host "       Compiling Windows Installer (SmartPOS_Enterprise_Setup_v1.1.exe)..." -ForegroundColor Yellow
+    Write-Host "       Compiling Windows Installer (SmartPOS_Enterprise_Setup_v1.1.1.exe)..." -ForegroundColor Yellow
     $TempOut = "$env:TEMP\smartpos_installer"
     if (-not (Test-Path $TempOut)) {
         New-Item -ItemType Directory -Path $TempOut -Force | Out-Null
     }
     & $IsccExe "/O$TempOut" $IssFile
-    $TempSetupExe = Join-Path $TempOut "SmartPOS_Enterprise_Setup_v1.1.exe"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Inno Setup compiler failed with exit code $LASTEXITCODE"
+        exit $LASTEXITCODE
+    }
+    $TempSetupExe = Join-Path $TempOut "SmartPOS_Enterprise_Setup_v1.1.1.exe"
     $InstallerOutputDir = Join-Path $ProjectRoot "installer_output"
     if (-not (Test-Path $InstallerOutputDir)) {
         New-Item -ItemType Directory -Path $InstallerOutputDir -Force | Out-Null
     }
     if (Test-Path $TempSetupExe) {
-        $DestSetup = Join-Path $InstallerOutputDir "SmartPOS_Enterprise_Setup_v1.1.exe"
+        $DestSetup = Join-Path $InstallerOutputDir "SmartPOS_Enterprise_Setup_v1.1.1.exe"
         Copy-Item $TempSetupExe $DestSetup -Force
-        Copy-Item $TempSetupExe (Join-Path $DistDir "SmartPOS_Enterprise_Setup_v1.1.exe") -Force
+        Copy-Item $TempSetupExe (Join-Path $DistDir "SmartPOS_Enterprise_Setup_v1.1.1.exe") -Force
         $SetupSizeMB = [math]::Round((Get-Item $DestSetup).Length / 1MB, 2)
         Write-Host "       Installer successfully generated! ($SetupSizeMB MB)" -ForegroundColor Green
+    } else {
+        Write-Error "Expected installer not found at $TempSetupExe"
+        exit 1
     }
 } else {
     Write-Host "       Inno Setup (ISCC.exe) not found on system PATH." -ForegroundColor DarkYellow

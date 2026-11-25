@@ -22,13 +22,15 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
   final TextEditingController _keyController = TextEditingController();
   bool _isVerifying = false;
   String? _errorMessage;
+  String _hardwareId = 'Detecting...';
   String _deviceMac = 'Loading...';
+  bool _copiedHwId = false;
   bool _copiedMac = false;
 
   @override
   void initState() {
     super.initState();
-    _loadMacAddress();
+    _loadMachineIdentifiers();
   }
 
   @override
@@ -37,15 +39,19 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
     super.dispose();
   }
 
-  Future<void> _loadMacAddress() async {
+  Future<void> _loadMachineIdentifiers() async {
+    final hwId = await QulopService.getHardwareId();
     final mac = await QulopService.getDeviceMacAddress();
     if (mounted) {
-      setState(() => _deviceMac = mac);
+      setState(() {
+        _hardwareId = hwId;
+        _deviceMac = mac;
+      });
     }
   }
 
   Future<void> _activateLicense() async {
-    final key = _keyController.text.trim();
+    final key = QulopService.sanitizeKeyInput(_keyController.text);
     if (key.isEmpty) {
       setState(() =>
           _errorMessage = 'Please enter or paste your Software License Key.');
@@ -69,37 +75,14 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
       return;
     }
 
-    // Key is valid -> Persist to SQLite
+    // Preserve every business configuration, DB credential, and module lock via copyWith
     final db = await DatabaseService.initialize();
-    final updated = BusinessSettings(
-      id: widget.settings.id,
-      businessName: widget.settings.businessName,
-      branchName: widget.settings.branchName,
-      currencySymbol: widget.settings.currencySymbol,
-      currencyCode: widget.settings.currencyCode,
-      defaultTaxRate: widget.settings.defaultTaxRate,
-      phone: widget.settings.phone,
-      email: widget.settings.email,
-      address: widget.settings.address,
-      receiptFooter: widget.settings.receiptFooter,
+    final updated = widget.settings.copyWith(
       purchaseKey: key,
-      businessType: widget.settings.businessType,
-      drugLicenseNo: widget.settings.drugLicenseNo,
-      dlWarrantor: widget.settings.dlWarrantor,
-      timeZone: widget.settings.timeZone,
-      currencyPlacement: widget.settings.currencyPlacement,
-      financialYearStartMonth: widget.settings.financialYearStartMonth,
-      stockAccountingMethod: widget.settings.stockAccountingMethod,
-      transactionEditDays: widget.settings.transactionEditDays,
-      dateFormat: widget.settings.dateFormat,
-      timeFormat: widget.settings.timeFormat,
-      currencyPrecision: widget.settings.currencyPrecision,
-      quantityPrecision: widget.settings.quantityPrecision,
-      defaultProfitPercent: widget.settings.defaultProfitPercent,
-      startDate: widget.settings.startDate,
+      hardwareId: _hardwareId.startsWith('HWID-')
+          ? _hardwareId
+          : widget.settings.hardwareId,
       isConfigured: true,
-      logoPath: widget.settings.logoPath,
-      trialStartDate: widget.settings.trialStartDate,
     );
 
     await db.updateBusinessSettings(updated);
@@ -107,6 +90,9 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
 
     if (mounted) {
       setState(() => _isVerifying = false);
+      final durationLabel = verification.isLifetime
+          ? 'Lifetime'
+          : '${verification.remainingDays} days';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -115,7 +101,7 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Software Activated Successfully! ${verification.tierLabel} (${verification.remainingDays} days)',
+                  'Software Activated Successfully! ${verification.tierLabel} ($durationLabel)',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -226,11 +212,11 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.memory_rounded,
+                              Icon(Icons.fingerprint_rounded,
                                   size: 16, color: Color(0xFF38BDF8)),
                               SizedBox(width: 8),
                               Text(
-                                'Hardware Machine ID (MAC Address)',
+                                'Hardware Machine ID (HWID)',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
@@ -242,17 +228,19 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                           InkWell(
                             onTap: () {
                               Clipboard.setData(
-                                  ClipboardData(text: _deviceMac));
-                              setState(() => _copiedMac = true);
+                                  ClipboardData(text: _hardwareId));
+                              setState(() => _copiedHwId = true);
                               Future.delayed(const Duration(seconds: 2), () {
-                                if (mounted) setState(() => _copiedMac = false);
+                                if (mounted) {
+                                  setState(() => _copiedHwId = false);
+                                }
                               });
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: _copiedMac
+                                color: _copiedHwId
                                     ? const Color(0xFF16A34A)
                                     : const Color(0xFF334155),
                                 borderRadius: BorderRadius.circular(6),
@@ -260,7 +248,7 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                               child: Row(
                                 children: [
                                   Icon(
-                                    _copiedMac
+                                    _copiedHwId
                                         ? Icons.check_rounded
                                         : Icons.copy_rounded,
                                     size: 13,
@@ -268,7 +256,7 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    _copiedMac ? 'Copied!' : 'Copy ID',
+                                    _copiedHwId ? 'Copied!' : 'Copy HWID',
                                     style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
@@ -283,18 +271,54 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                       ),
                       const SizedBox(height: 8),
                       SelectableText(
-                        _deviceMac,
+                        _hardwareId,
                         style: const TextStyle(
-                          fontSize: 17,
+                          fontSize: 16,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF38BDF8),
-                          letterSpacing: 2.0,
+                          letterSpacing: 1.5,
                           fontFamily: 'monospace',
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Physical MAC: $_deviceMac',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF94A3B8),
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              Clipboard.setData(
+                                  ClipboardData(text: _deviceMac));
+                              setState(() => _copiedMac = true);
+                              Future.delayed(const Duration(seconds: 2), () {
+                                if (mounted) setState(() => _copiedMac = false);
+                              });
+                            },
+                            child: Text(
+                              _copiedMac ? 'MAC Copied!' : 'Copy MAC',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: _copiedMac
+                                    ? const Color(0xFF4ADE80)
+                                    : const Color(0xFF818CF8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
                       const Text(
-                        'Send this Machine ID to the software vendor via WhatsApp to receive your signed activation key.',
+                        'Send either Machine HWID or Physical MAC to the software vendor via WhatsApp to receive your signed activation key.',
                         style:
                             TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                       ),
@@ -348,7 +372,8 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                       onPressed: () async {
                         final data = await Clipboard.getData('text/plain');
                         if (data?.text != null) {
-                          _keyController.text = data!.text!.trim();
+                          _keyController.text =
+                              QulopService.sanitizeKeyInput(data!.text!);
                         }
                       },
                     ),

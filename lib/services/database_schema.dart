@@ -3941,6 +3941,7 @@ class DatabaseSchema {
       businessName: 'Smart POS System',
       businessType: 'general',
       isConfigured: false,
+      trialStartDate: DateTime.now().toIso8601String(),
     );
     await db.insert('business_settings', settings.toMap());
 

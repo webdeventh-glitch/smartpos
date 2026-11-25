@@ -286,7 +286,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   }
 
   Future<void> _verifyLicenseKey(String rawKey) async {
-    final key = rawKey.trim();
+    final key = QulopService.sanitizeKeyInput(rawKey);
+    if (key != _licenseKeyCtrl.text && key.isNotEmpty) {
+      _licenseKeyCtrl.text = key;
+    }
     if (key.isEmpty) {
       setState(() {
         _licenseError = 'Please enter a valid Smart POS License Key.';
@@ -617,8 +620,11 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         address: _addressCtrl.text.trim(),
         taxNumber: _taxNumberCtrl.text.trim(),
         receiptFooter: _receiptFooterCtrl.text.trim(),
-        purchaseKey: _licenseKeyCtrl.text.trim(),
+        purchaseKey: QulopService.sanitizeKeyInput(_licenseKeyCtrl.text),
         hardwareId: _hardwareId,
+        trialStartDate: widget.settings.trialStartDate.trim().isNotEmpty
+            ? widget.settings.trialStartDate
+            : DateTime.now().toIso8601String(),
         businessType: primaryType,
         industryPresets: _selectedPresets.join(','),
         enabledModules: enabledModsList.join(','),
@@ -1359,10 +1365,25 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             Expanded(
               child: TextFormField(
                 controller: _licenseKeyCtrl,
-                textCapitalization: TextCapitalization.characters,
                 decoration: InputDecoration(
                   hintText: 'e.g. QULOP-LFT-XXXX-XXXX or SPOS-YRL-...',
                   prefixIcon: const Icon(Icons.key_rounded, size: 20),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.paste_rounded, size: 18),
+                    tooltip:
+                        _translateLabel('Paste license key from clipboard'),
+                    onPressed: () async {
+                      final data =
+                          await Clipboard.getData(Clipboard.kTextPlain);
+                      if (data?.text != null) {
+                        _licenseKeyCtrl.text =
+                            QulopService.sanitizeKeyInput(data!.text!);
+                        if (mounted) {
+                          setState(() => _licenseError = null);
+                        }
+                      }
+                    },
+                  ),
                   isDense: true,
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -1502,14 +1523,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Licensed to: ${_licenseStatus!.clientName ?? "Registered Customer"} • ${_licenseStatus!.remainingDays} days remaining',
+                        _licenseStatus!.isLifetime
+                            ? 'Licensed to: ${_licenseStatus!.clientName ?? "Registered Customer"} • Lifetime Perpetual'
+                            : 'Licensed to: ${_licenseStatus!.clientName ?? "Registered Customer"} • ${_licenseStatus!.remainingDays} days remaining',
                         style: TextStyle(
                             fontSize: 13,
                             color: isDark
                                 ? Colors.white70
                                 : const Color(0xFF334155)),
                       ),
-                      if (_licenseStatus!.expiryDate != null)
+                      if (_licenseStatus!.expiryDate != null &&
+                          !_licenseStatus!.isLifetime)
                         Text(
                           'Valid until: ${_licenseStatus!.expiryDate!.toIso8601String().split("T").first}',
                           style:

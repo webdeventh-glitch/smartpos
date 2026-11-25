@@ -127,6 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     'sales': 0,
   };
 
+  String _hostHwId = 'Detecting...';
   String _hostMac = 'Detecting...';
   LicenseStatus? _currentLicenseStatus;
 
@@ -436,10 +437,12 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Future<void> _initLicenseInfo() async {
+    final hwId = await QulopService.getHardwareId();
     final mac = await QulopService.getDeviceMacAddress();
     final status = await QulopService.checkCurrentQulop(widget.settings);
     if (mounted) {
       setState(() {
+        _hostHwId = hwId;
         _hostMac = mac;
         _currentLicenseStatus = status;
       });
@@ -895,7 +898,8 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Future<void> _activatePurchaseKey() async {
-    final key = _purchaseKeyCtrl.text.trim();
+    final key = QulopService.sanitizeKeyInput(_purchaseKeyCtrl.text);
+    _purchaseKeyCtrl.text = key;
     if (key.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -943,6 +947,9 @@ class _SettingsScreenState extends State<SettingsScreen>
       address: _addressCtrl.text.trim(),
       receiptFooter: _footerCtrl.text.trim(),
       purchaseKey: key,
+      hardwareId: _hostHwId.startsWith('HWID-')
+          ? _hostHwId
+          : widget.settings.hardwareId,
       drugLicenseNo: _drugLicenseCtrl.text.trim(),
       dlWarrantor: _dlWarrantorCtrl.text.trim(),
       timeZone: _timeZone,
@@ -963,6 +970,7 @@ class _SettingsScreenState extends State<SettingsScreen>
 
     final db = await DatabaseService.initialize();
     await db.updateBusinessSettings(updated);
+    QulopService.qulopNotifier.value = verification;
     widget.onSettingsUpdated(updated);
 
     if (mounted) {
@@ -988,7 +996,8 @@ class _SettingsScreenState extends State<SettingsScreen>
       email: _emailCtrl.text.trim(),
       address: _addressCtrl.text.trim(),
       receiptFooter: _footerCtrl.text.trim(),
-      purchaseKey: _purchaseKeyCtrl.text.trim(),
+      // Preserve verified license key; license changes must go through _activatePurchaseKey()
+      purchaseKey: widget.settings.purchaseKey,
       businessType: _businessType,
       drugLicenseNo: _drugLicenseCtrl.text.trim(),
       dlWarrantor: _dlWarrantorCtrl.text.trim(),
@@ -5478,13 +5487,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
-                                        'Hardware Machine Fingerprint (MAC Address)',
+                                        'Hardware Machine Fingerprint (HWID & MAC)',
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16)),
                                     const SizedBox(height: 2),
-                                    Text(
-                                        'Unique machine identifier bound to software license: $_hostMac',
+                                    SelectableText(
+                                        'Hardware ID: $_hostHwId  |  Physical MAC: $_hostMac',
                                         style: const TextStyle(
                                             color: Color(0xFF64748B),
                                             fontSize: 13)),
@@ -5492,26 +5501,54 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 ),
                               ],
                             ),
-                            OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFF4F46E5),
-                                side:
-                                    const BorderSide(color: Color(0xFFC7D2FE)),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8)),
-                              ),
-                              icon: const Icon(Icons.copy_rounded, size: 16),
-                              label: const Text('Copy MAC'),
-                              onPressed: () {
-                                Clipboard.setData(
-                                    ClipboardData(text: _hostMac));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          'MAC Address copied to clipboard!'),
-                                      duration: Duration(seconds: 2)),
-                                );
-                              },
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF4F46E5),
+                                    side: const BorderSide(
+                                        color: Color(0xFFC7D2FE)),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  icon:
+                                      const Icon(Icons.copy_rounded, size: 16),
+                                  label: const Text('Copy HWID'),
+                                  onPressed: () {
+                                    Clipboard.setData(
+                                        ClipboardData(text: _hostHwId));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Hardware ID copied to clipboard!'),
+                                          duration: Duration(seconds: 2)),
+                                    );
+                                  },
+                                ),
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF4F46E5),
+                                    side: const BorderSide(
+                                        color: Color(0xFFC7D2FE)),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  icon:
+                                      const Icon(Icons.copy_rounded, size: 16),
+                                  label: const Text('Copy MAC'),
+                                  onPressed: () {
+                                    Clipboard.setData(
+                                        ClipboardData(text: _hostMac));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'MAC Address copied to clipboard!'),
+                                          duration: Duration(seconds: 2)),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ],
                         ),

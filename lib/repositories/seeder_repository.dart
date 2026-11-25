@@ -3520,6 +3520,7 @@ class SeederRepository extends BaseRepository {
       dbUser: 'root',
       dbPassword: '',
       syncMode: 'offline',
+      trialStartDate: DateTime.now().toIso8601String(),
     );
     await dbService.settingsRepo.updateBusinessSettings(resetSettings);
     await AuthService.logout();

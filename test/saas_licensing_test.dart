@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:desktop_starter/models/models.dart';
 import 'package:desktop_starter/services/qulop_service.dart';
@@ -180,6 +182,117 @@ void main() {
       expect(status.tierLabel, contains('Clock Rollback Detected'));
       expect(
           status.message, contains('earlier than initial trial installation'));
+    });
+
+    test(
+        '9. Universal ANY and WILDCARD keys validate across arbitrary machines',
+        () async {
+      final anyKey = QulopService.generatePurchaseKey(
+        macAddress: 'ANY',
+        clientName: 'Multi-Branch Enterprise',
+        tierCode: 'YRL',
+      );
+      final wildcardKey = QulopService.generatePurchaseKey(
+        macAddress: 'WILDCARD',
+        clientName: 'Demo Enterprise',
+        tierCode: 'LFT',
+      );
+
+      final vAny = await QulopService.verifyQulopKey(anyKey,
+          hostMacOverride: '11-22-33-44-55-66');
+      final vWild = await QulopService.verifyQulopKey(wildcardKey,
+          hostMacOverride: 'AA-BB-CC-DD-EE-FF');
+
+      expect(vAny.isValid, isTrue);
+      expect(vAny.targetMac, equals('ANY'));
+      expect(vWild.isValid, isTrue);
+      expect(vWild.targetMac, equals('WILDCARD'));
+      expect(vWild.isLifetime, isTrue);
+    });
+
+    test(
+        '10. Hardware ID normalization preserves HWID prefix and respects hostMacOverride',
+        () async {
+      final hwid = await QulopService.getHardwareId();
+      expect(QulopService.normalizeMac(hwid), startsWith('HWID'));
+
+      final hwKey = QulopService.generateHardwareBoundKey(
+        clientName: 'HWID Store',
+        hardwareId: hwid,
+        tierCode: 'YRL',
+      );
+
+      final vLocal = await QulopService.verifyQulopKey(hwKey);
+      expect(vLocal.isValid, isTrue);
+      expect(vLocal.targetMac, startsWith('HWID'));
+
+      final vForeign = await QulopService.verifyQulopKey(hwKey,
+          hostMacOverride: '12-34-56-78-9A-BC');
+      expect(vForeign.isValid, isFalse);
+      expect(vForeign.tier, QulopTier.invalid);
+    });
+
+    test(
+        '11. WhatsApp backtick/whitespace copy artifacts sanitize cleanly and corrupted expiry is rejected',
+        () async {
+      final hostMac = await QulopService.getDeviceMacAddress();
+      final key = QulopService.generatePurchaseKey(
+        macAddress: hostMac,
+        clientName: 'Sanitized Store',
+        tierCode: 'QTR',
+      );
+
+      final messy = '  `$key\n`  ';
+      final verified = await QulopService.verifyQulopKey(messy);
+      expect(verified.isValid, isTrue);
+      expect(verified.tier, QulopTier.quarterly);
+
+      // Signed non-LFT payload with invalid expiry date must NOT fall back to 9999 days
+      final badPayload = base64Url.encode(utf8.encode(jsonEncode({
+        'c': 'Bad Expiry Store',
+        'm': 'ANY',
+        't': 'YRL',
+        'i': DateTime.now().toIso8601String().split('T').first,
+        'e': 'NOT-A-DATE',
+      })));
+      final hmac =
+          Hmac(sha256, utf8.encode('QULOP_SMART_POS_MASTER_SECRET_2026_PK'));
+      final sig = hmac
+          .convert(utf8.encode(badPayload))
+          .toString()
+          .substring(0, 8)
+          .toUpperCase();
+      final forgedExpiryKey = 'QULOP-YRL-$sig-$badPayload';
+
+      final badRes = await QulopService.verifyQulopKey(forgedExpiryKey);
+      expect(badRes.isValid, isFalse);
+      expect(badRes.tier, QulopTier.invalid);
+    });
+
+    test(
+        '12. Vendor ignoreHardwareCheck inspects foreign-bound keys while rejecting tampered keys',
+        () async {
+      final foreignKey = QulopService.generatePurchaseKey(
+        macAddress: 'DE-AD-BE-EF-12-34',
+        clientName: 'Foreign Pharmacy',
+        tierCode: 'HLF',
+      );
+
+      final inspected = await QulopService.verifyQulopKey(
+        foreignKey,
+        ignoreHardwareCheck: true,
+      );
+      expect(inspected.isValid, isTrue);
+      expect(inspected.clientName, equals('Foreign Pharmacy'));
+      expect(inspected.targetMac, equals('DEADBEEF1234'));
+
+      final tampered = '${foreignKey.substring(0, foreignKey.length - 2)}XX';
+      final tamperedRes = await QulopService.verifyQulopKey(
+        tampered,
+        ignoreHardwareCheck: true,
+      );
+      expect(tamperedRes.isValid, isFalse);
+      expect(tamperedRes.tierLabel, contains('Forgery'));
     });
   });
 }

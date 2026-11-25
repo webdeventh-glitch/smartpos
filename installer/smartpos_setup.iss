@@ -2,7 +2,7 @@
 ; Automatically compiles the complete professional Windows Installation Wizard
 
 #define MyAppName "Smart POS Enterprise"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.1.1"
 #define MyAppPublisher "Webdeventh"
 #define MyAppURL "https://webdeventh.com"
 #define MyAppExeName "SmartPOS.exe"
@@ -20,7 +20,7 @@ DefaultDirName={autopf}\Smart POS Enterprise
 DefaultGroupName=Smart POS Enterprise
 AllowNoIcons=yes
 OutputDir=..\installer_output
-OutputBaseFilename=SmartPOS_Enterprise_Setup_v1.1
+OutputBaseFilename=SmartPOS_Enterprise_Setup_v1.1.1
 SetupIconFile=..\windows\runner\resources\app_icon.ico
 WizardImageFile=wizard_image.bmp
 WizardSmallImageFile=wizard_small_image.bmp

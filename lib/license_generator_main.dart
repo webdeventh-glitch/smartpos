@@ -48,6 +48,7 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
 
   String _generatedKey = '';
   DateTime? _calcExpiry;
+  String _hostHwId = 'Loading...';
   String _hostMac = 'Loading...';
 
   // Recent generated keys log
@@ -56,7 +57,7 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
   @override
   void initState() {
     super.initState();
-    _loadHostMac();
+    _loadHostIdentifiers();
   }
 
   @override
@@ -67,10 +68,14 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
     super.dispose();
   }
 
-  Future<void> _loadHostMac() async {
+  Future<void> _loadHostIdentifiers() async {
+    final hwId = await LicenseService.getHardwareId();
     final mac = await LicenseService.getDeviceMacAddress();
     if (mounted) {
-      setState(() => _hostMac = mac);
+      setState(() {
+        _hostHwId = hwId;
+        _hostMac = mac;
+      });
     }
   }
 
@@ -90,7 +95,8 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
     if (mac.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Please enter client machine MAC address'),
+            content:
+                Text('Please enter client Hardware ID (HWID), MAC, or ANY'),
             backgroundColor: Colors.orange),
       );
       return;
@@ -102,17 +108,40 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
     if (_selectedTier == 'HLF') days = 180;
     if (_selectedTier == 'YRL') days = 365;
     if (_selectedTier == 'CST') {
-      days = int.tryParse(_customDaysCtrl.text.trim()) ?? 30;
+      final parsedDays = int.tryParse(_customDaysCtrl.text.trim());
+      if (_customExpiryDate == null && (parsedDays == null || parsedDays < 1)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Custom duration must be at least 1 day or pick a future date.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+      days = parsedDays ?? 30;
     }
 
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     DateTime? expiry;
     if (_selectedTier == 'LFT') {
       expiry = null;
     } else if (_customExpiryDate != null && _selectedTier == 'CST') {
-      expiry = _customExpiryDate;
+      final pickedDay = DateTime(_customExpiryDate!.year,
+          _customExpiryDate!.month, _customExpiryDate!.day);
+      if (pickedDay.isBefore(today)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Custom expiry date cannot be in the past.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+      expiry = pickedDay;
     } else {
-      expiry = now.add(Duration(days: days));
+      expiry = today.add(Duration(days: days));
     }
 
     final key = LicenseService.generatePurchaseKey(
@@ -144,6 +173,128 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
         backgroundColor: Color(0xFF10B981),
       ),
     );
+  }
+
+  Future<void> _openVerifyKeyDialog() async {
+    final ctrl = TextEditingController(text: _generatedKey);
+    QulopStatus? result;
+    if (ctrl.text.trim().isNotEmpty) {
+      result = await LicenseService.verifyQulopKey(ctrl.text,
+          ignoreHardwareCheck: true);
+    }
+    if (!mounted) {
+      ctrl.dispose();
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: const Row(
+            children: [
+              Icon(Icons.verified_user_rounded, color: Color(0xFF38BDF8)),
+              SizedBox(width: 10),
+              Text('Inspect / Verify License Key',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
+            ],
+          ),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: ctrl,
+                  maxLines: 3,
+                  style: const TextStyle(
+                      color: Colors.white, fontFamily: 'Courier', fontSize: 12),
+                  decoration: InputDecoration(
+                    labelText: 'Paste QULOP / SPOS Key',
+                    filled: true,
+                    fillColor: const Color(0xFF0F172A),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (result != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: result!.isValid
+                          ? const Color(0xFF064E3B)
+                          : const Color(0xFF450A0A),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: result!.isValid
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFEF4444),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          result!.isValid
+                              ? 'SIGNATURE VALID — ${result!.tierLabel}'
+                              : 'INVALID — ${result!.tierLabel}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13),
+                        ),
+                        const SizedBox(height: 4),
+                        Text('Message: ${result!.message}',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12)),
+                        if (result!.clientName != null)
+                          Text('Client: ${result!.clientName}',
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 12)),
+                        if (result!.targetMac != null)
+                          Text('Bound ID: ${result!.targetMac}',
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 12)),
+                        if (result!.issueDate != null)
+                          Text(
+                              'Issued: ${result!.issueDate!.toIso8601String().split('T').first}',
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 12)),
+                        if (result!.expiryDate != null && !result!.isLifetime)
+                          Text(
+                              'Expires: ${result!.expiryDate!.toIso8601String().split('T').first} (${result!.remainingDays} days)',
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final inspected = await LicenseService.verifyQulopKey(
+                  ctrl.text,
+                  ignoreHardwareCheck: true,
+                );
+                setDialogState(() => result = inspected);
+              },
+              icon: const Icon(Icons.search_rounded, size: 16),
+              label: const Text('Verify Key'),
+            ),
+          ],
+        ),
+      ),
+    );
+    ctrl.dispose();
   }
 
   void _copyKeyOnly() {
@@ -198,6 +349,14 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
           ],
         ),
         actions: [
+          TextButton.icon(
+            onPressed: _openVerifyKeyDialog,
+            icon: const Icon(Icons.verified_user_outlined,
+                size: 16, color: Color(0xFF34D399)),
+            label: const Text('Inspect / Verify Key',
+                style: TextStyle(color: Color(0xFF34D399), fontSize: 12)),
+          ),
+          const SizedBox(width: 8),
           Container(
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -211,7 +370,7 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                 const Icon(Icons.computer_rounded,
                     size: 16, color: Color(0xFF38BDF8)),
                 const SizedBox(width: 6),
-                Text('Vendor PC MAC: $_hostMac',
+                Text('Vendor HWID: $_hostHwId  •  MAC: $_hostMac',
                     style: const TextStyle(
                         fontSize: 12, color: Color(0xFF94A3B8))),
               ],
@@ -285,17 +444,21 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Machine MAC Address
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        // Machine ID / MAC Address
+                        Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 4,
                           children: [
                             const Text(
-                                '2. Client Hardware Machine ID (MAC Address) *',
+                                '2. Client Hardware ID (HWID), MAC, or ANY *',
                                 style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                     color: Color(0xFFCBD5E1))),
-                            Row(
+                            Wrap(
+                              spacing: 8,
                               children: [
                                 TextButton.icon(
                                   style: TextButton.styleFrom(
@@ -303,7 +466,7 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                                       visualDensity: VisualDensity.compact),
                                   icon: const Icon(Icons.paste_rounded,
                                       size: 14, color: Color(0xFF38BDF8)),
-                                  label: const Text('Paste MAC',
+                                  label: const Text('Paste ID',
                                       style: TextStyle(
                                           fontSize: 12,
                                           color: Color(0xFF38BDF8))),
@@ -315,19 +478,45 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                                     }
                                   },
                                 ),
-                                const SizedBox(width: 10),
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact),
+                                  icon: const Icon(Icons.fingerprint_rounded,
+                                      size: 14, color: Color(0xFF34D399)),
+                                  label: const Text('My HWID',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF34D399))),
+                                  onPressed: () {
+                                    _macCtrl.text = _hostHwId;
+                                  },
+                                ),
                                 TextButton.icon(
                                   style: TextButton.styleFrom(
                                       padding: EdgeInsets.zero,
                                       visualDensity: VisualDensity.compact),
                                   icon: const Icon(Icons.laptop_chromebook,
-                                      size: 14, color: Color(0xFF34D399)),
-                                  label: const Text('Use My PC MAC',
+                                      size: 14, color: Color(0xFF818CF8)),
+                                  label: const Text('My MAC',
                                       style: TextStyle(
                                           fontSize: 12,
-                                          color: Color(0xFF34D399))),
+                                          color: Color(0xFF818CF8))),
                                   onPressed: () {
                                     _macCtrl.text = _hostMac;
+                                  },
+                                ),
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact),
+                                  icon: const Icon(Icons.public_rounded,
+                                      size: 14, color: Colors.amber),
+                                  label: const Text('Universal (ANY)',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.amber)),
+                                  onPressed: () {
+                                    _macCtrl.text = 'ANY';
                                   },
                                 ),
                               ],
@@ -341,7 +530,8 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                               fontFamily: 'Courier',
                               fontWeight: FontWeight.bold),
                           decoration: InputDecoration(
-                            hintText: 'e.g. C8-3A-35-1C-4B-40',
+                            hintText:
+                                'e.g. HWID-4C4C4544... or C8-3A-35-1C-4B-40 or ANY',
                             hintStyle:
                                 const TextStyle(color: Color(0xFF64748B)),
                             filled: true,
@@ -406,6 +596,12 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                                       border: OutlineInputBorder(),
                                       isDense: true,
                                     ),
+                                    onChanged: (_) {
+                                      if (_customExpiryDate != null) {
+                                        setState(
+                                            () => _customExpiryDate = null);
+                                      }
+                                    },
                                   ),
                                 ),
                                 const SizedBox(width: 14),
@@ -422,19 +618,25 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                                       ? '${_customExpiryDate!.day}/${_customExpiryDate!.month}/${_customExpiryDate!.year}'
                                       : 'Pick Specific Date'),
                                   onPressed: () async {
+                                    final now = DateTime.now();
+                                    final today =
+                                        DateTime(now.year, now.month, now.day);
                                     final picked = await showDatePicker(
                                       context: context,
-                                      initialDate: DateTime.now()
-                                          .add(const Duration(days: 30)),
-                                      firstDate: DateTime.now(),
-                                      lastDate: DateTime.now()
-                                          .add(const Duration(days: 3650)),
+                                      initialDate:
+                                          today.add(const Duration(days: 30)),
+                                      firstDate:
+                                          today.add(const Duration(days: 1)),
+                                      lastDate:
+                                          today.add(const Duration(days: 3650)),
                                     );
                                     if (picked != null) {
+                                      final pickedDay = DateTime(picked.year,
+                                          picked.month, picked.day);
                                       setState(() {
-                                        _customExpiryDate = picked;
-                                        _customDaysCtrl.text = picked
-                                            .difference(DateTime.now())
+                                        _customExpiryDate = pickedDay;
+                                        _customDaysCtrl.text = pickedDay
+                                            .difference(today)
                                             .inDays
                                             .toString();
                                       });
@@ -566,7 +768,18 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                               _metaRow(
                                 'Expiry Date:',
                                 _calcExpiry != null
-                                    ? '${_calcExpiry!.day}/${_calcExpiry!.month}/${_calcExpiry!.year} (${_calcExpiry!.difference(DateTime.now()).inDays + 1} days left)'
+                                    ? () {
+                                        final now = DateTime.now();
+                                        final today = DateTime(
+                                            now.year, now.month, now.day);
+                                        final exp = DateTime(
+                                            _calcExpiry!.year,
+                                            _calcExpiry!.month,
+                                            _calcExpiry!.day);
+                                        final daysLeft =
+                                            exp.difference(today).inDays;
+                                        return '${_calcExpiry!.day}/${_calcExpiry!.month}/${_calcExpiry!.year} ($daysLeft days valid)';
+                                      }()
                                     : 'Lifetime (Never Expires)',
                               ),
                               const SizedBox(height: 16),

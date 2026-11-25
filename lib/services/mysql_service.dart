@@ -2129,6 +2129,7 @@ class MySqlService {
           `currency_symbol` = VALUES(`currency_symbol`),
           `currency_code` = VALUES(`currency_code`),
           `business_type` = VALUES(`business_type`),
+          `purchase_key` = VALUES(`purchase_key`),
           `is_configured` = 1,
           `primary_db_type` = VALUES(`primary_db_type`),
           `db_host` = VALUES(`db_host`),
