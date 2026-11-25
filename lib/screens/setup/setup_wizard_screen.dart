@@ -61,6 +61,43 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   String _selectedPreset = 'universal';
   Set<String> get _selectedPresets => {_selectedPreset};
 
+  // Optional Commercial Feature Modules (toggleable at installation, bounded by license tier)
+  static const List<Map<String, String>> _optionalFeatureCatalog = [
+    {'id': BusinessSettings.moduleExpenses, 'label': 'Expenses Tracker'},
+    {'id': BusinessSettings.moduleReturns, 'label': 'Sales & Purchase Returns'},
+    {
+      'id': BusinessSettings.modulePrintLabels,
+      'label': 'Barcode Labels & Import'
+    },
+    {
+      'id': BusinessSettings.moduleWholesaleTools,
+      'label': 'Orders & Price Groups'
+    },
+    {'id': BusinessSettings.moduleVariations, 'label': 'Product Variations'},
+    {'id': BusinessSettings.moduleStockTransfers, 'label': 'Stock Transfers'},
+    {'id': BusinessSettings.moduleStockAudit, 'label': 'Stock & Expiry Audit'},
+    {
+      'id': BusinessSettings.moduleFiscalClosing,
+      'label': 'Fiscal Year Closing'
+    },
+    {
+      'id': BusinessSettings.moduleAccountingCrm,
+      'label': 'Accounting & Cheques'
+    },
+    {'id': BusinessSettings.moduleHrm, 'label': 'HR & Payroll'},
+    {'id': BusinessSettings.moduleMessaging, 'label': 'SMS & WhatsApp Alerts'},
+    {'id': BusinessSettings.moduleFiscalTax, 'label': 'FBR / ZATCA Tax'},
+    {'id': BusinessSettings.moduleMultiCurrency, 'label': 'Multi-Currency FX'},
+    {'id': BusinessSettings.moduleLanMultiPc, 'label': 'LAN Multi-Counter'},
+    {'id': BusinessSettings.moduleCloudSync, 'label': 'Cloud Hybrid Sync'},
+    {'id': BusinessSettings.moduleCloudBackup, 'label': 'Online Cloud Backup'},
+    {'id': BusinessSettings.moduleWooCommerce, 'label': 'WooCommerce Store'},
+    {'id': BusinessSettings.moduleReporting, 'label': 'Financial Reports'},
+  ];
+
+  Set<String> _selectedCommercialModules =
+      Set<String>.from(BusinessSettings.commercialFeatureKeys);
+
   bool _seedSampleData = true;
   bool _isInstallationComplete = false;
   BusinessSettings? _finalizedSettings;
@@ -312,6 +349,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           if (!status.isValid) {
             _licenseError = status.message;
           } else {
+            // Intersect selectable commercial modules with the active license's entitlements
+            _selectedCommercialModules = BusinessSettings.commercialFeatureKeys
+                .where(status.isFeatureLicensed)
+                .toSet();
             if (!status.allowsHybridSync && _deploymentMode == 'cloud_hybrid') {
               _deploymentMode = 'offline_server';
             } else if (status.allowsHybridSync) {
@@ -558,7 +599,13 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
   List<String> _calculateEnabledModules() {
     final type = _determinePrimaryBusinessType();
-    return BusinessSettings.defaultModulesForBusinessType(type);
+    final defaults = BusinessSettings.defaultModulesForBusinessType(type);
+    // Keep vertical/industry modules bound to the selected business, plus installer-chosen licensed commercial modules
+    final verticalModules = defaults
+        .where((m) => !BusinessSettings.commercialFeatureKeys.contains(m));
+    final licensedCommercial = _selectedCommercialModules.where(
+        (m) => _licenseStatus == null || _licenseStatus!.isFeatureLicensed(m));
+    return {...verticalModules, ...licensedCommercial}.toList();
   }
 
   Future<void> _completeInstallation() async {
@@ -1540,6 +1587,24 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             ),
                             child: Text(
                               _licenseStatus!.accessMode.toUpperCase(),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _licenseStatus!.isFullFeatured
+                                  ? const Color(0xFF059669)
+                                  : const Color(0xFFD97706),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _licenseStatus!.packageTierLabel.toUpperCase(),
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -2648,6 +2713,108 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
         // Selected Business Features Banner
         _buildSelectedIndustryPreviewCard(isDark),
+        const SizedBox(height: 16),
+
+        // Optional Commercial Modules Customization (Drop unwanted / unlicensed features cleanly)
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.extension_rounded,
+                      color: Color(0xFF4F46E5), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _translateLabel(
+                          'Optional Feature Modules (Toggle Client Features)'),
+                      style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A)),
+                    ),
+                  ),
+                  Text(
+                    '${_selectedCommercialModules.length}/${_optionalFeatureCatalog.length} Active',
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF10B981)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _translateLabel(
+                    'Uncheck features this client does not need (like SMS/WhatsApp, Cloud Sync, HRM). Locked features unlock automatically upon license upgrade.'),
+                style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _optionalFeatureCatalog.map((feat) {
+                  final fId = feat['id']!;
+                  final fLabel = feat['label']!;
+                  final isLicensed =
+                      _licenseStatus?.isFeatureLicensed(fId) ?? true;
+                  final isSelected =
+                      isLicensed && _selectedCommercialModules.contains(fId);
+                  return FilterChip(
+                    selected: isSelected,
+                    avatar: !isLicensed
+                        ? const Icon(Icons.lock_outline_rounded,
+                            size: 13, color: Color(0xFFD97706))
+                        : null,
+                    label: Text(
+                      isLicensed ? fLabel : '$fLabel (Upgrade)',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: !isLicensed
+                            ? const Color(0xFFD97706)
+                            : (isSelected
+                                ? const Color(0xFF4F46E5)
+                                : (isDark
+                                    ? const Color(0xFFCBD5E1)
+                                    : const Color(0xFF475569))),
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    selectedColor:
+                        const Color(0xFF4F46E5).withValues(alpha: 0.14),
+                    checkmarkColor: const Color(0xFF4F46E5),
+                    onSelected: isLicensed
+                        ? (val) {
+                            setState(() {
+                              if (val) {
+                                _selectedCommercialModules.add(fId);
+                              } else {
+                                _selectedCommercialModules.remove(fId);
+                              }
+                            });
+                          }
+                        : null,
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
 
         // Sample Data Seed Option

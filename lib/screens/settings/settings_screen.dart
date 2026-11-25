@@ -966,7 +966,22 @@ class _SettingsScreenState extends State<SettingsScreen>
       return;
     }
 
-    // Key is valid -> save to database
+    // Key is valid -> save to database and auto-unlock any newly licensed modules
+    final currentMods = Set<String>.from(widget.settings.activeModules);
+    if (verification.isFullFeatured) {
+      currentMods.addAll(BusinessSettings.commercialFeatureKeys);
+    } else {
+      currentMods.addAll(verification.licensedFeatures);
+    }
+    final nextSyncMode =
+        verification.allowsOnlineApi && widget.settings.isHybridPrimary
+            ? 'online'
+            : (verification.allowsHybridSync && widget.settings.isHybridPrimary
+                ? 'hybrid'
+                : (verification.allowsHybridSync
+                    ? widget.settings.syncMode
+                    : 'offline'));
+
     final updated = widget.settings.copyWith(
       businessName: _bizNameCtrl.text.trim(),
       branchName: _branchCtrl.text.trim(),
@@ -978,6 +993,9 @@ class _SettingsScreenState extends State<SettingsScreen>
       address: _addressCtrl.text.trim(),
       receiptFooter: _footerCtrl.text.trim(),
       purchaseKey: key,
+      enabledModules:
+          widget.settings.enforceSingleBusinessModules(currentMods.join(',')),
+      syncMode: nextSyncMode,
       hardwareId: _hostHwId.startsWith('HWID-')
           ? _hostHwId
           : widget.settings.hardwareId,
@@ -1000,8 +1018,9 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
 
     final db = await DatabaseService.initialize();
-    await db.updateBusinessSettings(updated);
+    QulopService.syncLicenseFeatureGate();
     QulopService.qulopNotifier.value = verification;
+    await db.updateBusinessSettings(updated);
     widget.onSettingsUpdated(updated);
 
     if (mounted) {
@@ -5661,7 +5680,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   ),
                                 ),
                                 child: Text(
-                                  _currentLicenseStatus!.accessModeLabel,
+                                  '${_currentLicenseStatus!.packageTierLabel} • ${_currentLicenseStatus!.accessModeLabel}',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,

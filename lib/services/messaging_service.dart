@@ -37,6 +37,23 @@ class MessagingService {
     bool logToDb = true,
   }) async {
     final db = await DatabaseService.initialize();
+    final settings = await db.getBusinessSettings();
+    if (!settings.isModuleEnabled(BusinessSettings.moduleMessaging)) {
+      if (logToDb) {
+        await db.addMessageLog(MessageLog(
+          recipientName: recipientName,
+          phoneNumber: formatPhoneNumber(to),
+          channel: 'sms',
+          messageBody: message,
+          status: 'blocked',
+          gatewayName: 'ModuleDisabled',
+          errorDetails:
+              'SMS & WhatsApp module is disabled or requires license upgrade.',
+          createdAt: DateTime.now().toIso8601String(),
+        ));
+      }
+      return false;
+    }
     final cleanPhone = formatPhoneNumber(to);
     final gateway = gatewayOverride ?? await db.getActiveSmsGateway();
 

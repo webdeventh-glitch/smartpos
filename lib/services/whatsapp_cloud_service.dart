@@ -22,6 +22,11 @@ class WhatsAppCloudService {
   }) async {
     final db = await DatabaseService.initialize();
     final settings = await db.getBusinessSettings();
+    if (!settings.isModuleEnabled(BusinessSettings.moduleMessaging)) {
+      AppLogger.info('WhatsAppCloudService',
+          'WhatsApp dispatch skipped: SMS & WhatsApp module disabled.');
+      return false;
+    }
 
     final cleanPhone =
         MessagingService.formatPhoneNumber(to, international: true);

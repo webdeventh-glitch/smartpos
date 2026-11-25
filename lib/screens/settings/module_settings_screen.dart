@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
+import '../../services/qulop_service.dart';
 
 class ModuleSettingsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -126,6 +127,12 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
     );
   }
 
+  bool _isLicensedFeature(String key) {
+    final lic = QulopService.qulopNotifier.value;
+    if (lic == null) return true;
+    return lic.isFeatureLicensed(key);
+  }
+
   void _toggleModule(String key, bool enabled) {
     final lower = key.toLowerCase();
     if (widget.settings.isConfigured &&
@@ -140,6 +147,10 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
       );
       return;
     }
+    if (enabled && !_isLicensedFeature(lower)) {
+      _showUpgradeLicenseDialog(featureName: lower);
+      return;
+    }
     setState(() {
       if (enabled) {
         _activeModules.add(lower);
@@ -147,6 +158,129 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
         _activeModules.remove(lower);
       }
     });
+  }
+
+  Future<void> _showUpgradeLicenseDialog({String? featureName}) async {
+    final keyCtrl = TextEditingController();
+    String? errText;
+    bool isBusy = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.workspace_premium_rounded, color: Color(0xFF4F46E5)),
+              SizedBox(width: 8),
+              Text('Upgrade License Tier',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            ],
+          ),
+          content: SizedBox(
+            width: 480,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  featureName != null
+                      ? 'The "$featureName" module is not included in your current license package. Paste an upgraded license key (e.g. Pro or Enterprise Full Featured) to unlock it immediately without losing any data.'
+                      : 'Paste an upgraded Smart POS license key to unlock additional commercial modules immediately.',
+                  style: const TextStyle(fontSize: 12.5, height: 1.45),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: keyCtrl,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Upgraded License Key',
+                    hintText: 'QULOP-YRL-...',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                if (errText != null) ...[
+                  const SizedBox(height: 10),
+                  Text(errText!,
+                      style: const TextStyle(
+                          color: Colors.redAccent, fontSize: 12)),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              onPressed: isBusy
+                  ? null
+                  : () async {
+                      final key = QulopService.sanitizeKeyInput(keyCtrl.text);
+                      if (key.isEmpty) {
+                        setDialogState(
+                            () => errText = 'Please paste a license key.');
+                        return;
+                      }
+                      setDialogState(() {
+                        isBusy = true;
+                        errText = null;
+                      });
+                      final verified = await QulopService.verifyQulopKey(key);
+                      if (!verified.isValid) {
+                        setDialogState(() {
+                          isBusy = false;
+                          errText = verified.message;
+                        });
+                        return;
+                      }
+
+                      final nextMods = Set<String>.from(_activeModules);
+                      if (verified.isFullFeatured) {
+                        nextMods.addAll(BusinessSettings.commercialFeatureKeys);
+                      } else {
+                        nextMods.addAll(verified.licensedFeatures);
+                      }
+                      final updated = widget.settings.copyWith(
+                        purchaseKey: key,
+                        enabledModules: widget.settings
+                            .enforceSingleBusinessModules(nextMods.join(',')),
+                      );
+                      QulopService.syncLicenseFeatureGate();
+                      QulopService.qulopNotifier.value = verified;
+                      final db = await DatabaseService.initialize();
+                      await db.updateBusinessSettings(updated);
+                      widget.onSettingsUpdated?.call();
+
+                      if (mounted) {
+                        setState(() {
+                          _activeModules =
+                              Set<String>.from(updated.activeModules);
+                        });
+                      }
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx);
+                      }
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Upgraded to ${verified.packageTierLabel}! Modules unlocked live.'),
+                            backgroundColor: const Color(0xFF10B981),
+                          ),
+                        );
+                      }
+                    },
+              icon: const Icon(Icons.verified_rounded, size: 16),
+              label: Text(isBusy ? 'Verifying...' : 'Activate Upgrade'),
+            ),
+          ],
+        ),
+      ),
+    );
+    keyCtrl.dispose();
   }
 
   void _resetToDefaults() {
@@ -186,12 +320,14 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
         BusinessSettings.moduleExpenses,
         BusinessSettings.moduleReturns,
         BusinessSettings.moduleFiscalClosing,
+        ...BusinessSettings.commercialFeatureKeys,
       };
-      _activeModules = widget.settings.isConfigured
-          ? allCandidates
-              .where(widget.settings.isModuleAllowedForInstalledBusiness)
-              .toSet()
-          : allCandidates;
+      _activeModules = allCandidates
+          .where((k) =>
+              (!widget.settings.isConfigured ||
+                  widget.settings.isModuleAllowedForInstalledBusiness(k)) &&
+              _isLicensedFeature(k))
+          .toSet();
     });
   }
 
@@ -271,8 +407,10 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isLockedOther = widget.settings.isConfigured &&
+    final isLockedByBusiness = widget.settings.isConfigured &&
         !widget.settings.isModuleAllowedForInstalledBusiness(key);
+    final isLockedByLicense = !_isLicensedFeature(key);
+    final isLockedOther = isLockedByBusiness || isLockedByLicense;
     final isEnabled =
         !isLockedOther && _activeModules.contains(key.toLowerCase());
 
@@ -347,9 +485,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        isLockedOther
-                            ? 'LOCKED'
-                            : (isEnabled ? 'ACTIVE' : 'DISABLED'),
+                        isLockedByBusiness
+                            ? 'BUSINESS LOCKED'
+                            : (isLockedByLicense
+                                ? 'UPGRADE LICENSE'
+                                : (isEnabled ? 'ACTIVE' : 'DISABLED')),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -392,11 +532,24 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          Switch(
-            value: isEnabled,
-            activeThumbColor: const Color(0xFF4F46E5),
-            onChanged: isLockedOther ? null : (val) => _toggleModule(key, val),
-          ),
+          if (isLockedByLicense && !isLockedByBusiness)
+            TextButton.icon(
+              onPressed: () => _showUpgradeLicenseDialog(featureName: title),
+              icon: const Icon(Icons.lock_open_rounded,
+                  size: 14, color: Color(0xFFD97706)),
+              label: const Text('Upgrade',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFD97706))),
+            )
+          else
+            Switch(
+              value: isEnabled,
+              activeThumbColor: const Color(0xFF4F46E5),
+              onChanged:
+                  isLockedOther ? null : (val) => _toggleModule(key, val),
+            ),
         ],
       ),
     );
@@ -792,13 +945,23 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.domain_add_rounded, size: 16),
-                        label: Text(PosLocalization.tr('Enable All 16 Modules',
+                        label: Text(PosLocalization.tr('Enable All Licensed',
                             settings: widget.settings)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF8B5CF6),
                           side: const BorderSide(color: Color(0xFF8B5CF6)),
                         ),
                         onPressed: _enableAll,
+                      ),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.workspace_premium_rounded,
+                            size: 16),
+                        label: const Text('Upgrade License Key'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD97706),
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => _showUpgradeLicenseDialog(),
                       ),
                     ],
                   ),
@@ -1152,6 +1315,97 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                   'مالی سال کا اختتام، نفع و نقصان کا حتمی حساب اور نئے سال کا اوپننگ بیلنس',
               icon: Icons.account_balance_wallet_rounded,
               iconColor: const Color(0xFF14B8A6),
+              isIndustryModule: false,
+            ),
+            _buildModuleCard(
+              key: BusinessSettings.moduleMessaging,
+              title: 'SMS & WhatsApp Notifications',
+              subtitle:
+                  'Send automatic WhatsApp invoices, SMS payment reminders & templates.',
+              urduDesc:
+                  'واٹس ایپ رسیدیں، ایس ایم ایس یاددہانی اور کسٹم پیغامات',
+              icon: Icons.mark_email_read_rounded,
+              iconColor: const Color(0xFF059669),
+              isIndustryModule: false,
+            ),
+            _buildModuleCard(
+              key: BusinessSettings.moduleWholesaleTools,
+              title: 'Orders, Price Groups & Discounts',
+              subtitle:
+                  'Sales orders, purchase orders, selling price tiers, discount rules & commission agents.',
+              urduDesc: 'آرڈرز، ریٹ گروپس، ڈسکاؤنٹ رولز اور کمیشن ایجنٹس',
+              icon: Icons.layers_rounded,
+              iconColor: const Color(0xFF6366F1),
+              isIndustryModule: false,
+            ),
+            _buildModuleCard(
+              key: BusinessSettings.modulePrintLabels,
+              title: 'Barcode Labels & Bulk Import',
+              subtitle:
+                  'Print barcode sticker labels and import bulk catalogs via CSV/Excel.',
+              urduDesc: 'بارکوڈ اسٹیکر پرنٹنگ اور ایکسل امپورٹ',
+              icon: Icons.qr_code_2_rounded,
+              iconColor: const Color(0xFF0284C7),
+              isIndustryModule: false,
+            ),
+            _buildModuleCard(
+              key: BusinessSettings.moduleReporting,
+              title: 'Financial & Profit Reports',
+              subtitle:
+                  'Detailed Profit & Loss, Tax reports, Cash Register Z-Reports & Contact Dues.',
+              urduDesc: 'نفع نقصان، ٹیکس اور مکمل مالیاتی رپورٹس',
+              icon: Icons.analytics_rounded,
+              iconColor: const Color(0xFFEC4899),
+              isIndustryModule: false,
+            ),
+            _buildModuleCard(
+              key: BusinessSettings.moduleFiscalTax,
+              title: 'FBR / ZATCA Tax Compliance',
+              subtitle:
+                  'Pakistan FBR POS invoicing QR & Saudi ZATCA TLV compliant tax invoices.',
+              urduDesc: 'ایف بی آر اور زکوٰۃ ٹیکس انوائس کیو آر کمپلائنس',
+              icon: Icons.verified_user_rounded,
+              iconColor: const Color(0xFF0D9488),
+              isIndustryModule: false,
+            ),
+            _buildModuleCard(
+              key: BusinessSettings.moduleMultiCurrency,
+              title: 'Multi-Currency & Exchange Rates',
+              subtitle:
+                  'Support multiple currencies with configurable FX rates on invoices.',
+              urduDesc: 'متعدد کرنسیاں اور ایکسچینج ریٹس کی سہولت',
+              icon: Icons.currency_exchange_rounded,
+              iconColor: const Color(0xFF8B5CF6),
+              isIndustryModule: false,
+            ),
+            _buildModuleCard(
+              key: BusinessSettings.moduleLanMultiPc,
+              title: 'LAN Multi-Counter Network',
+              subtitle:
+                  'Connect secondary counters and mobile billing terminals over local Wi-Fi/LAN.',
+              urduDesc: 'ایک سے زیادہ کاؤنٹرز کو لوکل نیٹ ورک پر جوڑنا',
+              icon: Icons.lan_rounded,
+              iconColor: const Color(0xFF3B82F6),
+              isIndustryModule: false,
+            ),
+            _buildModuleCard(
+              key: BusinessSettings.moduleCloudSync,
+              title: 'Cloud Hybrid Sync & Android App',
+              subtitle:
+                  'Bidirectional sync with webpixels.net cloud backend and Owner Mobile App.',
+              urduDesc: 'کلاؤڈ سنک اور اینڈرائیڈ اونر ایپ کنیکٹیوٹی',
+              icon: Icons.cloud_sync_rounded,
+              iconColor: const Color(0xFF0EA5E9),
+              isIndustryModule: false,
+            ),
+            _buildModuleCard(
+              key: BusinessSettings.moduleCloudBackup,
+              title: 'Automated Encrypted Cloud Backup',
+              subtitle:
+                  'Scheduled AES-encrypted offsite backups for disaster recovery.',
+              urduDesc: 'خودکار انکرپٹڈ کلاؤڈ بیک اپ',
+              icon: Icons.backup_rounded,
+              iconColor: const Color(0xFF10B981),
               isIndustryModule: false,
             ),
 

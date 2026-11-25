@@ -927,7 +927,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
                   title: 'Add Product',
                   urduSubtitle: 'نیا پروڈکٹ',
                   route: AppRoute.addProduct),
-            if (canPrintLabels)
+            if (canPrintLabels &&
+                _isModEnabled(BusinessSettings.modulePrintLabels))
               _subItem(
                   title: 'Print Labels',
                   urduSubtitle: 'بارکوڈ لیبلز',
@@ -937,17 +938,20 @@ class _SmartSidebarState extends State<SmartSidebar> {
                   title: 'Variations',
                   urduSubtitle: 'ویرینٹس',
                   route: AppRoute.variationTemplates),
-            if (canAddProduct)
+            if (canAddProduct &&
+                _isModEnabled(BusinessSettings.modulePrintLabels))
               _subItem(
                   title: 'Import Products',
                   urduSubtitle: 'امپورٹ',
                   route: AppRoute.importProducts),
-            if (canSettings)
+            if (canSettings &&
+                _isModEnabled(BusinessSettings.moduleWholesaleTools))
               _subItem(
                   title: 'Price Groups',
                   urduSubtitle: 'قیمت گروپس',
                   route: AppRoute.sellingPriceGroups),
-            if (canSettings || canAddProduct)
+            if ((canSettings || canAddProduct) &&
+                _isModEnabled(BusinessSettings.moduleWholesaleTools))
               _subItem(
                   title: 'Discount Rules',
                   urduSubtitle: 'رعایت کے اصول',
@@ -1000,7 +1004,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
       ],
 
       // Stock Adjustment
-      if (canInventory) ...[
+      if (canInventory && _isModEnabled(BusinessSettings.moduleStockAudit)) ...[
         _navItem(
           icon: Icons.tune_outlined,
           title: 'Stock Adjustment',
@@ -1050,12 +1054,12 @@ class _SmartSidebarState extends State<SmartSidebar> {
                 title: 'All Sales',
                 urduSubtitle: 'تمام بلز',
                 route: AppRoute.salesList),
-          if (canSales)
+          if (canSales && _isModEnabled(BusinessSettings.moduleWholesaleTools))
             _subItem(
                 title: 'Sales Orders',
                 urduSubtitle: 'سیلز آرڈرز',
                 route: AppRoute.salesOrders),
-          if (canSales)
+          if (canSales && _isModEnabled(BusinessSettings.moduleWholesaleTools))
             _subItem(
                 title: 'Commission Agents',
                 urduSubtitle: 'کمیشن ایجنٹس',
@@ -1097,10 +1101,11 @@ class _SmartSidebarState extends State<SmartSidebar> {
               title: 'Purchases List',
               urduSubtitle: 'خریداری لسٹ',
               route: AppRoute.purchasesList),
-          _subItem(
-              title: 'Purchase Orders',
-              urduSubtitle: 'پرچیز آرڈرز',
-              route: AppRoute.purchaseOrders),
+          if (_isModEnabled(BusinessSettings.moduleWholesaleTools))
+            _subItem(
+                title: 'Purchase Orders',
+                urduSubtitle: 'پرچیز آرڈرز',
+                route: AppRoute.purchaseOrders),
           if (canAddPurchase)
             _subItem(
                 title: 'Add Purchase',
@@ -1174,7 +1179,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
             route: AppRoute.customers),
       ],
 
-      if (canSettings) ...[
+      if (canSettings &&
+          _isModEnabled(BusinessSettings.moduleAccountingCrm)) ...[
         _navItem(
           icon: Icons.account_balance_outlined,
           title: 'Cheques & Clearing',
@@ -1214,7 +1220,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
       _sectionHeader('Reports & Audit'),
 
       // Reports
-      if (canReports) ...[
+      if (canReports && _isModEnabled(BusinessSettings.moduleReporting)) ...[
         _navItem(
           icon: Icons.analytics_outlined,
           title: 'Reports',
@@ -1236,10 +1242,11 @@ class _SmartSidebarState extends State<SmartSidebar> {
               title: 'Purchase & Sale',
               urduSubtitle: 'خرید و فروخت',
               route: AppRoute.reports),
-          _subItem(
-              title: 'Tax Report',
-              urduSubtitle: 'ٹیکس رپورٹ',
-              route: AppRoute.reports),
+          if (_isModEnabled(BusinessSettings.moduleFiscalTax))
+            _subItem(
+                title: 'Tax Report',
+                urduSubtitle: 'ٹیکس رپورٹ',
+                route: AppRoute.reports),
           _subItem(
               title: 'Contact Dues',
               urduSubtitle: 'کھاتہ بقایا جات',
@@ -1254,15 +1261,24 @@ class _SmartSidebarState extends State<SmartSidebar> {
               urduSubtitle: 'زیادہ بکنے والا مال',
               route: AppRoute.reports),
         ],
+      ] else if (canReports &&
+          _isModEnabled(BusinessSettings.moduleStockAudit)) ...[
+        _navItem(
+          icon: Icons.fact_check_outlined,
+          title: 'Stock & Expiry Audit',
+          urduSubtitle: 'سٹاک و ایکسپائری',
+          route: AppRoute.inventoryAudit,
+        ),
       ],
 
       // Notification Templates
-      _navItem(
-        icon: Icons.mark_email_read_outlined,
-        title: 'SMS & WhatsApp Alerts',
-        urduSubtitle: 'اطلاعات کے ٹیمپلیٹس',
-        route: AppRoute.notificationTemplates,
-      ),
+      if (_isModEnabled(BusinessSettings.moduleMessaging))
+        _navItem(
+          icon: Icons.mark_email_read_outlined,
+          title: 'SMS & WhatsApp Alerts',
+          urduSubtitle: 'اطلاعات کے ٹیمپلیٹس',
+          route: AppRoute.notificationTemplates,
+        ),
 
       // ==========================================
       // SECTION 6: SYSTEM PREFERENCES
@@ -1287,19 +1303,21 @@ class _SmartSidebarState extends State<SmartSidebar> {
               title: 'Business Settings',
               urduSubtitle: 'کاروباری معلومات',
               route: AppRoute.settings),
-          _subItem(
-              title: 'Payment Accounts',
-              urduSubtitle: 'بینک و کیش',
-              route: AppRoute.paymentAccounts),
+          if (_isModEnabled(BusinessSettings.moduleAccountingCrm))
+            _subItem(
+                title: 'Payment Accounts',
+                urduSubtitle: 'بینک و کیش',
+                route: AppRoute.paymentAccounts),
           if (_isModEnabled(BusinessSettings.moduleFiscalClosing))
             _subItem(
                 title: 'Annual Fiscal Closing',
                 urduSubtitle: 'سالانہ کلوزنگ',
                 route: AppRoute.annualClosing),
-          _subItem(
-              title: 'Cloud & MySQL Sync',
-              urduSubtitle: 'کلاؤڈ سنک',
-              route: AppRoute.cloudSync),
+          if (_isModEnabled(BusinessSettings.moduleCloudSync))
+            _subItem(
+                title: 'Cloud & MySQL Sync',
+                urduSubtitle: 'کلاؤڈ سنک',
+                route: AppRoute.cloudSync),
           _subItem(
               title: 'Modular Features',
               urduSubtitle: 'ماڈیولز آن/آف',

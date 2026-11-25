@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
+import 'models/models.dart';
 import 'services/license_service.dart';
 import 'services/vendor_license_registry_service.dart';
 
@@ -84,8 +85,44 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
       TextEditingController(text: '30');
   final TextEditingController _searchRegistryCtrl = TextEditingController();
 
+  static const List<Map<String, String>> _commercialFeatures = [
+    {'id': BusinessSettings.moduleExpenses, 'label': 'Expenses Tracker'},
+    {'id': BusinessSettings.moduleReturns, 'label': 'Sales & Purchase Returns'},
+    {
+      'id': BusinessSettings.modulePrintLabels,
+      'label': 'Barcode Labels & Import'
+    },
+    {
+      'id': BusinessSettings.moduleWholesaleTools,
+      'label': 'Orders & Price Groups'
+    },
+    {'id': BusinessSettings.moduleVariations, 'label': 'Product Variations'},
+    {'id': BusinessSettings.moduleStockTransfers, 'label': 'Stock Transfers'},
+    {'id': BusinessSettings.moduleStockAudit, 'label': 'Stock & Expiry Audit'},
+    {
+      'id': BusinessSettings.moduleFiscalClosing,
+      'label': 'Fiscal Year Closing'
+    },
+    {
+      'id': BusinessSettings.moduleAccountingCrm,
+      'label': 'Accounting & Cheques'
+    },
+    {'id': BusinessSettings.moduleHrm, 'label': 'HR & Payroll'},
+    {'id': BusinessSettings.moduleMessaging, 'label': 'SMS & WhatsApp Alerts'},
+    {'id': BusinessSettings.moduleFiscalTax, 'label': 'FBR / ZATCA Tax'},
+    {'id': BusinessSettings.moduleMultiCurrency, 'label': 'Multi-Currency FX'},
+    {'id': BusinessSettings.moduleLanMultiPc, 'label': 'LAN Multi-Counter'},
+    {'id': BusinessSettings.moduleCloudSync, 'label': 'Cloud Hybrid Sync'},
+    {'id': BusinessSettings.moduleCloudBackup, 'label': 'Online Cloud Backup'},
+    {'id': BusinessSettings.moduleWooCommerce, 'label': 'WooCommerce Store'},
+    {'id': BusinessSettings.moduleReporting, 'label': 'Financial Reports'},
+  ];
+
   String _selectedBusinessType = 'universal';
   String _selectedAccessMode = 'offline'; // 'offline', 'hybrid', 'online'
+  String _selectedPackageTier = LicenseService.pkgEnterprise;
+  Set<String> _selectedFeatures =
+      Set<String>.from(BusinessSettings.commercialFeatureKeys);
   String _selectedTier = 'YRL'; // TRL, QTR, HLF, YRL, CST, LFT
   bool _allowUpdates = true;
   DateTime? _customExpiryDate;
@@ -214,12 +251,22 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
       expiry = today.add(Duration(days: days));
     }
 
+    final isEnterprise = _selectedPackageTier == LicenseService.pkgEnterprise ||
+        _selectedFeatures.length >=
+            BusinessSettings.commercialFeatureKeys.length;
+    final effectivePkg =
+        isEnterprise ? LicenseService.pkgEnterprise : _selectedPackageTier;
+    final effectiveFeatures =
+        isEnterprise ? const ['*'] : _selectedFeatures.toList();
+
     final key = LicenseService.generatePurchaseKey(
       macAddress: mac,
       clientName: client,
       tierCode: _selectedTier,
       businessType: _selectedBusinessType,
       accessMode: _selectedAccessMode,
+      packageTier: effectivePkg,
+      enabledFeatures: effectiveFeatures,
       allowUpdates: _allowUpdates,
       customDays: days,
       customExpiryDate: expiry,
@@ -235,6 +282,8 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
       clientName: client,
       businessType: _selectedBusinessType,
       accessMode: _selectedAccessMode,
+      packageTier: effectivePkg,
+      enabledFeatures: effectiveFeatures,
       contactInfo: _contactCtrl.text.trim(),
       machineId: mac.toUpperCase(),
       tierCode: _selectedTier,
@@ -349,6 +398,10 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 12)),
                         Text('Operation Mode: ${result!.accessModeLabel}',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12)),
+                        Text(
+                            'Package: ${result!.packageTierLabel} (${result!.isFullFeatured ? 'All Features' : '${result!.licensedFeatures.length} modules'})',
                             style: const TextStyle(
                                 color: Colors.white70, fontSize: 12)),
                         if (result!.targetMac != null)
@@ -854,6 +907,11 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
               ? r.businessType
               : 'universal';
       _selectedAccessMode = LicenseService.normalizeAccessMode(r.accessMode);
+      _selectedPackageTier = r.packageTier;
+      _selectedFeatures = r.enabledFeatures.contains('*') ||
+              r.packageTier == LicenseService.pkgEnterprise
+          ? Set<String>.from(BusinessSettings.commercialFeatureKeys)
+          : r.enabledFeatures.toSet();
       _selectedTier = r.tierCode;
       _allowUpdates = r.allowUpdates;
       _generatedKey = r.licenseKey;
@@ -1323,6 +1381,81 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
 
                         const SizedBox(height: 18),
 
+                        const Text(
+                            '5. Package Tier & Toggleable Modules (Charge by Features) *',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Color(0xFFCBD5E1))),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _packageTierChip(LicenseService.pkgStarter,
+                                'Starter (Basic)', Colors.amber),
+                            _packageTierChip(LicenseService.pkgStandard,
+                                'Standard', Colors.cyan),
+                            _packageTierChip(LicenseService.pkgPro,
+                                'Pro Business', Colors.purpleAccent),
+                            _packageTierChip(LicenseService.pkgEnterprise,
+                                'Full Featured', const Color(0xFF10B981)),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F172A),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFF334155)),
+                          ),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: _commercialFeatures.map((feat) {
+                              final fId = feat['id']!;
+                              final fLabel = feat['label']!;
+                              final active = _selectedFeatures.contains(fId);
+                              return FilterChip(
+                                selected: active,
+                                label: Text(
+                                  fLabel,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: active
+                                        ? Colors.white
+                                        : const Color(0xFF94A3B8),
+                                  ),
+                                ),
+                                selectedColor: const Color(0xFF4F46E5),
+                                backgroundColor: const Color(0xFF1E293B),
+                                checkmarkColor: Colors.white,
+                                onSelected: (val) {
+                                  setState(() {
+                                    if (val) {
+                                      _selectedFeatures.add(fId);
+                                    } else {
+                                      _selectedFeatures.remove(fId);
+                                    }
+                                    if (_selectedFeatures.length >=
+                                        BusinessSettings
+                                            .commercialFeatureKeys.length) {
+                                      _selectedPackageTier =
+                                          LicenseService.pkgEnterprise;
+                                    } else {
+                                      _selectedPackageTier =
+                                          LicenseService.pkgCustom;
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 8),
@@ -1480,6 +1613,15 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                                   'Access Mode:',
                                   LicenseService.getAccessModeLabel(
                                       _selectedAccessMode)),
+                              _metaRow(
+                                  'Package & Modules:',
+                                  _selectedPackageTier ==
+                                              LicenseService.pkgEnterprise ||
+                                          _selectedFeatures.length >=
+                                              BusinessSettings
+                                                  .commercialFeatureKeys.length
+                                      ? 'Enterprise (Full Featured)'
+                                      : '${LicenseService.getPackageTierLabel(_selectedPackageTier)} (${_selectedFeatures.length} modules)'),
                               _metaRow('Bound Machine ID:', _macCtrl.text),
                               _metaRow('Subscription Plan:',
                                   LicenseService.getTierLabel(_selectedTier)),
@@ -1839,6 +1981,52 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                   color: Colors.white,
                   fontSize: 12)),
         ],
+      ),
+    );
+  }
+
+  Widget _packageTierChip(String pkgCode, String label, Color color) {
+    final isSelected = _selectedPackageTier == pkgCode;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedPackageTier = pkgCode;
+          if (pkgCode == LicenseService.pkgEnterprise) {
+            _selectedFeatures =
+                Set<String>.from(BusinessSettings.commercialFeatureKeys);
+          } else {
+            _selectedFeatures = Set<String>.from(
+                LicenseService.featuresForPackageTier(pkgCode));
+          }
+          if (pkgCode == LicenseService.pkgEnterprise ||
+              _selectedFeatures.contains(BusinessSettings.moduleCloudSync)) {
+            if (_selectedAccessMode == 'offline') {
+              _selectedAccessMode = 'hybrid';
+            }
+          }
+        });
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.2)
+              : const Color(0xFF0F172A),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? color : const Color(0xFF334155),
+            width: isSelected ? 1.8 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+          ),
+        ),
       ),
     );
   }

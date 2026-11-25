@@ -139,6 +139,7 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
       subtitle: 'Daily shop rent, electricity, salaries & misc costs',
       icon: Icons.money_off_csred_outlined,
       keywords: ['kharcha', 'bills', 'petty cash'],
+      requiredModule: BusinessSettings.moduleExpenses,
     ),
     _CommandDestination(
       route: AppRoute.units,
@@ -165,12 +166,14 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
       subtitle: 'Generate sticker barcode tags with price & SKU',
       icon: Icons.qr_code_2_rounded,
       keywords: ['sticker', 'barcode', 'tag'],
+      requiredModule: BusinessSettings.modulePrintLabels,
     ),
     _CommandDestination(
       route: AppRoute.stockTransfers,
       title: 'Stock Transfers',
       subtitle: 'Move inventory between branches & warehouses',
       icon: Icons.swap_horiz_rounded,
+      requiredModule: BusinessSettings.moduleStockTransfers,
     ),
     _CommandDestination(
       route: AppRoute.stockAdjustments,
@@ -178,6 +181,7 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
       subtitle: 'Record damaged, spoiled or manual stock adjustments',
       icon: Icons.tune_rounded,
       keywords: ['spoilage', 'damage', 'wastage'],
+      requiredModule: BusinessSettings.moduleStockAudit,
     ),
     _CommandDestination(
       route: AppRoute.inventoryAudit,
@@ -185,18 +189,21 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
       subtitle: 'Check near-expiry medicines/items & physical stock count',
       icon: Icons.fact_check_outlined,
       keywords: ['expiry', 'batch', 'audit'],
+      requiredModule: BusinessSettings.moduleStockAudit,
     ),
     _CommandDestination(
       route: AppRoute.salesReturn,
       title: 'Sales Returns',
       subtitle: 'Process customer refunds & return items to stock',
       icon: Icons.assignment_return_outlined,
+      requiredModule: BusinessSettings.moduleReturns,
     ),
     _CommandDestination(
       route: AppRoute.purchaseReturn,
       title: 'Purchase Returns',
       subtitle: 'Return expired or defective stock to suppliers',
       icon: Icons.keyboard_return_rounded,
+      requiredModule: BusinessSettings.moduleReturns,
     ),
     _CommandDestination(
       route: AppRoute.paymentAccounts,
@@ -204,6 +211,7 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
       subtitle: 'Cash, JazzCash, EasyPaisa, Bank balances & transfers',
       icon: Icons.account_balance_outlined,
       keywords: ['bank', 'jazzcash', 'easypaisa'],
+      requiredModule: BusinessSettings.moduleAccountingCrm,
     ),
     _CommandDestination(
       route: AppRoute.restaurantCafe,
@@ -236,6 +244,7 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
       icon: Icons.analytics_outlined,
       keywords: ['profit', 'loss', 'tax', 'ledger', 'p&l'],
       superAdminOnly: true,
+      requiredModule: BusinessSettings.moduleReporting,
     ),
     _CommandDestination(
       route: AppRoute.settings,

@@ -251,6 +251,84 @@ class _MainShellState extends ConsumerState<MainShell> {
             return false;
           }
           break;
+        case AppRoute.notificationTemplates:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleMessaging)) {
+            return false;
+          }
+          break;
+        case AppRoute.cloudSync:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleCloudSync)) {
+            return false;
+          }
+          break;
+        case AppRoute.paymentAccounts:
+        case AppRoute.chequeManagement:
+        case AppRoute.accountingCrm:
+          if (!_settings
+              .isModuleEnabled(BusinessSettings.moduleAccountingCrm)) {
+            return false;
+          }
+          break;
+        case AppRoute.salesOrders:
+        case AppRoute.purchaseOrders:
+        case AppRoute.sellingPriceGroups:
+        case AppRoute.discountRules:
+        case AppRoute.commissionAgents:
+          if (!_settings
+              .isModuleEnabled(BusinessSettings.moduleWholesaleTools)) {
+            return false;
+          }
+          break;
+        case AppRoute.printLabels:
+        case AppRoute.importProducts:
+          if (!_settings.isModuleEnabled(BusinessSettings.modulePrintLabels)) {
+            return false;
+          }
+          break;
+        case AppRoute.stockTransfers:
+          if (!_settings
+              .isModuleEnabled(BusinessSettings.moduleStockTransfers)) {
+            return false;
+          }
+          break;
+        case AppRoute.stockAdjustments:
+        case AppRoute.inventoryAudit:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleStockAudit)) {
+            return false;
+          }
+          break;
+        case AppRoute.expenses:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleExpenses)) {
+            return false;
+          }
+          break;
+        case AppRoute.salesReturn:
+        case AppRoute.purchaseReturn:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleReturns)) {
+            return false;
+          }
+          break;
+        case AppRoute.annualClosing:
+          if (!_settings
+              .isModuleEnabled(BusinessSettings.moduleFiscalClosing)) {
+            return false;
+          }
+          break;
+        case AppRoute.hrmEmployee:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleHrm)) {
+            return false;
+          }
+          break;
+        case AppRoute.wooCommerceSync:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleWooCommerce)) {
+            return false;
+          }
+          break;
+        case AppRoute.reports:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleReporting)) {
+            return false;
+          }
+          break;
         default:
           break;
       }

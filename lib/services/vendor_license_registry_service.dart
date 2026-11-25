@@ -10,6 +10,9 @@ class VendorLicenseRecord {
   final String clientName;
   final String businessType;
   final String accessMode; // 'offline', 'hybrid', 'online'
+  final String
+      packageTier; // 'starter', 'standard', 'pro', 'enterprise', 'custom'
+  final List<String> enabledFeatures;
   final String contactInfo;
   final String machineId;
   final String tierCode;
@@ -25,6 +28,8 @@ class VendorLicenseRecord {
     required this.clientName,
     required this.businessType,
     this.accessMode = 'offline',
+    this.packageTier = 'enterprise',
+    this.enabledFeatures = const ['*'],
     this.contactInfo = '',
     required this.machineId,
     required this.tierCode,
@@ -40,6 +45,8 @@ class VendorLicenseRecord {
     String? clientName,
     String? businessType,
     String? accessMode,
+    String? packageTier,
+    List<String>? enabledFeatures,
     String? contactInfo,
     String? machineId,
     String? tierCode,
@@ -55,6 +62,8 @@ class VendorLicenseRecord {
       clientName: clientName ?? this.clientName,
       businessType: businessType ?? this.businessType,
       accessMode: accessMode ?? this.accessMode,
+      packageTier: packageTier ?? this.packageTier,
+      enabledFeatures: enabledFeatures ?? this.enabledFeatures,
       contactInfo: contactInfo ?? this.contactInfo,
       machineId: machineId ?? this.machineId,
       tierCode: tierCode ?? this.tierCode,
@@ -87,6 +96,8 @@ class VendorLicenseRecord {
         'client_name': clientName,
         'business_type': businessType,
         'access_mode': accessMode,
+        'package_tier': packageTier,
+        'enabled_features': enabledFeatures,
         'contact_info': contactInfo,
         'machine_id': machineId,
         'tier_code': tierCode,
@@ -104,6 +115,10 @@ class VendorLicenseRecord {
       clientName: (map['client_name'] ?? '').toString(),
       businessType: (map['business_type'] ?? 'universal').toString(),
       accessMode: (map['access_mode'] ?? 'offline').toString(),
+      packageTier: (map['package_tier'] ?? 'enterprise').toString(),
+      enabledFeatures: map['enabled_features'] is List
+          ? (map['enabled_features'] as List).map((e) => e.toString()).toList()
+          : const ['*'],
       contactInfo: (map['contact_info'] ?? '').toString(),
       machineId: (map['machine_id'] ?? '').toString(),
       tierCode: (map['tier_code'] ?? 'YRL').toString(),
@@ -259,7 +274,7 @@ class VendorLicenseRegistryService {
     String esc(String v) => '"${v.replaceAll('"', '""')}"';
     final buf = StringBuffer();
     buf.writeln(
-      'id,client_name,business_type,access_mode,contact_info,machine_id,tier_code,tier_label,generated_at,next_renewal_date,allow_updates,status,license_key',
+      'id,client_name,business_type,access_mode,package_tier,enabled_features,contact_info,machine_id,tier_code,tier_label,generated_at,next_renewal_date,allow_updates,status,license_key',
     );
     for (final r in records) {
       buf.writeln([
@@ -267,6 +282,8 @@ class VendorLicenseRegistryService {
         esc(r.clientName),
         esc(r.businessType),
         esc(r.accessMode),
+        esc(r.packageTier),
+        esc(r.enabledFeatures.join('|')),
         esc(r.contactInfo),
         esc(r.machineId),
         esc(r.tierCode),

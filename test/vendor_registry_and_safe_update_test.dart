@@ -14,6 +14,9 @@ import 'package:path/path.dart' as p;
 
 void main() {
   group('Vendor Registry, Update Gate & Zero-Loss Upgrade Tests', () {
+    tearDown(() {
+      QulopService.qulopNotifier.value = null;
+    });
     test('1. Signed key stores businessType and allowUpdates flag accurately',
         () async {
       final mac = await QulopService.getDeviceMacAddress();
@@ -361,6 +364,87 @@ void main() {
       );
       expect(blockedSyncRes['success'], isFalse);
       expect(blockedSyncRes['message'], contains('does not allow'));
+    });
+
+    test(
+        '7. Commercial package tiers restrict modules and live license upgrade unlocks Full Featured',
+        () async {
+      final mac = await QulopService.getDeviceMacAddress();
+
+      // Starter license omits messaging (SMS/WhatsApp), accounting_crm, hrm, cloud_sync
+      final starterKey = QulopService.generatePurchaseKey(
+        macAddress: mac,
+        clientName: 'Starter Kiryana',
+        tierCode: 'YRL',
+        packageTier: QulopService.pkgStarter,
+        enabledFeatures:
+            QulopService.featuresForPackageTier(QulopService.pkgStarter),
+      );
+
+      final starterSettings = BusinessSettings(
+        businessName: 'Starter Kiryana',
+        businessType: 'general_store',
+        isConfigured: true,
+        purchaseKey: starterKey,
+        enabledModules: [
+          BusinessSettings.moduleExpenses,
+          BusinessSettings.moduleReturns,
+          BusinessSettings.moduleMessaging,
+          BusinessSettings.moduleCloudSync,
+          BusinessSettings.moduleAccountingCrm,
+        ].join(','),
+      );
+
+      final statusStarter =
+          await QulopService.checkCurrentQulop(starterSettings);
+      expect(statusStarter.isValid, isTrue);
+      expect(statusStarter.packageTier, equals(QulopService.pkgStarter));
+      expect(statusStarter.isFullFeatured, isFalse);
+
+      // Core starter modules allowed, messaging & cloudSync & accounting blocked by license ceiling
+      expect(starterSettings.isModuleEnabled(BusinessSettings.moduleExpenses),
+          isTrue);
+      expect(starterSettings.isModuleEnabled(BusinessSettings.moduleReturns),
+          isTrue);
+      expect(starterSettings.isModuleEnabled(BusinessSettings.moduleMessaging),
+          isFalse);
+      expect(starterSettings.isModuleEnabled(BusinessSettings.moduleCloudSync),
+          isFalse);
+      expect(
+          starterSettings.isModuleEnabled(BusinessSettings.moduleAccountingCrm),
+          isFalse);
+
+      // Upgrade to Enterprise Full Featured key unlocks all commercial modules live
+      final fullKey = QulopService.generatePurchaseKey(
+        macAddress: mac,
+        clientName: 'Starter Kiryana',
+        tierCode: 'YRL',
+        accessMode: 'hybrid',
+        packageTier: QulopService.pkgEnterprise,
+        enabledFeatures: const ['*'],
+      );
+      final upgradedMods = {
+        ...starterSettings.activeModules,
+        ...BusinessSettings.commercialFeatureKeys,
+      }.join(',');
+      final upgradedSettings = starterSettings.copyWith(
+        purchaseKey: fullKey,
+        enabledModules: upgradedMods,
+      );
+      final statusFull = await QulopService.checkCurrentQulop(upgradedSettings);
+
+      expect(statusFull.isValid, isTrue);
+      expect(statusFull.isFullFeatured, isTrue);
+      expect(upgradedSettings.isModuleEnabled(BusinessSettings.moduleMessaging),
+          isTrue);
+      expect(upgradedSettings.isModuleEnabled(BusinessSettings.moduleCloudSync),
+          isTrue);
+      expect(
+          upgradedSettings
+              .isModuleEnabled(BusinessSettings.moduleAccountingCrm),
+          isTrue);
+      expect(
+          upgradedSettings.isModuleEnabled(BusinessSettings.moduleHrm), isTrue);
     });
   });
 }

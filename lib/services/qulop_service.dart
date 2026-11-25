@@ -25,6 +25,9 @@ class QulopStatus {
   final String? targetMac;
   final String? businessType;
   final String accessMode; // 'offline', 'hybrid', 'online'
+  final String
+      packageTier; // 'starter', 'standard', 'pro', 'enterprise', 'custom'
+  final Set<String> licensedFeatures; // {'*'} means Full Featured
   final bool allowUpdates;
   final DateTime? issueDate;
   final DateTime? expiryDate;
@@ -40,6 +43,8 @@ class QulopStatus {
     this.targetMac,
     this.businessType,
     this.accessMode = 'offline',
+    this.packageTier = 'enterprise',
+    this.licensedFeatures = const {'*'},
     this.allowUpdates = true,
     this.issueDate,
     this.expiryDate,
@@ -49,10 +54,23 @@ class QulopStatus {
 
   bool get isTrial => tier == QulopTier.trial;
   bool get isLifetime => tier == QulopTier.lifetime;
+  bool get isFullFeatured =>
+      packageTier == 'enterprise' || licensedFeatures.contains('*');
   bool get allowsHybridSync => accessMode == 'hybrid' || accessMode == 'online';
   bool get allowsOnlineApi => accessMode == 'online';
   String get accessModeLabel => QulopService.getAccessModeLabel(accessMode);
+  String get packageTierLabel => QulopService.getPackageTierLabel(packageTier);
   QulopTier get type => tier;
+
+  /// Returns true if [moduleKey] is permitted by the active commercial package.
+  bool isFeatureLicensed(String moduleKey) {
+    if (isFullFeatured || licensedFeatures.isEmpty) return true;
+    final key = moduleKey.trim().toLowerCase();
+    if (!BusinessSettings.commercialFeatureKeys.contains(key)) {
+      return true;
+    }
+    return licensedFeatures.contains(key);
+  }
 }
 
 class QulopService {
@@ -269,6 +287,84 @@ class QulopService {
     }
   }
 
+  /// Commercial Package Tiers for monetized feature gating
+  static const String pkgStarter = 'starter';
+  static const String pkgStandard = 'standard';
+  static const String pkgPro = 'pro';
+  static const String pkgEnterprise = 'enterprise';
+  static const String pkgCustom = 'custom';
+
+  static String getPackageTierLabel(String pkg) {
+    switch (pkg.trim().toLowerCase()) {
+      case pkgStarter:
+        return 'Starter (Core Counter POS)';
+      case pkgStandard:
+        return 'Standard Store';
+      case pkgPro:
+        return 'Pro Business';
+      case pkgCustom:
+        return 'Custom Package';
+      case pkgEnterprise:
+      default:
+        return 'Enterprise (Full Featured)';
+    }
+  }
+
+  /// Default commercial feature modules included in each package tier.
+  static List<String> featuresForPackageTier(String pkg) {
+    switch (pkg.trim().toLowerCase()) {
+      case pkgStarter:
+        return [
+          BusinessSettings.moduleExpenses,
+          BusinessSettings.moduleReturns,
+          BusinessSettings.modulePrintLabels,
+        ];
+      case pkgStandard:
+        return [
+          BusinessSettings.moduleExpenses,
+          BusinessSettings.moduleReturns,
+          BusinessSettings.modulePrintLabels,
+          BusinessSettings.moduleWholesaleTools,
+          BusinessSettings.moduleVariations,
+          BusinessSettings.moduleStockTransfers,
+          BusinessSettings.moduleStockAudit,
+          BusinessSettings.moduleFiscalClosing,
+          BusinessSettings.moduleReporting,
+          BusinessSettings.moduleLanMultiPc,
+        ];
+      case pkgPro:
+        return [
+          BusinessSettings.moduleExpenses,
+          BusinessSettings.moduleReturns,
+          BusinessSettings.modulePrintLabels,
+          BusinessSettings.moduleWholesaleTools,
+          BusinessSettings.moduleVariations,
+          BusinessSettings.moduleStockTransfers,
+          BusinessSettings.moduleStockAudit,
+          BusinessSettings.moduleFiscalClosing,
+          BusinessSettings.moduleReporting,
+          BusinessSettings.moduleLanMultiPc,
+          BusinessSettings.moduleMessaging,
+          BusinessSettings.moduleAccountingCrm,
+          BusinessSettings.moduleMultiCurrency,
+          BusinessSettings.moduleFiscalTax,
+          BusinessSettings.moduleCloudBackup,
+        ];
+      case pkgEnterprise:
+      default:
+        return const ['*'];
+    }
+  }
+
+  /// Ensures [BusinessSettings.isModuleEnabled] checks active license entitlements live.
+  static void syncLicenseFeatureGate() {
+    BusinessSettings.licenseFeatureGate = (moduleKey) {
+      final status = qulopNotifier.value;
+      if (status == null) return true;
+      return status.isFeatureLicensed(moduleKey);
+    };
+  }
+
   /// Map 3-letter tier code to human-readable label
   static String getTierLabel(String code) {
     switch (code.toUpperCase()) {
@@ -296,6 +392,8 @@ class QulopService {
     required String tierCode, // TRL, QTR, HLF, YRL, CST, LFT
     String businessType = '',
     String accessMode = 'offline', // 'offline', 'hybrid', 'online'
+    String packageTier = pkgEnterprise,
+    List<String> enabledFeatures = const ['*'],
     bool allowUpdates = true,
     DateTime? expiryDate,
     DateTime? customExpiryDate,
@@ -305,6 +403,16 @@ class QulopService {
     issueDate ??= DateTime.now();
     final cleanMac = normalizeMac(macAddress);
     final normalizedMode = normalizeAccessMode(accessMode);
+    final normalizedPkg = packageTier.trim().toLowerCase().isEmpty
+        ? pkgEnterprise
+        : packageTier.trim().toLowerCase();
+    final cleanFeatures = enabledFeatures
+        .map((f) => f.trim().toLowerCase())
+        .where((f) => f.isNotEmpty)
+        .toSet()
+        .toList();
+    final isFull = normalizedPkg == pkgEnterprise &&
+        (cleanFeatures.isEmpty || cleanFeatures.contains('*'));
 
     DateTime finalExpiry;
     if (tierCode.toUpperCase() == 'LFT') {
@@ -344,6 +452,8 @@ class QulopService {
           : finalExpiry.toIso8601String().split('T').first,
       if (businessType.trim().isNotEmpty) 'b': businessType.trim(),
       if (normalizedMode != 'offline') 's': normalizedMode,
+      if (!isFull) 'p': normalizedPkg,
+      if (!isFull) 'f': cleanFeatures,
       if (!allowUpdates) 'u': 0,
     };
 
@@ -365,6 +475,8 @@ class QulopService {
     required String tierCode,
     String businessType = '',
     String accessMode = 'offline',
+    String packageTier = pkgEnterprise,
+    List<String> enabledFeatures = const ['*'],
     bool allowUpdates = true,
     DateTime? expiryDate,
     DateTime? customExpiryDate,
@@ -377,6 +489,8 @@ class QulopService {
       tierCode: tierCode,
       businessType: businessType,
       accessMode: accessMode,
+      packageTier: packageTier,
+      enabledFeatures: enabledFeatures,
       allowUpdates: allowUpdates,
       expiryDate: expiryDate,
       customExpiryDate: customExpiryDate,
@@ -486,6 +600,18 @@ class QulopService {
     final issueStr = data['i'] as String? ?? '';
     final businessType = (data['b'] as String?)?.trim();
     final accessMode = normalizeAccessMode(data['s'] as String?);
+    final packageTier =
+        (data['p'] as String?)?.trim().toLowerCase() ?? pkgEnterprise;
+    final rawFeatures = data['f'];
+    final Set<String> licensedFeatures;
+    if (rawFeatures is List) {
+      licensedFeatures = rawFeatures
+          .map((e) => e.toString().trim().toLowerCase())
+          .where((e) => e.isNotEmpty)
+          .toSet();
+    } else {
+      licensedFeatures = const {'*'};
+    }
     final allowUpdates = data['u'] != 0 && data['u'] != false;
 
     // Hardware Lock Check
@@ -620,6 +746,8 @@ class QulopService {
       targetMac: targetMac,
       businessType: businessType,
       accessMode: accessMode,
+      packageTier: packageTier,
+      licensedFeatures: licensedFeatures,
       allowUpdates: allowUpdates,
       issueDate: DateTime.tryParse(issueStr),
       expiryDate: expiryDate,
@@ -631,6 +759,7 @@ class QulopService {
   /// Evaluates current business settings against Qulop rules
   static Future<QulopStatus> checkCurrentQulop(
       BusinessSettings settings) async {
+    syncLicenseFeatureGate();
     final currentMac = await getDeviceMacAddress();
 
     // 1. Check if user already installed a paid/custom Qulop key

@@ -461,6 +461,50 @@ class BusinessSettings {
   static const String moduleReturns = 'returns';
   static const String moduleFiscalClosing = 'fiscal_closing';
 
+  // Commercial / SaaS Add-on Feature Modules (toggleable at installation & upgradable by license tier)
+  static const String moduleMessaging = 'messaging'; // SMS & WhatsApp alerts
+  static const String moduleCloudSync =
+      'cloud_sync'; // Cloud Hybrid & Android Sync
+  static const String moduleCloudBackup =
+      'cloud_backup'; // Encrypted Cloud Backup
+  static const String moduleFiscalTax =
+      'fiscal_tax'; // FBR / ZATCA Tax Compliance
+  static const String moduleMultiCurrency =
+      'multi_currency'; // Multi-Currency FX
+  static const String moduleWholesaleTools =
+      'wholesale_tools'; // Orders, Price Groups, Discount Rules, Commission Agents
+  static const String modulePrintLabels =
+      'print_labels'; // Barcode Labels & Excel Import
+  static const String moduleReporting =
+      'advanced_reports'; // Detailed Financial & Profit Reports
+  static const String moduleLanMultiPc =
+      'lan_counter'; // Multi-Counter LAN Server Access
+
+  /// Hook registered by [QulopService] so active license ceilings restrict unpaid commercial features.
+  static bool Function(String moduleKey)? licenseFeatureGate;
+
+  /// Canonical list of all commercial feature modules that can be dropped/upgraded per client package.
+  static const List<String> commercialFeatureKeys = [
+    moduleExpenses,
+    moduleReturns,
+    modulePrintLabels,
+    moduleWholesaleTools,
+    moduleVariations,
+    moduleStockTransfers,
+    moduleStockAudit,
+    moduleFiscalClosing,
+    moduleAccountingCrm,
+    moduleHrm,
+    moduleMessaging,
+    moduleFiscalTax,
+    moduleMultiCurrency,
+    moduleLanMultiPc,
+    moduleCloudSync,
+    moduleCloudBackup,
+    moduleWooCommerce,
+    moduleReporting,
+  ];
+
   /// Default active modules list tailored specifically for each business type
   static List<String> defaultModulesForBusinessType(String type) {
     final base = <String>[
@@ -468,6 +512,15 @@ class BusinessSettings {
       moduleReturns,
       moduleStockTransfers,
       moduleStockAudit,
+      moduleMessaging,
+      moduleWholesaleTools,
+      modulePrintLabels,
+      moduleReporting,
+      moduleLanMultiPc,
+      moduleMultiCurrency,
+      moduleFiscalTax,
+      moduleCloudSync,
+      moduleCloudBackup,
     ];
 
     switch (type.toLowerCase()) {
@@ -602,10 +655,14 @@ class BusinessSettings {
   }
 
   /// Checks if a specific feature or industry module is enabled.
-  /// Once configured, competing vertical business modules cannot be enabled.
+  /// Once configured, competing vertical business modules cannot be enabled,
+  /// and unpaid commercial modules blocked by the active license remain disabled.
   bool isModuleEnabled(String moduleKey) {
     final key = moduleKey.trim().toLowerCase();
     if (isConfigured && !isModuleAllowedForInstalledBusiness(key)) {
+      return false;
+    }
+    if (licenseFeatureGate != null && !licenseFeatureGate!(key)) {
       return false;
     }
     return activeModules.contains(key);
@@ -1264,8 +1321,15 @@ class ModuleRegistry {
   static const String wooCommerce = BusinessSettings.moduleWooCommerce;
   static const String fruitMandi = BusinessSettings.moduleFruitMandi;
   static const String poultry = BusinessSettings.modulePoultry;
-  static const String cloudSync = 'cloud_sync';
-  static const String lanMultiCounter = 'lan_counter';
+  static const String cloudSync = BusinessSettings.moduleCloudSync;
+  static const String lanMultiCounter = BusinessSettings.moduleLanMultiPc;
+  static const String messaging = BusinessSettings.moduleMessaging;
+  static const String cloudBackup = BusinessSettings.moduleCloudBackup;
+  static const String fiscalTax = BusinessSettings.moduleFiscalTax;
+  static const String multiCurrency = BusinessSettings.moduleMultiCurrency;
+  static const String wholesaleTools = BusinessSettings.moduleWholesaleTools;
+  static const String printLabels = BusinessSettings.modulePrintLabels;
+  static const String advancedReports = BusinessSettings.moduleReporting;
 
   static const List<String> allModules = [
     corePos,
@@ -1288,6 +1352,13 @@ class ModuleRegistry {
     poultry,
     cloudSync,
     lanMultiCounter,
+    messaging,
+    cloudBackup,
+    fiscalTax,
+    multiCurrency,
+    wholesaleTools,
+    printLabels,
+    advancedReports,
   ];
 
   // ==========================================

@@ -85,6 +85,7 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
       isConfigured: true,
     );
 
+    QulopService.syncLicenseFeatureGate();
     await db.updateBusinessSettings(updated);
     QulopService.qulopNotifier.value = verification;
 
