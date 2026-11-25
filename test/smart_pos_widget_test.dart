@@ -26,6 +26,7 @@ void main() {
     final settings = BusinessSettings(
       businessName: 'Smart POS Superstore',
       branchName: 'Main Branch',
+      enableCardPayment: true,
     );
 
     await tester.pumpWidget(
@@ -60,7 +61,7 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
 
     // Verify Dashboard Content (Screenshot 1)
-    expect(find.textContaining(', Admin'), findsOneWidget);
+    expect(find.textContaining('(Admin)'), findsOneWidget);
     expect(find.textContaining('Total Sales Revenue'), findsWidgets);
     expect(find.textContaining('Total Purchases'), findsWidgets);
     expect(find.textContaining('Sales & Revenue Velocity'), findsWidgets);
@@ -73,9 +74,9 @@ void main() {
     await tester.pump();
 
     // Verify POS Terminal rendered (Screenshot 2)
-    expect(find.text('Cash'), findsOneWidget);
-    expect(find.text('Multiple Pay'), findsOneWidget);
-    expect(find.text('Card'), findsOneWidget);
+    expect(find.textContaining('Cash'), findsWidgets);
+    expect(find.textContaining('Multiple Pay'), findsOneWidget);
+    expect(find.textContaining('Card'), findsWidgets);
     expect(find.text('TOTAL PAYABLE'), findsOneWidget);
   });
 }

@@ -292,11 +292,13 @@ void main() {
         expect(await upgraded.db.getVersion(),
             DatabaseService.currentSchemaVersion);
 
-        // Verify schema_migrations table recorded v2 through v10 migrations
+        // Verify schema_migrations table recorded v2 through currentSchemaVersion
         final migrations = await upgraded.db
             .query('schema_migrations', orderBy: 'version ASC');
-        expect(migrations.map((m) => m['version']).toList(),
-            [2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        expect(
+          migrations.map((m) => m['version']).toList(),
+          List.generate(DatabaseService.currentSchemaVersion - 1, (i) => i + 2),
+        );
 
         // Verify PRAGMA added new columns to users & business_settings
         final userCols = await upgraded.db.rawQuery('PRAGMA table_info(users)');

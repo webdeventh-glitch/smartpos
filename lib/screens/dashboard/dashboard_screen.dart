@@ -589,7 +589,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       tooltip:
                           'Net Profit = Total Sales - Cost of Goods - Expenses',
                       onTap: () {
-                        if (AuthService.currentUser?.isSuperAdmin ?? false) {
+                        if (AuthService.currentUser
+                                ?.hasPermission('report.view') ??
+                            true) {
                           widget.onNavigateToRoute(AppRoute.reports);
                         }
                       },
@@ -752,7 +754,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   onTap: () =>
                       widget.onNavigateToRoute(AppRoute.inventoryAudit),
                 ),
-                if (AuthService.currentUser?.isSuperAdmin ?? false)
+                if (AuthService.currentUser?.hasPermission('report.view') ??
+                    true)
                   _actionPill(
                     icon: Icons.analytics_outlined,
                     label: PosLocalization.tr('Reports',

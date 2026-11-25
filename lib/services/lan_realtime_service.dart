@@ -165,7 +165,10 @@ class LanRealtimeService {
               final delta = (data['delta'] as num?)?.toDouble();
               final varId = (data['variation_id'] as num?)?.toInt();
               final locId = (data['location_id'] as num?)?.toInt();
-              if (prodId != null && delta != null && delta != 0.0) {
+              if (prodId != null &&
+                  delta != null &&
+                  delta != 0.0 &&
+                  !LocalApiService.instance.isRunning) {
                 final db = DatabaseService.instanceOrNull;
                 if (db != null) {
                   unawaited(db.applyRemoteStockDelta(

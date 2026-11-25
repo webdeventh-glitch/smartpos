@@ -40,7 +40,7 @@ void main() {
       expect(find.text('Home'), findsOneWidget);
       expect(find.text('Products'), findsOneWidget);
       expect(find.text('Search menu...'), findsOneWidget);
-      expect(find.textContaining('v1.0'), findsOneWidget);
+      expect(find.textContaining('v1.1'), findsOneWidget);
     });
 
     testWidgets(

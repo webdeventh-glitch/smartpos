@@ -67,8 +67,10 @@ void main() {
           await upgraded.db.getVersion(), DatabaseService.currentSchemaVersion);
       final migrations =
           await upgraded.db.query('schema_migrations', orderBy: 'version ASC');
-      expect(migrations.map((m) => m['version']).toList(),
-          [2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      expect(
+        migrations.map((m) => m['version']).toList(),
+        List.generate(DatabaseService.currentSchemaVersion - 1, (i) => i + 2),
+      );
 
       final salesCols = (await upgraded.db.rawQuery('PRAGMA table_info(sales)'))
           .map((r) => r['name'])

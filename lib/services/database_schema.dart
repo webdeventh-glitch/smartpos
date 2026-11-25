@@ -201,6 +201,17 @@ class DatabaseSchema {
 
   static Future<void> _applyV13UnitCategoriesAndProductSubUnits(
       Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS units (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        actual_name TEXT NOT NULL,
+        short_name TEXT NOT NULL,
+        allow_decimal INTEGER DEFAULT 0,
+        base_unit_id INTEGER,
+        base_unit_multiplier REAL DEFAULT 1.0,
+        category TEXT DEFAULT 'count'
+      );
+    ''');
     await _addColumnIfMissing(db, 'units', 'category', "TEXT DEFAULT 'count'");
     await _addColumnIfMissing(db, 'products', 'sub_unit_ids', 'TEXT');
     await _addColumnIfMissing(db, 'products', 'secondary_unit', 'TEXT');

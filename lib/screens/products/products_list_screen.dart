@@ -106,9 +106,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       });
     }
 
+    if (!mounted) return;
     if (refreshMetadata || _categories.isEmpty) {
       final cats = await db.getCategories();
+      if (!mounted) return;
       final brs = await db.getBrands();
+      if (!mounted) return;
       final stats = await db.getProductCatalogStats();
       if (mounted) {
         setState(() {

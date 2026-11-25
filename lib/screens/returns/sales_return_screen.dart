@@ -79,28 +79,32 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sales Returns & Customer Refunds',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Sales Returns & Customer Refunds',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Manage returned medications, damaged stock restock, and customer balance adjustments',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: isDark
-                              ? const Color(0xFF94A3B8)
-                              : const Color(0xFF64748B)),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Manage returned medications, damaged stock restock, and customer balance adjustments',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 12),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

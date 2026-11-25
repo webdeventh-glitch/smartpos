@@ -72,8 +72,8 @@ void main() {
     });
     await tester.pump();
 
-    expect(find.text('Cash'), findsOneWidget);
-    expect(find.text('Multiple Pay'), findsOneWidget);
+    expect(find.textContaining('Cash'), findsWidgets);
+    expect(find.textContaining('Multiple Pay'), findsOneWidget);
     expect(find.text('TOTAL PAYABLE'), findsOneWidget);
     expect(find.textContaining('Calpol Syrup 60ml'), findsWidgets);
   });

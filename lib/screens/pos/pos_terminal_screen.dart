@@ -187,9 +187,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     _catalogScrollController.addListener(_onCatalogScroll);
     _initLanRealtimeSync();
     _loadInitialData();
-    PromotionsService.instance.loadSettings().then((_) {
-      if (mounted) setState(() {});
-    });
   }
 
   void _initLanRealtimeSync() {
@@ -405,6 +402,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final discountRules = await db.getDiscountRules(activeOnly: true);
     if (!mounted) return;
     final locations = await db.getBusinessLocations();
+    if (!mounted) return;
+    await PromotionsService.instance.loadSettings();
     if (!mounted) return;
 
     final Contact? defaultCust = customers.cast<Contact?>().firstWhere(
@@ -4207,13 +4206,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     String? selectedBatchNumber = product.batchNumber;
     String? selectedExpiryDate = product.expiryDate;
 
-    if (product.id != null) {
+    if (product.id != null &&
+        (widget.settings.isPharmacy || widget.settings.isBatchExpiryEnabled)) {
       final db = await _dbFuture;
       final activeBatches = await db.getActiveBatchesForProduct(product.id!);
-      if (activeBatches.isNotEmpty && mounted) {
+      if (!mounted) return;
+      if (activeBatches.isNotEmpty) {
         if (activeBatches.length > 1) {
           final chosenBatch =
               await _showFefoBatchSelectorDialog(product, activeBatches);
+          if (!mounted) return;
           if (chosenBatch != null) {
             selectedBatchNumber = chosenBatch.batchNumber;
             selectedExpiryDate = chosenBatch.expiryDate;
@@ -4228,6 +4230,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       }
     }
 
+    if (!mounted) return;
     ref.read(cartProvider.notifier).addProduct(
           product,
           variation: chosen,

@@ -350,7 +350,10 @@ class _SmartAppBarState extends State<SmartAppBar> {
               const SizedBox(width: 8),
 
               // Brand Logo Badge + Business Name
-              Flexible(
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isNarrow ? 240 : (isCompact ? 305 : 380),
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -386,14 +389,13 @@ class _SmartAppBarState extends State<SmartAppBar> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            physics: const NeverScrollableScrollPhysics(),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
+                          Row(
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              Flexible(
+                                child: Text(
                                   widget.settings.businessName,
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: isDark
@@ -404,94 +406,95 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                     letterSpacing: -0.2,
                                   ),
                                 ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? const Color(0xFF064E3B)
-                                            .withValues(alpha: 0.4)
-                                        : const Color(0xFFECFDF5),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF064E3B)
+                                          .withValues(alpha: 0.4)
+                                      : const Color(0xFFECFDF5),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: isDark
+                                          ? const Color(0xFF059669)
+                                          : const Color(0xFFA7F3D0)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const CircleAvatar(
+                                        radius: 3,
+                                        backgroundColor: Color(0xFF10B981)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Live',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
                                         color: isDark
-                                            ? const Color(0xFF059669)
-                                            : const Color(0xFFA7F3D0)),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const CircleAvatar(
-                                          radius: 3,
-                                          backgroundColor: Color(0xFF10B981)),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Live',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: isDark
-                                              ? const Color(0xFF34D399)
-                                              : const Color(0xFF059669),
-                                        ),
+                                            ? const Color(0xFF34D399)
+                                            : const Color(0xFF059669),
                                       ),
-                                    ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: widget.settings.isMySql
+                                      ? (isDark
+                                          ? const Color(0xFF0369A1)
+                                              .withValues(alpha: 0.3)
+                                          : const Color(0xFFE0F2FE))
+                                      : (isDark
+                                          ? const Color(0xFF334155)
+                                          : const Color(0xFFF1F5F9)),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: widget.settings.isMySql
+                                        ? const Color(0xFF0284C7)
+                                        : const Color(0xFF94A3B8),
                                   ),
                                 ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: widget.settings.isMySql
-                                        ? (isDark
-                                            ? const Color(0xFF0369A1)
-                                                .withValues(alpha: 0.3)
-                                            : const Color(0xFFE0F2FE))
-                                        : (isDark
-                                            ? const Color(0xFF334155)
-                                            : const Color(0xFFF1F5F9)),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      widget.settings.isMySql
+                                          ? Icons.dns_rounded
+                                          : Icons.sd_storage_rounded,
+                                      size: 10,
                                       color: widget.settings.isMySql
                                           ? const Color(0xFF0284C7)
-                                          : const Color(0xFF94A3B8),
+                                          : const Color(0xFF64748B),
                                     ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        widget.settings.isMySql
-                                            ? Icons.dns_rounded
-                                            : Icons.sd_storage_rounded,
-                                        size: 10,
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      widget.settings.isMySql
+                                          ? 'MySQL: ${widget.settings.dbName}'
+                                          : 'SQLite',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
                                         color: widget.settings.isMySql
                                             ? const Color(0xFF0284C7)
                                             : const Color(0xFF64748B),
                                       ),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        widget.settings.isMySql
-                                            ? 'MySQL: ${widget.settings.dbName}'
-                                            : 'SQLite',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: widget.settings.isMySql
-                                              ? const Color(0xFF0284C7)
-                                              : const Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                           Text(
                             widget.settings.branchName,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 11,
@@ -509,897 +512,972 @@ class _SmartAppBarState extends State<SmartAppBar> {
               ),
               const SizedBox(width: 12),
 
-              // Business Location Selector (Branch / Warehouse Pill)
-              if (_locations.isNotEmpty)
-                PopupMenuButton<String>(
-                  tooltip: 'Switch Active Branch',
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(
-                        color: isDark
-                            ? const Color(0xFF334155)
-                            : const Color(0xFFE2E8F0)),
-                  ),
-                  onSelected: (locName) {
-                    setState(() => _currentLocation = locName);
-                    if (widget.onLocationChanged != null) {
-                      widget.onLocationChanged!(locName);
-                    }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Switched active branch to $locName'),
-                        duration: const Duration(seconds: 1),
-                        backgroundColor: const Color(0xFF1E293B),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  itemBuilder: (ctx) => _locations
-                      .map(
-                        (loc) => PopupMenuItem<String>(
-                          value: loc.name,
-                          child: Row(
-                            children: [
-                              Icon(
-                                loc.name == _currentLocation
-                                    ? Icons.check_circle_rounded
-                                    : Icons.store_outlined,
-                                size: 16,
-                                color: loc.name == _currentLocation
-                                    ? const Color(0xFF4F46E5)
-                                    : const Color(0xFF94A3B8),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                loc.name,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: loc.name == _currentLocation
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  color: loc.name == _currentLocation
-                                      ? (isDark
-                                          ? const Color(0xFFA5B4FC)
-                                          : const Color(0xFF4F46E5))
-                                      : (isDark
-                                          ? const Color(0xFFCBD5E1)
-                                          : const Color(0xFF334155)),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  child: Container(
-                    height: 34,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF0F172A)
-                          : const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: isDark
-                              ? const Color(0xFF334155)
-                              : const Color(0xFFE2E8F0)),
-                    ),
+              // Right-Aligned Action Strip (scroll-safe on compact widths)
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.location_on_outlined,
-                            color: Color(0xFF4F46E5), size: 14),
-                        const SizedBox(width: 6),
-                        Text(
-                          _currentLocation,
-                          style: TextStyle(
-                            color:
-                                isDark ? Colors.white : const Color(0xFF1E293B),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.keyboard_arrow_down,
-                            color: isDark
-                                ? const Color(0xFF94A3B8)
-                                : const Color(0xFF64748B),
-                            size: 16),
-                      ],
-                    ),
-                  ),
-                ),
-
-              const Spacer(),
-
-              // Global Quick Search (Ctrl+K) Pill
-              if (widget.onOpenQuickSearch != null)
-                Tooltip(
-                  message:
-                      'Quick Search Screens, Products & Customers (Ctrl+K)',
-                  child: InkWell(
-                    onTap: widget.onOpenQuickSearch,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      height: 36,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF0F172A)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: isDark
-                                ? const Color(0xFF334155)
-                                : const Color(0xFFE2E8F0)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.search_rounded,
-                              size: 16,
+                        // Business Location Selector (Branch / Warehouse Pill)
+                        if (_locations.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: PopupMenuButton<String>(
+                              tooltip: 'Switch Active Branch',
                               color: isDark
-                                  ? const Color(0xFF94A3B8)
-                                  : const Color(0xFF4F46E5)),
-                          if (!isNarrow) ...[
-                            const SizedBox(width: 6),
-                            Text(
-                              'Quick Search',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? const Color(0xFFCBD5E1)
-                                    : const Color(0xFF475569),
+                                  ? const Color(0xFF1E293B)
+                                  : Colors.white,
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(
+                                    color: isDark
+                                        ? const Color(0xFF334155)
+                                        : const Color(0xFFE2E8F0)),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 5, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF1E293B)
-                                    : const Color(0xFFE2E8F0),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                'Ctrl+K',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? const Color(0xFF94A3B8)
-                                      : const Color(0xFF64748B),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Cash Register Drawer Status Pill
-              InkWell(
-                onTap: () async {
-                  widget.onOpenRegisterDetails();
-                  await _loadRegisterAndLocations();
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  height: 36,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: isRegisterOpen
-                        ? (isDark
-                            ? const Color(0xFF064E3B).withValues(alpha: 0.35)
-                            : const Color(0xFFF0FDF4))
-                        : (isDark
-                            ? const Color(0xFF78350F).withValues(alpha: 0.35)
-                            : const Color(0xFFFEF3C7)),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isRegisterOpen
-                          ? (isDark
-                              ? const Color(0xFF059669)
-                              : const Color(0xFFBBF7D0))
-                          : (isDark
-                              ? const Color(0xFFD97706)
-                              : const Color(0xFFFDE68A)),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isRegisterOpen
-                            ? Icons.savings_outlined
-                            : Icons.lock_clock_outlined,
-                        color: isRegisterOpen
-                            ? const Color(0xFF10B981)
-                            : const Color(0xFFD97706),
-                        size: 15,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        isRegisterOpen
-                            ? 'Cash: $currency${inHand.toStringAsFixed(2)}'
-                            : 'Register Closed',
-                        style: TextStyle(
-                          color: isRegisterOpen
-                              ? (isDark
-                                  ? const Color(0xFF34D399)
-                                  : const Color(0xFF15803D))
-                              : (isDark
-                                  ? const Color(0xFFFBBF24)
-                                  : const Color(0xFFB45309)),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Date & Time Pill (adapts to screen width)
-              if (!isCompact)
-                Container(
-                  height: 36,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF0F172A)
-                        : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: isDark
-                            ? const Color(0xFF334155)
-                            : const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.schedule_rounded,
-                          color: isDark
-                              ? const Color(0xFF94A3B8)
-                              : const Color(0xFF64748B),
-                          size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        constraints.maxWidth > 1460
-                            ? '$dateStr • $timeStr'
-                            : timeStr,
-                        style: TextStyle(
-                          color: isDark
-                              ? const Color(0xFFCBD5E1)
-                              : const Color(0xFF334155),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // Calculator Shortcut
-              if (!isNarrow)
-                _squareBtn(
-                  icon: const Icon(Icons.calculate_outlined,
-                      color: Color(0xFF475569), size: 18),
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => const CalculatorDialog(),
-                    );
-                  },
-                  tooltip: 'Quick Calculator',
-                ),
-
-              // Smart AI Business Assistant Shortcut
-              _squareBtn(
-                icon: const Icon(Icons.auto_awesome_rounded,
-                    color: Color(0xFF7C3AED), size: 18),
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) =>
-                        AiAssistantChatDialog(settings: widget.settings),
-                  );
-                },
-                tooltip: 'Smart AI Business Assistant',
-              ),
-
-              // Touch-Friendly Mode Toggle Button
-              ValueListenableBuilder<bool>(
-                valueListenable: ThemeService.touchFriendlyNotifier,
-                builder: (context, touchOn, _) {
-                  return _squareBtn(
-                    icon: Icon(
-                      Icons.touch_app_rounded,
-                      color: touchOn
-                          ? const Color(0xFF4F46E5)
-                          : const Color(0xFF64748B),
-                      size: 18,
-                    ),
-                    onTap: () => ThemeService.toggleTouchFriendly(),
-                    tooltip: touchOn
-                        ? 'Touch-Friendly Mode: ON (Click for Standard Density)'
-                        : 'Touch-Friendly Mode: OFF (Click for Larger Touch Targets)',
-                  );
-                },
-              ),
-
-              // Dark / Light Mode Toggle Button
-              ValueListenableBuilder<ThemeMode>(
-                valueListenable: ThemeService.themeModeNotifier,
-                builder: (context, mode, _) {
-                  final isDark = mode == ThemeMode.dark;
-                  return _squareBtn(
-                    icon: Icon(
-                      isDark
-                          ? Icons.light_mode_rounded
-                          : Icons.dark_mode_rounded,
-                      color:
-                          isDark ? Colors.amberAccent : const Color(0xFF4F46E5),
-                      size: 18,
-                    ),
-                    onTap: () => ThemeService.toggleTheme(),
-                    tooltip:
-                        isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-                  );
-                },
-              ),
-
-              // Developer & Support Info Button
-              _squareBtn(
-                icon: const Icon(
-                  Icons.help_outline_rounded,
-                  color: Color(0xFF4F46E5),
-                  size: 18,
-                ),
-                onTap: () => AboutDeveloperDialog.show(
-                  context,
-                  settings: widget.settings,
-                ),
-                tooltip: 'About Developer & Support (Webdeventh)',
-              ),
-
-              // Online / Offline & Pending Sync Queue Pill (Step 7.6)
-              ValueListenableBuilder<SyncStatusInfo>(
-                valueListenable: CloudSyncService.syncNotifier,
-                builder: (context, syncInfo, _) {
-                  final isOffline = widget.settings.isOfflineOnly;
-                  final isSyncing = syncInfo.state == SyncState.syncing;
-                  final isError = syncInfo.state == SyncState.error;
-
-                  IconData iconData;
-                  Color statusColor;
-                  String statusLabel;
-                  String tooltipText;
-
-                  if (isOffline) {
-                    iconData = Icons.cloud_off_rounded;
-                    statusColor = const Color(0xFF64748B);
-                    statusLabel = 'Offline';
-                    tooltipText =
-                        'Offline-First Mode: Local SQLite database active';
-                  } else if (isSyncing) {
-                    iconData = Icons.sync_rounded;
-                    statusColor = const Color(0xFF6366F1);
-                    statusLabel = 'Syncing';
-                    tooltipText = 'Synchronizing pending changes...';
-                  } else if (syncInfo.pendingCount > 0 || isError) {
-                    iconData = Icons.cloud_upload_rounded;
-                    statusColor = const Color(0xFFD97706);
-                    statusLabel = '${syncInfo.pendingCount} Pending';
-                    tooltipText = isError
-                        ? 'Sync Offline/Error: ${syncInfo.pendingCount} pending changes queued (Click to Retry)'
-                        : 'Pending Sync Queue: ${syncInfo.pendingCount} item(s) waiting (Click to Sync)';
-                  } else {
-                    iconData = Icons.cloud_done_rounded;
-                    statusColor = const Color(0xFF10B981);
-                    statusLabel = 'Online';
-                    tooltipText = 'Online & Synchronized (Click to Verify)';
-                  }
-
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: Tooltip(
-                      message: tooltipText,
-                      child: InkWell(
-                        onTap: () async {
-                          if (isOffline) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'Offline SQLite Database active. All sales & stock changes are safely queued locally.'),
-                                duration: Duration(seconds: 2),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'Starting synchronization with Cloud/MySQL...'),
-                                duration: Duration(seconds: 1),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                            await CloudSyncService.syncNow(widget.settings);
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          height: 36,
-                          padding: EdgeInsets.symmetric(
-                              horizontal: showSyncLabel ? 10 : 8),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: statusColor.withValues(alpha: 0.45)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(iconData, color: statusColor, size: 16),
-                              if (showSyncLabel) ...[
-                                const SizedBox(width: 6),
-                                Text(
-                                  statusLabel,
-                                  style: TextStyle(
-                                    color: statusColor,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 11.5,
+                              onSelected: (locName) {
+                                setState(() => _currentLocation = locName);
+                                if (widget.onLocationChanged != null) {
+                                  widget.onLocationChanged!(locName);
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        'Switched active branch to $locName'),
+                                    duration: const Duration(seconds: 1),
+                                    backgroundColor: const Color(0xFF1E293B),
+                                    behavior: SnackBarBehavior.floating,
                                   ),
+                                );
+                              },
+                              itemBuilder: (ctx) => _locations
+                                  .map(
+                                    (loc) => PopupMenuItem<String>(
+                                      value: loc.name,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            loc.name == _currentLocation
+                                                ? Icons.check_circle_rounded
+                                                : Icons.store_outlined,
+                                            size: 16,
+                                            color: loc.name == _currentLocation
+                                                ? const Color(0xFF4F46E5)
+                                                : const Color(0xFF94A3B8),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            loc.name,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight:
+                                                  loc.name == _currentLocation
+                                                      ? FontWeight.bold
+                                                      : FontWeight.w500,
+                                              color: loc.name ==
+                                                      _currentLocation
+                                                  ? (isDark
+                                                      ? const Color(0xFFA5B4FC)
+                                                      : const Color(0xFF4F46E5))
+                                                  : (isDark
+                                                      ? const Color(0xFFCBD5E1)
+                                                      : const Color(
+                                                          0xFF334155)),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              child: Container(
+                                height: 34,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF0F172A)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: isDark
+                                          ? const Color(0xFF334155)
+                                          : const Color(0xFFE2E8F0)),
                                 ),
-                              ] else if (syncInfo.pendingCount > 0) ...[
-                                const SizedBox(width: 4),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.location_on_outlined,
+                                        color: Color(0xFF4F46E5), size: 14),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _currentLocation,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF1E293B),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.keyboard_arrow_down,
+                                        color: isDark
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFF64748B),
+                                        size: 16),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        // Global Quick Search (Ctrl+K) Pill
+                        if (widget.onOpenQuickSearch != null)
+                          Tooltip(
+                            message:
+                                'Quick Search Screens, Products & Customers (Ctrl+K)',
+                            child: InkWell(
+                              onTap: widget.onOpenQuickSearch,
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                height: 36,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10),
+                                margin: const EdgeInsets.only(right: 8),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF0F172A)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: isDark
+                                          ? const Color(0xFF334155)
+                                          : const Color(0xFFE2E8F0)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.search_rounded,
+                                        size: 16,
+                                        color: isDark
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFF4F46E5)),
+                                    if (!isCompact) ...[
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Quick Search',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark
+                                              ? const Color(0xFFCBD5E1)
+                                              : const Color(0xFF475569),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 5, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? const Color(0xFF1E293B)
+                                              : const Color(0xFFE2E8F0),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          'Ctrl+K',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        // Cash Register Drawer Status Pill
+                        InkWell(
+                          onTap: () async {
+                            widget.onOpenRegisterDetails();
+                            await _loadRegisterAndLocations();
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: isRegisterOpen
+                                  ? (isDark
+                                      ? const Color(0xFF064E3B)
+                                          .withValues(alpha: 0.35)
+                                      : const Color(0xFFF0FDF4))
+                                  : (isDark
+                                      ? const Color(0xFF78350F)
+                                          .withValues(alpha: 0.35)
+                                      : const Color(0xFFFEF3C7)),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isRegisterOpen
+                                    ? (isDark
+                                        ? const Color(0xFF059669)
+                                        : const Color(0xFFBBF7D0))
+                                    : (isDark
+                                        ? const Color(0xFFD97706)
+                                        : const Color(0xFFFDE68A)),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isRegisterOpen
+                                      ? Icons.savings_outlined
+                                      : Icons.lock_clock_outlined,
+                                  color: isRegisterOpen
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFFD97706),
+                                  size: 15,
+                                ),
+                                const SizedBox(width: 5),
                                 Text(
-                                  '${syncInfo.pendingCount}',
+                                  isRegisterOpen
+                                      ? 'Cash: $currency${inHand.toStringAsFixed(2)}'
+                                      : 'Register Closed',
                                   style: TextStyle(
-                                    color: statusColor,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 10.5,
+                                    color: isRegisterOpen
+                                        ? (isDark
+                                            ? const Color(0xFF34D399)
+                                            : const Color(0xFF15803D))
+                                        : (isDark
+                                            ? const Color(0xFFFBBF24)
+                                            : const Color(0xFFB45309)),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ],
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
 
-              // Stock Shortage & Expiry Alert Notification Bell
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Tooltip(
-                  message:
-                      'Inventory Alerts: ${_alertProducts.length} low stock, ${_expiringProducts.length} expiring',
-                  child: InkWell(
-                    onTap: _showInventoryAlertsDialog,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: (_alertProducts.isNotEmpty ||
-                                _expiringProducts.isNotEmpty)
-                            ? const Color(0xFFFEF2F2)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: (_alertProducts.isNotEmpty ||
-                                  _expiringProducts.isNotEmpty)
-                              ? const Color(0xFFFECACA)
-                              : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Icon(
-                            Icons.notifications_active_outlined,
-                            size: 19,
-                            color: (_alertProducts.isNotEmpty ||
-                                    _expiringProducts.isNotEmpty)
-                                ? const Color(0xFFDC2626)
-                                : const Color(0xFF475569),
+                        // Date & Time Pill (adapts to screen width)
+                        if (!isCompact)
+                          Container(
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF0F172A)
+                                  : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: isDark
+                                      ? const Color(0xFF334155)
+                                      : const Color(0xFFE2E8F0)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.schedule_rounded,
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B),
+                                    size: 14),
+                                const SizedBox(width: 6),
+                                Text(
+                                  constraints.maxWidth > 1460
+                                      ? '$dateStr • $timeStr'
+                                      : timeStr,
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? const Color(0xFFCBD5E1)
+                                        : const Color(0xFF334155),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          if (_alertProducts.isNotEmpty ||
-                              _expiringProducts.isNotEmpty)
-                            Positioned(
-                              top: 5,
-                              right: 5,
+
+                        // Calculator Shortcut
+                        if (!isNarrow)
+                          _squareBtn(
+                            icon: const Icon(Icons.calculate_outlined,
+                                color: Color(0xFF475569), size: 18),
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => const CalculatorDialog(),
+                              );
+                            },
+                            tooltip: 'Quick Calculator',
+                          ),
+
+                        // Smart AI Business Assistant Shortcut
+                        _squareBtn(
+                          icon: const Icon(Icons.auto_awesome_rounded,
+                              color: Color(0xFF7C3AED), size: 18),
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => AiAssistantChatDialog(
+                                  settings: widget.settings),
+                            );
+                          },
+                          tooltip: 'Smart AI Business Assistant',
+                        ),
+
+                        // Touch-Friendly Mode Toggle Button
+                        ValueListenableBuilder<bool>(
+                          valueListenable: ThemeService.touchFriendlyNotifier,
+                          builder: (context, touchOn, _) {
+                            return _squareBtn(
+                              icon: Icon(
+                                Icons.touch_app_rounded,
+                                color: touchOn
+                                    ? const Color(0xFF4F46E5)
+                                    : const Color(0xFF64748B),
+                                size: 18,
+                              ),
+                              onTap: () => ThemeService.toggleTouchFriendly(),
+                              tooltip: touchOn
+                                  ? 'Touch-Friendly Mode: ON (Click for Standard Density)'
+                                  : 'Touch-Friendly Mode: OFF (Click for Larger Touch Targets)',
+                            );
+                          },
+                        ),
+
+                        // Dark / Light Mode Toggle Button
+                        ValueListenableBuilder<ThemeMode>(
+                          valueListenable: ThemeService.themeModeNotifier,
+                          builder: (context, mode, _) {
+                            final isDark = mode == ThemeMode.dark;
+                            return _squareBtn(
+                              icon: Icon(
+                                isDark
+                                    ? Icons.light_mode_rounded
+                                    : Icons.dark_mode_rounded,
+                                color: isDark
+                                    ? Colors.amberAccent
+                                    : const Color(0xFF4F46E5),
+                                size: 18,
+                              ),
+                              onTap: () => ThemeService.toggleTheme(),
+                              tooltip: isDark
+                                  ? 'Switch to Light Mode'
+                                  : 'Switch to Dark Mode',
+                            );
+                          },
+                        ),
+
+                        // Developer & Support Info Button
+                        _squareBtn(
+                          icon: const Icon(
+                            Icons.help_outline_rounded,
+                            color: Color(0xFF4F46E5),
+                            size: 18,
+                          ),
+                          onTap: () => AboutDeveloperDialog.show(
+                            context,
+                            settings: widget.settings,
+                          ),
+                          tooltip: 'About Developer & Support (Webdeventh)',
+                        ),
+
+                        // Online / Offline & Pending Sync Queue Pill (Step 7.6)
+                        ValueListenableBuilder<SyncStatusInfo>(
+                          valueListenable: CloudSyncService.syncNotifier,
+                          builder: (context, syncInfo, _) {
+                            final isOffline = widget.settings.isOfflineOnly;
+                            final isSyncing =
+                                syncInfo.state == SyncState.syncing;
+                            final isError = syncInfo.state == SyncState.error;
+
+                            IconData iconData;
+                            Color statusColor;
+                            String statusLabel;
+                            String tooltipText;
+
+                            if (isOffline) {
+                              iconData = Icons.cloud_off_rounded;
+                              statusColor = const Color(0xFF64748B);
+                              statusLabel = 'Offline';
+                              tooltipText =
+                                  'Offline-First Mode: Local SQLite database active';
+                            } else if (isSyncing) {
+                              iconData = Icons.sync_rounded;
+                              statusColor = const Color(0xFF6366F1);
+                              statusLabel = 'Syncing';
+                              tooltipText = 'Synchronizing pending changes...';
+                            } else if (syncInfo.pendingCount > 0 || isError) {
+                              iconData = Icons.cloud_upload_rounded;
+                              statusColor = const Color(0xFFD97706);
+                              statusLabel = '${syncInfo.pendingCount} Pending';
+                              tooltipText = isError
+                                  ? 'Sync Offline/Error: ${syncInfo.pendingCount} pending changes queued (Click to Retry)'
+                                  : 'Pending Sync Queue: ${syncInfo.pendingCount} item(s) waiting (Click to Sync)';
+                            } else {
+                              iconData = Icons.cloud_done_rounded;
+                              statusColor = const Color(0xFF10B981);
+                              statusLabel = 'Online';
+                              tooltipText =
+                                  'Online & Synchronized (Click to Verify)';
+                            }
+
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: Tooltip(
+                                message: tooltipText,
+                                child: InkWell(
+                                  onTap: () async {
+                                    if (isOffline) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Offline SQLite Database active. All sales & stock changes are safely queued locally.'),
+                                          duration: Duration(seconds: 2),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    } else {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Starting synchronization with Cloud/MySQL...'),
+                                          duration: Duration(seconds: 1),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                      await CloudSyncService.syncNow(
+                                          widget.settings);
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    height: 36,
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: showSyncLabel ? 10 : 8),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          statusColor.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                          color: statusColor.withValues(
+                                              alpha: 0.45)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(iconData,
+                                            color: statusColor, size: 16),
+                                        if (showSyncLabel) ...[
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            statusLabel,
+                                            style: TextStyle(
+                                              color: statusColor,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 11.5,
+                                            ),
+                                          ),
+                                        ] else if (syncInfo.pendingCount >
+                                            0) ...[
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${syncInfo.pendingCount}',
+                                            style: TextStyle(
+                                              color: statusColor,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 10.5,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                        // Stock Shortage & Expiry Alert Notification Bell
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Tooltip(
+                            message:
+                                'Inventory Alerts: ${_alertProducts.length} low stock, ${_expiringProducts.length} expiring',
+                            child: InkWell(
+                              onTap: _showInventoryAlertsDialog,
+                              borderRadius: BorderRadius.circular(8),
                               child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFDC2626),
-                                  shape: BoxShape.circle,
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: (_alertProducts.isNotEmpty ||
+                                          _expiringProducts.isNotEmpty)
+                                      ? const Color(0xFFFEF2F2)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: (_alertProducts.isNotEmpty ||
+                                            _expiringProducts.isNotEmpty)
+                                        ? const Color(0xFFFECACA)
+                                        : const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.notifications_active_outlined,
+                                      size: 19,
+                                      color: (_alertProducts.isNotEmpty ||
+                                              _expiringProducts.isNotEmpty)
+                                          ? const Color(0xFFDC2626)
+                                          : const Color(0xFF475569),
+                                    ),
+                                    if (_alertProducts.isNotEmpty ||
+                                        _expiringProducts.isNotEmpty)
+                                      Positioned(
+                                        top: 5,
+                                        right: 5,
+                                        child: Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFFDC2626),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Prominent POS Button
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: widget.onOpenPos,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      height: 38,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF4F46E5), Color(0xFF4338CA)],
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x334F46E5),
-                            blurRadius: 6,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            widget.settings.isRestaurant
-                                ? Icons.table_restaurant_rounded
-                                : widget.settings.isRepair
-                                    ? Icons.build_circle_outlined
-                                    : widget.settings.isHotel
-                                        ? Icons.hotel_rounded
-                                        : widget.settings.isGym
-                                            ? Icons.fitness_center_rounded
-                                            : Icons.bolt_rounded,
-                            color: Colors.amber,
-                            size: 17,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            widget.settings.isRestaurant
-                                ? 'Tables (POS)'
-                                : widget.settings.isRepair
-                                    ? 'Jobs (POS)'
-                                    : widget.settings.isHotel
-                                        ? 'Rooms (POS)'
-                                        : widget.settings.isGym
-                                            ? 'Gym (POS)'
-                                            : 'POS',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'F1',
-                            style: TextStyle(
-                              color: Colors.white60,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
 
-              // Dynamic Profile Pill & Logout Menu
-              ValueListenableBuilder<User?>(
-                valueListenable: AuthService.currentUserNotifier,
-                builder: (context, user, _) {
-                  final displayName = (user != null && user.name.isNotEmpty)
-                      ? user.name
-                      : 'System Operator';
-                  final roleName = (user?.role ?? 'operator').toUpperCase();
-                  final initials = displayName
-                      .split(' ')
-                      .map((w) => w.isNotEmpty ? w[0] : '')
-                      .take(2)
-                      .join();
-
-                  return PopupMenuButton<String>(
-                    tooltip: 'Account & Session Options',
-                    offset: const Offset(0, 46),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                    onSelected: (val) async {
-                      if (val == 'business_settings') {
-                        widget.onOpenSettings?.call();
-                        return;
-                      }
-                      if (val == 'profile') {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                            title: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: const Color(0xFF4F46E5),
-                                  child: Text(
-                                    initials.isNotEmpty ? initials : 'OP',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
+                        // Prominent POS Button
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: widget.onOpenPos,
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                height: 38,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF4F46E5),
+                                      Color(0xFF4338CA)
+                                    ],
                                   ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x334F46E5),
+                                      blurRadius: 6,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 10),
-                                Expanded(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      widget.settings.isRestaurant
+                                          ? Icons.table_restaurant_rounded
+                                          : widget.settings.isRepair
+                                              ? Icons.build_circle_outlined
+                                              : widget.settings.isHotel
+                                                  ? Icons.hotel_rounded
+                                                  : widget.settings.isGym
+                                                      ? Icons
+                                                          .fitness_center_rounded
+                                                      : Icons.bolt_rounded,
+                                      color: Colors.amber,
+                                      size: 17,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      widget.settings.isRestaurant
+                                          ? 'Tables (POS)'
+                                          : widget.settings.isRepair
+                                              ? 'Jobs (POS)'
+                                              : widget.settings.isHotel
+                                                  ? 'Rooms (POS)'
+                                                  : widget.settings.isGym
+                                                      ? 'Gym (POS)'
+                                                      : 'POS',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text(
+                                      'F1',
+                                      style: TextStyle(
+                                        color: Colors.white60,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Dynamic Profile Pill & Logout Menu
+                        ValueListenableBuilder<User?>(
+                          valueListenable: AuthService.currentUserNotifier,
+                          builder: (context, user, _) {
+                            final displayName =
+                                (user != null && user.name.isNotEmpty)
+                                    ? user.name
+                                    : 'System Operator';
+                            final roleName =
+                                (user?.role ?? 'operator').toUpperCase();
+                            final initials = displayName
+                                .split(' ')
+                                .map((w) => w.isNotEmpty ? w[0] : '')
+                                .take(2)
+                                .join();
+
+                            return PopupMenuButton<String>(
+                              tooltip: 'Account & Session Options',
+                              offset: const Offset(0, 46),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : Colors.white,
+                              onSelected: (val) async {
+                                if (val == 'business_settings') {
+                                  widget.onOpenSettings?.call();
+                                  return;
+                                }
+                                if (val == 'profile') {
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(14)),
+                                      title: Row(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 18,
+                                            backgroundColor:
+                                                const Color(0xFF4F46E5),
+                                            child: Text(
+                                              initials.isNotEmpty
+                                                  ? initials
+                                                  : 'OP',
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(displayName,
+                                                    style: const TextStyle(
+                                                        fontSize: 15,
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                Text('Role: $roleName',
+                                                    style: const TextStyle(
+                                                        fontSize: 11,
+                                                        color:
+                                                            Color(0xFF64748B))),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      content: SizedBox(
+                                        width: 420,
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                                'Username: @${user?.username ?? 'operator'}',
+                                                style: const TextStyle(
+                                                    fontSize: 13)),
+                                            if (user != null &&
+                                                user.email.isNotEmpty)
+                                              Text('Email: ${user.email}',
+                                                  style: const TextStyle(
+                                                      fontSize: 13)),
+                                            const SizedBox(height: 12),
+                                            const Text(
+                                                'Active Role Capabilities:',
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12)),
+                                            const SizedBox(height: 6),
+                                            Wrap(
+                                              spacing: 6,
+                                              runSpacing: 6,
+                                              children: [
+                                                'sale.create',
+                                                'sale.delete',
+                                                'quotation.manage',
+                                                'quotation.convert',
+                                                'purchase.manage',
+                                                'settings.manage',
+                                              ]
+                                                  .where((perm) =>
+                                                      user?.hasPermission(
+                                                          perm) ??
+                                                      true)
+                                                  .map((perm) => Chip(
+                                                        visualDensity:
+                                                            VisualDensity
+                                                                .compact,
+                                                        label: Text(perm,
+                                                            style:
+                                                                const TextStyle(
+                                                                    fontSize:
+                                                                        11)),
+                                                      ))
+                                                  .toList(),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(ctx);
+                                            widget.onOpenSettings?.call();
+                                          },
+                                          child:
+                                              const Text('Business Settings'),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () => Navigator.pop(ctx),
+                                          child: const Text('Close'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (val == 'logout') {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Row(
+                                        children: [
+                                          Icon(Icons.logout_rounded,
+                                              color: Colors.red),
+                                          SizedBox(width: 8),
+                                          Text('Confirm Logout'),
+                                        ],
+                                      ),
+                                      content: const Text(
+                                          'Are you sure you want to end your current terminal session?'),
+                                      actions: [
+                                        TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(ctx, false),
+                                            child: const Text('Cancel')),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.red,
+                                              foregroundColor: Colors.white),
+                                          onPressed: () =>
+                                              Navigator.pop(ctx, true),
+                                          child: const Text('Logout'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true) {
+                                    await AuthService.logout();
+                                  }
+                                }
+                              },
+                              itemBuilder: (ctx) => [
+                                PopupMenuItem<String>(
+                                  enabled: false,
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(displayName,
+                                      Text(
+                                        displayName,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: isDark
+                                                ? Colors.white
+                                                : const Color(0xFF0F172A)),
+                                      ),
+                                      Text(
+                                        '${(user != null && user.email.isNotEmpty) ? user.email : '@${user?.username ?? 'operator'}'} • $roleName',
+                                        style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Color(0xFF94A3B8)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuDivider(),
+                                PopupMenuItem<String>(
+                                  value: 'business_settings',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.storefront_outlined,
+                                          size: 18,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : const Color(0xFF475569)),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                          'Business: ${widget.settings.businessTypeDisplayName.split("/").first.trim()}',
                                           style: const TextStyle(
-                                              fontSize: 15,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem<String>(
+                                  value: 'profile',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.person_outline,
+                                          size: 18,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : const Color(0xFF475569)),
+                                      const SizedBox(width: 10),
+                                      const Text('My Profile & Roles',
+                                          style: TextStyle(fontSize: 13)),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem<String>(
+                                  value: 'logout',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.logout_rounded,
+                                          size: 18, color: Colors.red),
+                                      SizedBox(width: 10),
+                                      Text('Log Out / Exit Session',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.red,
                                               fontWeight: FontWeight.bold)),
-                                      Text('Role: $roleName',
-                                          style: const TextStyle(
-                                              fontSize: 11,
-                                              color: Color(0xFF64748B))),
                                     ],
                                   ),
                                 ),
                               ],
-                            ),
-                            content: SizedBox(
-                              width: 420,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                      'Username: @${user?.username ?? 'operator'}',
-                                      style: const TextStyle(fontSize: 13)),
-                                  if (user != null && user.email.isNotEmpty)
-                                    Text('Email: ${user.email}',
-                                        style: const TextStyle(fontSize: 13)),
-                                  const SizedBox(height: 12),
-                                  const Text('Active Role Capabilities:',
-                                      style: TextStyle(
+                              child: Container(
+                                height: 38,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF1E293B)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: isDark
+                                          ? const Color(0xFF334155)
+                                          : const Color(0xFFE2E8F0)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 12,
+                                      backgroundColor: const Color(0xFFEEF2FF),
+                                      child: Text(
+                                        initials.isNotEmpty ? initials : 'AD',
+                                        style: const TextStyle(
+                                          fontSize: 11,
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 12)),
-                                  const SizedBox(height: 6),
-                                  Wrap(
-                                    spacing: 6,
-                                    runSpacing: 6,
-                                    children: [
-                                      'sale.create',
-                                      'sale.delete',
-                                      'quotation.manage',
-                                      'quotation.convert',
-                                      'purchase.manage',
-                                      'settings.manage',
-                                    ]
-                                        .where((perm) =>
-                                            user?.hasPermission(perm) ?? true)
-                                        .map((perm) => Chip(
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              label: Text(perm,
-                                                  style: const TextStyle(
-                                                      fontSize: 11)),
-                                            ))
-                                        .toList(),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(ctx);
-                                  widget.onOpenSettings?.call();
-                                },
-                                child: const Text('Business Settings'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                child: const Text('Close'),
-                              ),
-                            ],
-                          ),
-                        );
-                        return;
-                      }
-                      if (val == 'logout') {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Row(
-                              children: [
-                                Icon(Icons.logout_rounded, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Confirm Logout'),
-                              ],
-                            ),
-                            content: const Text(
-                                'Are you sure you want to end your current terminal session?'),
-                            actions: [
-                              TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('Cancel')),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red,
-                                    foregroundColor: Colors.white),
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('Logout'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (confirm == true) {
-                          await AuthService.logout();
-                        }
-                      }
-                    },
-                    itemBuilder: (ctx) => [
-                      PopupMenuItem<String>(
-                        enabled: false,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              displayName,
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: isDark
-                                      ? Colors.white
-                                      : const Color(0xFF0F172A)),
-                            ),
-                            Text(
-                              '${(user != null && user.email.isNotEmpty) ? user.email : '@${user?.username ?? 'operator'}'} • $roleName',
-                              style: const TextStyle(
-                                  fontSize: 11, color: Color(0xFF94A3B8)),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem<String>(
-                        value: 'business_settings',
-                        child: Row(
-                          children: [
-                            Icon(Icons.storefront_outlined,
-                                size: 18,
-                                color: isDark
-                                    ? Colors.white70
-                                    : const Color(0xFF475569)),
-                            const SizedBox(width: 10),
-                            Text(
-                                'Business: ${widget.settings.businessTypeDisplayName.split("/").first.trim()}',
-                                style: const TextStyle(
-                                    fontSize: 13, fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem<String>(
-                        value: 'profile',
-                        child: Row(
-                          children: [
-                            Icon(Icons.person_outline,
-                                size: 18,
-                                color: isDark
-                                    ? Colors.white70
-                                    : const Color(0xFF475569)),
-                            const SizedBox(width: 10),
-                            const Text('My Profile & Roles',
-                                style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'logout',
-                        child: Row(
-                          children: [
-                            Icon(Icons.logout_rounded,
-                                size: 18, color: Colors.red),
-                            SizedBox(width: 10),
-                            Text('Log Out / Exit Session',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    child: Container(
-                      height: 38,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1E293B)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: isDark
-                                ? const Color(0xFF334155)
-                                : const Color(0xFFE2E8F0)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircleAvatar(
-                            radius: 12,
-                            backgroundColor: const Color(0xFFEEF2FF),
-                            child: Text(
-                              initials.isNotEmpty ? initials : 'AD',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF4F46E5),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                displayName,
-                                style: TextStyle(
-                                  color: isDark
-                                      ? Colors.white
-                                      : const Color(0xFF0F172A),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                                          color: Color(0xFF4F46E5),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          displayName,
+                                          style: TextStyle(
+                                            color: isDark
+                                                ? Colors.white
+                                                : const Color(0xFF0F172A),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        Text(
+                                          roleName,
+                                          style: const TextStyle(
+                                            color: Color(0xFF94A3B8),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        color: Color(0xFF94A3B8),
+                                        size: 16),
+                                  ],
                                 ),
                               ),
-                              Text(
-                                roleName,
-                                style: const TextStyle(
-                                  color: Color(0xFF94A3B8),
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.keyboard_arrow_down_rounded,
-                              color: Color(0xFF94A3B8), size: 16),
-                        ],
-                      ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
             ],
           );

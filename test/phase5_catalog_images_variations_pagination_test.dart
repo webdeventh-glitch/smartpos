@@ -720,7 +720,7 @@ void main() {
         ),
       );
       await tester.runAsync(() async {
-        await Future<void>.delayed(const Duration(milliseconds: 250));
+        await Future<void>.delayed(const Duration(milliseconds: 500));
       });
       await tester.pump();
 
@@ -732,7 +732,7 @@ void main() {
       await tester.ensureVisible(find.byTooltip('Next Page'));
       await tester.tap(find.byTooltip('Next Page'));
       await tester.runAsync(() async {
-        await Future<void>.delayed(const Duration(milliseconds: 250));
+        await Future<void>.delayed(const Duration(milliseconds: 400));
       });
       await tester.pump();
 

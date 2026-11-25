@@ -805,15 +805,13 @@ class _SmartSidebarState extends State<SmartSidebar> {
         can('inventory.adjust') ||
         can('inventory.audit') ||
         can('inventory.manage');
-    // Reports & Settings are strictly visible and manageable by Super Admin (Owner)
-    final canReports = user?.isSuperAdmin == true;
+    final canReports = can('report.view');
     final canKhata = can('customer.view') ||
         can('customer.manage') ||
         can('supplier.manage') ||
         can('contact.khata_payment');
     final canManageUsers = can('user.manage') || can('role.manage');
-    // Settings are strictly visible and manageable by Super Admin (Owner)
-    final canSettings = user?.isSuperAdmin == true;
+    final canSettings = can('settings.manage');
 
     // Check if parent sections are active
     final isProductsActive = const [

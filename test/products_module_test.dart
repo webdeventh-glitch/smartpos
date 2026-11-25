@@ -168,7 +168,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
     await tester.pump();
-    expect(find.text('Units of Measure'), findsOneWidget);
+    expect(find.textContaining('Units of Measure'), findsOneWidget);
     expect(find.text('Add Unit'), findsOneWidget);
 
     // 3. Variation Templates Screen

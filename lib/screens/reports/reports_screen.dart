@@ -1116,7 +1116,7 @@ class _ReportsScreenState extends State<ReportsScreen>
     final stockCost = (stockVal['stockValueCost'] as double?) ?? 0.0;
 
     final user = AuthService.currentUser;
-    if (user != null && !user.isSuperAdmin) {
+    if (user != null && !user.hasPermission('report.view')) {
       return Scaffold(
         backgroundColor:
             isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),

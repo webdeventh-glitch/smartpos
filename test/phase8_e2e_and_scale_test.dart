@@ -201,8 +201,10 @@ void main() {
           await upgraded.db.getVersion(), DatabaseService.currentSchemaVersion);
       final migrations =
           await upgraded.db.query('schema_migrations', orderBy: 'version ASC');
-      expect(migrations.map((m) => m['version']).toList(),
-          [2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      expect(
+        migrations.map((m) => m['version']).toList(),
+        List.generate(DatabaseService.currentSchemaVersion - 1, (i) => i + 2),
+      );
 
       final prods = await upgraded.getProducts();
       expect(prods.any((p) => p.sku == 'LEG-01' && p.stockQuantity == 42.0),
@@ -257,7 +259,7 @@ void main() {
     expect(backupFile.existsSync(), isTrue);
 
     // Mutate live database: delete original product and insert rogue product
-    await db.deleteProduct(prodId);
+    await db.deleteProduct(prodId, force: true);
     await db.addProduct(
       Product(
         name: 'Rogue Post-Backup Product',
