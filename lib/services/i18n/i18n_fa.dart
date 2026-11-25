@@ -1731,4 +1731,6 @@ const Map<String, String> i18nExtraFa = {
   '• All ending balances will be locked and carried forward as opening balances for the new fiscal year.\\n• A permanent audit certificate will be recorded in the system database.':
       '• تمام مانده‌های پایانی قفل شده و به عنوان مانده افتتاحیه سال مالی جدید منتقل می‌شوند.\\n• گواهی حسابرسی دائمی در سیستم ثبت خواهد شد.',
   '● LIVE LEDGER AUDIT': '● زنده دفتر کل حسابرسی',
+  'Expirable Product (Track Expiry Date)':
+      'محصول دارای انقضا (ردیابی تاریخ انقضا)',
 };

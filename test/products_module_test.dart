@@ -260,5 +260,31 @@ void main() {
     expect(find.byType(BarcodeTypeDropdown), findsOneWidget);
     expect(find.byType(BarcodeSymbologyIcon), findsWidgets);
     expect(find.text('EAN-13'), findsOneWidget);
+
+    // Expirable toggle hides Expiry Date by default and reveals it on toggle
+    final reloadedWithExpiry = reloaded.copyWith(businessType: 'pharmacy');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AddProductScreen(
+          settings: reloadedWithExpiry,
+          onProductCreated: () {},
+          onCancel: () {},
+        ),
+      ),
+    );
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    });
+    await tester.pump();
+
+    expect(find.text('Expirable Product (Track Expiry Date)'), findsOneWidget);
+    expect(find.text('MM-YYYY (e.g. 12-2028)'), findsNothing);
+
+    await tester
+        .ensureVisible(find.text('Expirable Product (Track Expiry Date)'));
+    await tester.tap(find.text('Expirable Product (Track Expiry Date)'));
+    await tester.pump();
+
+    expect(find.text('MM-YYYY (e.g. 12-2028)'), findsOneWidget);
   });
 }

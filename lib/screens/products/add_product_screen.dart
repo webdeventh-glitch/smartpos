@@ -93,6 +93,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   bool _manageStock = true;
   bool _isFeatured = false;
+  bool _isExpirable = false;
   final String _selectedLocation = 'Main Branch HQ';
   bool _isLoading = true;
   bool _isSaving = false;
@@ -218,6 +219,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
           }
           _batchCtrl.text = p.batchNumber ?? '';
           _expiryCtrl.text = p.expiryDate ?? '';
+          _isExpirable =
+              p.expiryDate != null && p.expiryDate!.trim().isNotEmpty;
           _bonusQtyCtrl.text = p.bonusQty.toString();
           _packSizeCtrl.text = p.packSize.toString();
           _rackLocationCtrl.text = p.rackLocation ?? '';
@@ -1301,7 +1304,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       }
     }
 
-    String expRaw = _expiryCtrl.text.trim().replaceAll('/', '-');
+    String expRaw =
+        _isExpirable ? _expiryCtrl.text.trim().replaceAll('/', '-') : '';
     if (expRaw.isNotEmpty) {
       final parts = expRaw.split('-');
       if (parts.length == 2) {
@@ -1373,8 +1377,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _variations.fold(0.0, (sum, v) => sum + v.stockQuantity);
       final batchVal =
           _batchCtrl.text.trim().isNotEmpty ? _batchCtrl.text.trim() : null;
-      final expVal =
-          _expiryCtrl.text.trim().isNotEmpty ? _expiryCtrl.text.trim() : null;
+      final expVal = (_isExpirable && _expiryCtrl.text.trim().isNotEmpty)
+          ? _expiryCtrl.text.trim()
+          : null;
       final bonusVal = double.tryParse(_bonusQtyCtrl.text.trim()) ?? 0.0;
       final packVal = double.tryParse(_packSizeCtrl.text.trim()) ?? 1.0;
 
@@ -2263,6 +2268,66 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   ],
                                 ],
                               ),
+                              const SizedBox(height: 10),
+                              InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _isExpirable = !_isExpirable;
+                                    if (!_isExpirable) _expiryCtrl.clear();
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: _isExpirable
+                                        ? const Color(0xFFFEF2F2)
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: _isExpirable
+                                          ? const Color(0xFFFCA5A5)
+                                          : const Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: Checkbox(
+                                          value: _isExpirable,
+                                          onChanged: (v) {
+                                            setState(() {
+                                              _isExpirable = v ?? false;
+                                              if (!_isExpirable) {
+                                                _expiryCtrl.clear();
+                                              }
+                                            });
+                                          },
+                                          materialTapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        PosLocalization.tr(
+                                            'Expirable Product (Track Expiry Date)',
+                                            settings: widget.settings),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: _isExpirable
+                                              ? const Color(0xFFB91C1C)
+                                              : const Color(0xFF475569),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                               const SizedBox(height: 14),
                               LayoutBuilder(builder: (context, constraints) {
                                 final isWide = constraints.maxWidth > 800;
@@ -2290,38 +2355,42 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                       ),
                                       const SizedBox(width: 16),
 
-                                      // Expiry Date
-                                      Expanded(
-                                        flex: 3,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            _buildFieldLabel('Expiry Date',
-                                                hasInfo: true,
-                                                info:
-                                                    'MM-YYYY format e.g. 12-2028 (Click calendar to pick)'),
-                                            TextFormField(
-                                              controller: _expiryCtrl,
-                                              decoration: _inputDecor(
-                                                      'MM-YYYY (e.g. 12-2028)')
-                                                  .copyWith(
-                                                suffixIcon: IconButton(
-                                                  icon: const Icon(
-                                                      Icons.calendar_month,
-                                                      size: 20,
-                                                      color: Color(0xFF004EEB)),
-                                                  tooltip: 'Select Expiry Date',
-                                                  onPressed: () =>
-                                                      _pickExpiryDate(
-                                                          _expiryCtrl),
+                                      // Expiry Date (only when Expirable is selected)
+                                      if (_isExpirable) ...[
+                                        Expanded(
+                                          flex: 3,
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              _buildFieldLabel('Expiry Date',
+                                                  hasInfo: true,
+                                                  info:
+                                                      'MM-YYYY format e.g. 12-2028 (Click calendar to pick)'),
+                                              TextFormField(
+                                                controller: _expiryCtrl,
+                                                decoration: _inputDecor(
+                                                        'MM-YYYY (e.g. 12-2028)')
+                                                    .copyWith(
+                                                  suffixIcon: IconButton(
+                                                    icon: const Icon(
+                                                        Icons.calendar_month,
+                                                        size: 20,
+                                                        color:
+                                                            Color(0xFF004EEB)),
+                                                    tooltip:
+                                                        'Select Expiry Date',
+                                                    onPressed: () =>
+                                                        _pickExpiryDate(
+                                                            _expiryCtrl),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 16),
+                                        const SizedBox(width: 16),
+                                      ],
 
                                       // Bonus Quantity
                                       Expanded(
@@ -2387,36 +2456,39 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                               ],
                                             ),
                                           ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                _buildFieldLabel(
-                                                    'Expiry (MM-YYYY)'),
-                                                TextFormField(
-                                                  controller: _expiryCtrl,
-                                                  decoration:
-                                                      _inputDecor('12-2028')
-                                                          .copyWith(
-                                                    suffixIcon: IconButton(
-                                                      icon: const Icon(
-                                                          Icons.calendar_month,
-                                                          size: 18,
-                                                          color: Color(
-                                                              0xFF004EEB)),
-                                                      tooltip:
-                                                          'Select Expiry Date',
-                                                      onPressed: () =>
-                                                          _pickExpiryDate(
-                                                              _expiryCtrl),
+                                          if (_isExpirable) ...[
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  _buildFieldLabel(
+                                                      'Expiry (MM-YYYY)'),
+                                                  TextFormField(
+                                                    controller: _expiryCtrl,
+                                                    decoration:
+                                                        _inputDecor('12-2028')
+                                                            .copyWith(
+                                                      suffixIcon: IconButton(
+                                                        icon: const Icon(
+                                                            Icons
+                                                                .calendar_month,
+                                                            size: 18,
+                                                            color: Color(
+                                                                0xFF004EEB)),
+                                                        tooltip:
+                                                            'Select Expiry Date',
+                                                        onPressed: () =>
+                                                            _pickExpiryDate(
+                                                                _expiryCtrl),
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
-                                          ),
+                                          ],
                                         ],
                                       ),
                                       const SizedBox(height: 12),

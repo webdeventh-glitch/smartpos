@@ -1726,4 +1726,6 @@ const Map<String, String> i18nExtraPs = {
   '• All ending balances will be locked and carried forward as opening balances for the new fiscal year.\\n• A permanent audit certificate will be recorded in the system database.':
       '• ټول وروستي بیلانسونه به قلف او نوي مالي کال ته انتقال شي.\\n• په ډیټابیس کې به دایمي سند ثبت شي.',
   '● LIVE LEDGER AUDIT': '● ژوندی کھاتہ تفتیش',
+  'Expirable Product (Track Expiry Date)':
+      'د ختمېدو وړ محصول (د پای نېټه تعقیب کړئ)',
 };

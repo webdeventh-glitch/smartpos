@@ -44,6 +44,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
   bool _isSaving = false;
   bool _isPickingImage = false;
   bool _isFeatured = false;
+  bool _isExpirable = false;
   String? _pickedImagePath;
 
   @override
@@ -52,6 +53,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
     final p = widget.productToEdit;
     _pickedImagePath = p?.resolvedImagePath;
     _isFeatured = p?.isFeatured ?? false;
+    _isExpirable = p?.expiryDate != null && p!.expiryDate!.trim().isNotEmpty;
     _nameController = TextEditingController(text: p?.name ?? '');
     _skuController = TextEditingController(text: p?.sku ?? '');
     _barcodeController = TextEditingController(text: p?.barcode ?? '');
@@ -240,7 +242,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
         batchNumber: _batchController.text.trim().isNotEmpty
             ? _batchController.text.trim()
             : null,
-        expiryDate: _expiryController.text.trim().isNotEmpty
+        expiryDate: (_isExpirable && _expiryController.text.trim().isNotEmpty)
             ? _expiryController.text.trim()
             : null,
         bonusQty: double.tryParse(_bonusController.text.trim()) ?? 0.0,
@@ -666,7 +668,26 @@ class _AddProductDialogState extends State<AddProductDialog> {
                       // Optional: Batch Number & Expiry Date (ONLY if enabled in settings)
                       if (_settings?.isBatchExpiryEnabled == true ||
                           _settings?.isPharmacy == true) ...[
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
+                        CheckboxListTile(
+                          value: _isExpirable,
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          title: Text(
+                            PosLocalization.tr(
+                                'Expirable Product (Track Expiry Date)'),
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                          onChanged: (v) {
+                            setState(() {
+                              _isExpirable = v ?? false;
+                              if (!_isExpirable) _expiryController.clear();
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
@@ -680,25 +701,27 @@ class _AddProductDialogState extends State<AddProductDialog> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextFormField(
-                                controller: _expiryController,
-                                decoration: InputDecoration(
-                                  labelText: PosLocalization.tr(
-                                      'Expiry Date (MM-YYYY)'),
-                                  hintText: 'e.g. 12-2028',
-                                  isDense: true,
-                                  suffixIcon: IconButton(
-                                    icon: const Icon(Icons.calendar_month,
-                                        size: 18, color: Color(0xFF004EEB)),
-                                    tooltip: PosLocalization.tr(
-                                        'Select Expiry Date'),
-                                    onPressed: _pickExpiryDate,
+                            if (_isExpirable) ...[
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _expiryController,
+                                  decoration: InputDecoration(
+                                    labelText: PosLocalization.tr(
+                                        'Expiry Date (MM-YYYY)'),
+                                    hintText: 'e.g. 12-2028',
+                                    isDense: true,
+                                    suffixIcon: IconButton(
+                                      icon: const Icon(Icons.calendar_month,
+                                          size: 18, color: Color(0xFF004EEB)),
+                                      tooltip: PosLocalization.tr(
+                                          'Select Expiry Date'),
+                                      onPressed: _pickExpiryDate,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
+                            ],
                             if (_settings?.isPharmacy == true) ...[
                               const SizedBox(width: 12),
                               SizedBox(

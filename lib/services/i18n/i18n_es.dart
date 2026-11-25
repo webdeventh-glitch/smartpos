@@ -1753,4 +1753,6 @@ const Map<String, String> i18nExtraEs = {
   '• All ending balances will be locked and carried forward as opening balances for the new fiscal year.\\n• A permanent audit certificate will be recorded in the system database.':
       '• Todos los saldos finales se bloquearán y trasladarán como saldos iniciales del nuevo año fiscal.\\n• Se registrará un certificado de auditoría permanente.',
   '● LIVE LEDGER AUDIT': '● En vivo Libro mayor Auditoría',
+  'Expirable Product (Track Expiry Date)':
+      'Producto perecedero (Rastrear fecha de vencimiento)',
 };

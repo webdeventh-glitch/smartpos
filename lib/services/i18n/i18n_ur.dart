@@ -1730,4 +1730,6 @@ const Map<String, String> i18nExtraUr = {
   '• All ending balances will be locked and carried forward as opening balances for the new fiscal year.\\n• A permanent audit certificate will be recorded in the system database.':
       '• تمام اختتامی بیلنس لاک کر کے نئے مالی سال کے اوپننگ بیلنس کے طور پر آگے منتقل کر دیے جائیں گے۔\\n• سسٹم ڈیٹا بیس میں مستقل آڈٹ سرٹیفکیٹ محفوظ ہو جائے گا۔',
   '● LIVE LEDGER AUDIT': '● لائیو کھاتہ آڈٹ',
+  'Expirable Product (Track Expiry Date)':
+      'ایکسپائر ہونے والی پروڈکٹ (ایکسپائری ٹریک کریں)',
 };

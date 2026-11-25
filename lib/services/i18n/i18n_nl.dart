@@ -1754,4 +1754,6 @@ const Map<String, String> i18nExtraNl = {
   '• All ending balances will be locked and carried forward as opening balances for the new fiscal year.\\n• A permanent audit certificate will be recorded in the system database.':
       '• Alle eindsaldi worden vergrendeld en overgedragen als beginsaldi voor het nieuwe boekjaar.\\n• Er wordt een permanent auditcertificaat opgeslagen.',
   '● LIVE LEDGER AUDIT': '● Live Grootboek Audit',
+  'Expirable Product (Track Expiry Date)':
+      'Houdbaarheidsproduct (Vervaldatum bijhouden)',
 };

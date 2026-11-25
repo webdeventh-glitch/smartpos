@@ -398,13 +398,12 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        _specField(
-                                            'Expires in',
-                                            p.expiryDate?.isNotEmpty == true
-                                                ? p.expiryDate!
-                                                : 'Not Applicable',
-                                            isDark),
-                                        const SizedBox(height: 8),
+                                        if (p.expiryDate?.isNotEmpty ==
+                                            true) ...[
+                                          _specField('Expires in',
+                                              p.expiryDate!, isDark),
+                                          const SizedBox(height: 8),
+                                        ],
                                         _specField(
                                             'Applicable Tax', 'None', isDark),
                                         const SizedBox(height: 8),
