@@ -38,7 +38,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
   bool _expensesExpanded = false;
   bool _reportsExpanded = false;
   bool _settingsExpanded = false;
-  bool _industryExpanded = false;
 
   @override
   void initState() {
@@ -106,20 +105,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
       AppRoute.cloudSync
     ].contains(route)) {
       _settingsExpanded = true;
-    } else if (const [
-      AppRoute.businessModulesHub,
-      AppRoute.restaurantCafe,
-      AppRoute.repairService,
-      AppRoute.hotelManagement,
-      AppRoute.gymFitness,
-      AppRoute.manufacturing,
-      AppRoute.wooCommerceSync,
-      AppRoute.hrmEmployee,
-      AppRoute.accountingCrm,
-      AppRoute.fruitMandi,
-      AppRoute.poultryBusiness
-    ].contains(route)) {
-      _industryExpanded = true;
     }
   }
 
@@ -856,19 +841,17 @@ class _SmartSidebarState extends State<SmartSidebar> {
       AppRoute.moduleSettings,
       AppRoute.cloudSync
     ].contains(widget.selectedRoute);
-    final isIndustryActive = const [
-      AppRoute.businessModulesHub,
-      AppRoute.restaurantCafe,
-      AppRoute.repairService,
-      AppRoute.hotelManagement,
-      AppRoute.gymFitness,
-      AppRoute.manufacturing,
-      AppRoute.wooCommerceSync,
-      AppRoute.hrmEmployee,
-      AppRoute.accountingCrm,
-      AppRoute.fruitMandi,
-      AppRoute.poultryBusiness
-    ].contains(widget.selectedRoute);
+    final hasDirectModuleItems =
+        _isModEnabled(BusinessSettings.moduleRestaurant) ||
+            _isModEnabled(BusinessSettings.moduleRepair) ||
+            _isModEnabled(BusinessSettings.moduleHotel) ||
+            _isModEnabled(BusinessSettings.moduleGym) ||
+            _isModEnabled(BusinessSettings.moduleManufacturing) ||
+            _isModEnabled(BusinessSettings.moduleWooCommerce) ||
+            _isModEnabled(BusinessSettings.moduleHrm) ||
+            _isModEnabled(BusinessSettings.moduleAccountingCrm) ||
+            _isModEnabled(BusinessSettings.moduleFruitMandi) ||
+            _isModEnabled(BusinessSettings.modulePoultry);
 
     return [
       // ==========================================
@@ -1331,55 +1314,90 @@ class _SmartSidebarState extends State<SmartSidebar> {
       ],
 
       // ==========================================
-      // SECTION 7: SPECIALIZED INDUSTRY MODULES
+      // SECTION 7: INSTALLED BUSINESS MODULES (CLIENT-SCOPED)
       // ==========================================
-      if (widget.settings?.hasAnyIndustryModuleEnabled == true) ...[
-        _sectionHeader('Specialized Industry Modules'),
-        _navItem(
-          icon: Icons.widgets_outlined,
-          title: 'Industry Modules',
-          urduSubtitle: 'خصوصی ورٹیکل ماڈیولز',
-          route: AppRoute.businessModulesHub,
-          hasSubmenu: true,
-          isExpanded: _industryExpanded,
-          isActiveParent: isIndustryActive,
-          onToggleSubmenu: () =>
-              setState(() => _industryExpanded = !_industryExpanded),
-          onTapDirect: () => widget.onSelect(AppRoute.businessModulesHub),
-        ),
-        if (!widget.isCollapsed && _industryExpanded) ...[
-          _subItem(
-              title: 'All Modules Hub', route: AppRoute.businessModulesHub),
-          if (_isModEnabled(BusinessSettings.moduleRestaurant))
-            _subItem(
-                title: 'Restaurant / Cafe', route: AppRoute.restaurantCafe),
-          if (_isModEnabled(BusinessSettings.moduleRepair))
-            _subItem(
-                title: 'Repair Shop / Service', route: AppRoute.repairService),
-          if (_isModEnabled(BusinessSettings.moduleHotel))
-            _subItem(
-                title: 'Hotel Management', route: AppRoute.hotelManagement),
-          if (_isModEnabled(BusinessSettings.moduleGym))
-            _subItem(title: 'Gym & Fitness Center', route: AppRoute.gymFitness),
-          if (_isModEnabled(BusinessSettings.moduleManufacturing))
-            _subItem(
-                title: 'Manufacturing / BOM', route: AppRoute.manufacturing),
-          if (_isModEnabled(BusinessSettings.moduleWooCommerce))
-            _subItem(
-                title: 'Online Store (Woo)', route: AppRoute.wooCommerceSync),
-          if (_isModEnabled(BusinessSettings.moduleHrm))
-            _subItem(
-                title: 'HR & Employee (Payroll)', route: AppRoute.hrmEmployee),
-          if (_isModEnabled(BusinessSettings.moduleAccountingCrm))
-            _subItem(
-                title: 'Accounting & Ledgers', route: AppRoute.accountingCrm),
-          if (_isModEnabled(BusinessSettings.moduleFruitMandi))
-            _subItem(title: 'Fruit Mandi (Arhat)', route: AppRoute.fruitMandi),
-          if (_isModEnabled(BusinessSettings.modulePoultry))
-            _subItem(
-                title: 'Poultry Farm & Trading',
-                route: AppRoute.poultryBusiness),
-        ],
+      if (hasDirectModuleItems) ...[
+        _sectionHeader('Business Operations'),
+        if (_isModEnabled(BusinessSettings.moduleRestaurant))
+          _navItem(
+            icon: Icons.restaurant_rounded,
+            title: 'Restaurant / Cafe',
+            urduSubtitle: 'ٹیبل اور کچن کمانڈ (KOT)',
+            route: AppRoute.restaurantCafe,
+            isActiveParent: widget.selectedRoute == AppRoute.restaurantCafe,
+          ),
+        if (_isModEnabled(BusinessSettings.moduleRepair))
+          _navItem(
+            icon: Icons.build_circle_outlined,
+            title: 'Repair Shop / Service',
+            urduSubtitle: 'جاب کارڈ اور ریپئرنگ',
+            route: AppRoute.repairService,
+            isActiveParent: widget.selectedRoute == AppRoute.repairService,
+          ),
+        if (_isModEnabled(BusinessSettings.moduleHotel))
+          _navItem(
+            icon: Icons.hotel_outlined,
+            title: 'Hotel Management',
+            urduSubtitle: 'کمروں اور گیسٹ کا کھاتہ',
+            route: AppRoute.hotelManagement,
+            isActiveParent: widget.selectedRoute == AppRoute.hotelManagement,
+          ),
+        if (_isModEnabled(BusinessSettings.moduleGym))
+          _navItem(
+            icon: Icons.fitness_center_rounded,
+            title: 'Gym & Fitness Center',
+            urduSubtitle: 'ممبرشپ اور فیس حاضری',
+            route: AppRoute.gymFitness,
+            isActiveParent: widget.selectedRoute == AppRoute.gymFitness,
+          ),
+        if (_isModEnabled(BusinessSettings.moduleManufacturing))
+          _navItem(
+            icon: Icons.precision_manufacturing_outlined,
+            title: 'Manufacturing / BOM',
+            urduSubtitle: 'پیداوار اور خام مال',
+            route: AppRoute.manufacturing,
+            isActiveParent: widget.selectedRoute == AppRoute.manufacturing,
+          ),
+        if (_isModEnabled(BusinessSettings.moduleFruitMandi))
+          _navItem(
+            icon: Icons.agriculture_outlined,
+            title: 'Fruit Mandi (Arhat)',
+            urduSubtitle: 'منڈی بولی اور کمیشن',
+            route: AppRoute.fruitMandi,
+            isActiveParent: widget.selectedRoute == AppRoute.fruitMandi,
+          ),
+        if (_isModEnabled(BusinessSettings.modulePoultry))
+          _navItem(
+            icon: Icons.egg_outlined,
+            title: 'Poultry Farm & Trading',
+            urduSubtitle: 'فلاک اور پولٹری فارم',
+            route: AppRoute.poultryBusiness,
+            isActiveParent: widget.selectedRoute == AppRoute.poultryBusiness,
+          ),
+        if (_isModEnabled(BusinessSettings.moduleWooCommerce))
+          _navItem(
+            icon: Icons.shopping_bag_outlined,
+            title: 'Online Store (Woo)',
+            urduSubtitle: 'آن لائن اسٹور سنک',
+            route: AppRoute.wooCommerceSync,
+            isActiveParent: widget.selectedRoute == AppRoute.wooCommerceSync,
+          ),
+        if (_isModEnabled(BusinessSettings.moduleHrm))
+          _navItem(
+            icon: Icons.badge_outlined,
+            title: 'HR & Employee (Payroll)',
+            urduSubtitle: 'اسٹاف حاضری اور تنخواہ',
+            route: AppRoute.hrmEmployee,
+            isActiveParent: widget.selectedRoute == AppRoute.hrmEmployee,
+          ),
+        if (_isModEnabled(BusinessSettings.moduleAccountingCrm))
+          _navItem(
+            icon: Icons.account_balance_outlined,
+            title: 'Accounting & Ledgers',
+            urduSubtitle: 'جنرل لیجر اور واؤچرز',
+            route: AppRoute.accountingCrm,
+            isActiveParent: widget.selectedRoute == AppRoute.accountingCrm,
+          ),
       ],
 
       const SizedBox(height: 24),

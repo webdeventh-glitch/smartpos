@@ -409,6 +409,7 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isLockedByBusiness = widget.settings.isConfigured &&
         !widget.settings.isModuleAllowedForInstalledBusiness(key);
+    if (isLockedByBusiness) return const SizedBox.shrink();
     final isLockedByLicense = !_isLicensedFeature(key);
     final isLockedOther = isLockedByBusiness || isLockedByLicense;
     final isEnabled =
@@ -774,129 +775,132 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // SaaS Subscription Tier Presets
-                  Row(
-                    children: [
-                      const Icon(Icons.workspace_premium_rounded,
-                          color: Color(0xFFF59E0B), size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        PosLocalization.tr('Commercial SaaS Tier Presets',
-                            settings: widget.settings),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 14),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color:
-                              const Color(0xFF10B981).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
+                  if (!widget.settings.isConfigured) ...[
+                    // SaaS Subscription Tier Presets
+                    Row(
+                      children: [
+                        const Icon(Icons.workspace_premium_rounded,
+                            color: Color(0xFFF59E0B), size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          PosLocalization.tr('Commercial SaaS Tier Presets',
+                              settings: widget.settings),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 14),
                         ),
-                        child: const Text('1-Tap Apply',
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF10B981))),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: ModuleRegistry.tierPresets.map((tier) {
-                          final isApplied = tier.modules.every(
-                              (m) => _activeModules.contains(m.toLowerCase()));
-                          return InkWell(
-                            onTap: () => _applyTierPreset(tier),
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              width: (constraints.maxWidth > 800)
-                                  ? (constraints.maxWidth - 40) / 5
-                                  : (constraints.maxWidth > 500)
-                                      ? (constraints.maxWidth - 20) / 2
-                                      : constraints.maxWidth,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isApplied
-                                    ? const Color(0xFF4F46E5)
-                                        .withValues(alpha: 0.12)
-                                    : (isDark
-                                        ? const Color(0xFF0F172A)
-                                        : const Color(0xFFF8FAFC)),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF10B981).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text('1-Tap Apply',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF10B981))),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        return Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: ModuleRegistry.tierPresets.map((tier) {
+                            final isApplied = tier.modules.every((m) =>
+                                _activeModules.contains(m.toLowerCase()));
+                            return InkWell(
+                              onTap: () => _applyTierPreset(tier),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                width: (constraints.maxWidth > 800)
+                                    ? (constraints.maxWidth - 40) / 5
+                                    : (constraints.maxWidth > 500)
+                                        ? (constraints.maxWidth - 20) / 2
+                                        : constraints.maxWidth,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
                                   color: isApplied
                                       ? const Color(0xFF4F46E5)
+                                          .withValues(alpha: 0.12)
                                       : (isDark
-                                          ? const Color(0xFF334155)
-                                          : const Color(0xFFE2E8F0)),
-                                  width: isApplied ? 2 : 1,
+                                          ? const Color(0xFF0F172A)
+                                          : const Color(0xFFF8FAFC)),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isApplied
+                                        ? const Color(0xFF4F46E5)
+                                        : (isDark
+                                            ? const Color(0xFF334155)
+                                            : const Color(0xFFE2E8F0)),
+                                    width: isApplied ? 2 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            tier.name,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : const Color(0xFF0F172A),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (isApplied)
+                                          const Icon(Icons.check_circle_rounded,
+                                              size: 14,
+                                              color: Color(0xFF10B981)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      tier.pricePerMonth,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF10B981),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      tier.subtitle,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isDark
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFF64748B),
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          tier.name,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: isDark
-                                                ? Colors.white
-                                                : const Color(0xFF0F172A),
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      if (isApplied)
-                                        const Icon(Icons.check_circle_rounded,
-                                            size: 14, color: Color(0xFF10B981)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    tier.pricePerMonth,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF10B981),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    tier.subtitle,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: isDark
-                                          ? const Color(0xFF94A3B8)
-                                          : const Color(0xFF64748B),
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(height: 1),
-                  const SizedBox(height: 14),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(height: 1),
+                    const SizedBox(height: 14),
+                  ],
                   Row(
                     children: [
                       const Icon(Icons.tune_rounded,
@@ -1005,96 +1009,105 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Section 0: Smart POS Industry Presets
-            Row(
-              children: [
-                const Icon(Icons.verified_rounded,
-                    color: Color(0xFF4F46E5), size: 20),
-                const SizedBox(width: 8),
-                const Text(
-                  'Smart POS Industry Presets (بنیادی تجارتی شعبہ جات)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Auto-enables domain workflows',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? const Color(0xFF64748B)
-                          : const Color(0xFF94A3B8)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+            if (!widget.settings.isConfigured) ...[
+              // Section 0: Smart POS Industry Presets
+              Row(
+                children: [
+                  const Icon(Icons.verified_rounded,
+                      color: Color(0xFF4F46E5), size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Smart POS Industry Presets (بنیادی تجارتی شعبہ جات)',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Auto-enables domain workflows',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? const Color(0xFF64748B)
+                            : const Color(0xFF94A3B8)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
 
-            _buildPresetCard(
-              presetKey: BusinessSettings.presetPharmacy,
-              title: 'A. Pharmacy / Medical Store & Agency Preset',
-              subtitle:
-                  'Drug License, Formulas, Batch & Expiry FIFO Management',
-              features:
-                  'Enables Drug License & DL Warrantor, Batch & Expiry Date tracking (FIFO), Medicine Formula search, Strip/Box units, and Pharmacy POS Dispensing.',
-              icon: Icons.local_pharmacy_rounded,
-              color: const Color(0xFF059669),
-              isDark: isDark,
-            ),
-            _buildPresetCard(
-              presetKey: BusinessSettings.presetRetailSuperStore,
-              title: 'B. Super Store / Mart / General Retail Preset',
-              subtitle:
-                  'High-Volume Barcode Retail & Departmental Store Management',
-              features:
-                  'Enables fast barcode scanning, Weight-Scale barcode parsing, Multi-Unit pricing (Piece, Box, Carton), and Product Variations.',
-              icon: Icons.shopping_cart_rounded,
-              color: const Color(0xFF0D9488),
-              isDark: isDark,
-            ),
-            _buildPresetCard(
-              presetKey: BusinessSettings.presetMobileElectronics,
-              title: 'C. Mobile & Electronics Agency Preset',
-              subtitle: 'IMEI / Serialized Inventory & Warranty Management',
-              features:
-                  'Enables mandatory IMEI / Serial Number (1 & 2) selection on Purchase & Sale, Warranty tracking, and Trade-in / Exchange support.',
-              icon: Icons.phone_android_rounded,
-              color: const Color(0xFF2563EB),
-              isDark: isDark,
-            ),
-            _buildPresetCard(
-              presetKey: BusinessSettings.presetSolarHardware,
-              title: 'D. Solar & Hardware Agency Preset',
-              subtitle: 'Quotation Estimates & Solar Composite Packages / BOM',
-              features:
-                  'Enables Quotation / Estimate Builder, Composite / Bundle Products (Panels + Inverter + Batteries + Structure + Labor), Site address tracking, and Warranty claims.',
-              icon: Icons.solar_power_rounded,
-              color: const Color(0xFFD97706),
-              isDark: isDark,
-            ),
-            _buildPresetCard(
-              presetKey: BusinessSettings.presetRestaurantCafe,
-              title: 'E. Restaurant / Cafe Preset',
-              subtitle: 'Food Service, Dine-In Tables & Kitchen Tickets (KOT)',
-              features:
-                  'Enables Dine-In, Takeaway, Delivery modes, Table Floor Selection, Waiter assignment, and KOT (Kitchen Order Ticket) printing.',
-              icon: Icons.restaurant_rounded,
-              color: const Color(0xFFE11D48),
-              isDark: isDark,
-            ),
-            const SizedBox(height: 24),
+              _buildPresetCard(
+                presetKey: BusinessSettings.presetPharmacy,
+                title: 'A. Pharmacy / Medical Store & Agency Preset',
+                subtitle:
+                    'Drug License, Formulas, Batch & Expiry FIFO Management',
+                features:
+                    'Enables Drug License & DL Warrantor, Batch & Expiry Date tracking (FIFO), Medicine Formula search, Strip/Box units, and Pharmacy POS Dispensing.',
+                icon: Icons.local_pharmacy_rounded,
+                color: const Color(0xFF059669),
+                isDark: isDark,
+              ),
+              _buildPresetCard(
+                presetKey: BusinessSettings.presetRetailSuperStore,
+                title: 'B. Super Store / Mart / General Retail Preset',
+                subtitle:
+                    'High-Volume Barcode Retail & Departmental Store Management',
+                features:
+                    'Enables fast barcode scanning, Weight-Scale barcode parsing, Multi-Unit pricing (Piece, Box, Carton), and Product Variations.',
+                icon: Icons.shopping_cart_rounded,
+                color: const Color(0xFF0D9488),
+                isDark: isDark,
+              ),
+              _buildPresetCard(
+                presetKey: BusinessSettings.presetMobileElectronics,
+                title: 'C. Mobile & Electronics Agency Preset',
+                subtitle: 'IMEI / Serialized Inventory & Warranty Management',
+                features:
+                    'Enables mandatory IMEI / Serial Number (1 & 2) selection on Purchase & Sale, Warranty tracking, and Trade-in / Exchange support.',
+                icon: Icons.phone_android_rounded,
+                color: const Color(0xFF2563EB),
+                isDark: isDark,
+              ),
+              _buildPresetCard(
+                presetKey: BusinessSettings.presetSolarHardware,
+                title: 'D. Solar & Hardware Agency Preset',
+                subtitle:
+                    'Quotation Estimates & Solar Composite Packages / BOM',
+                features:
+                    'Enables Quotation / Estimate Builder, Composite / Bundle Products (Panels + Inverter + Batteries + Structure + Labor), Site address tracking, and Warranty claims.',
+                icon: Icons.solar_power_rounded,
+                color: const Color(0xFFD97706),
+                isDark: isDark,
+              ),
+              _buildPresetCard(
+                presetKey: BusinessSettings.presetRestaurantCafe,
+                title: 'E. Restaurant / Cafe Preset',
+                subtitle:
+                    'Food Service, Dine-In Tables & Kitchen Tickets (KOT)',
+                features:
+                    'Enables Dine-In, Takeaway, Delivery modes, Table Floor Selection, Waiter assignment, and KOT (Kitchen Order Ticket) printing.',
+                icon: Icons.restaurant_rounded,
+                color: const Color(0xFFE11D48),
+                isDark: isDark,
+              ),
+              const SizedBox(height: 24),
+            ],
 
-            // Section 1: Specialized Industry Modules
+            // Section 1: Business Add-On Modules
             Row(
               children: [
                 const Icon(Icons.hub_rounded,
                     color: Color(0xFF6366F1), size: 20),
                 const SizedBox(width: 8),
-                const Text(
-                  'Specialized Industry Modules (شعبہ جاتی ماڈیولز)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Text(
+                  widget.settings.isConfigured
+                      ? '${widget.settings.businessTypeDisplayName} & Add-On Modules'
+                      : 'Specialized Industry Modules (شعبہ جاتی ماڈیولز)',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Turn off if not in this industry',
+                  widget.settings.isConfigured
+                      ? 'Modules for your installed business'
+                      : 'Turn off if not in this industry',
                   style: TextStyle(
                       fontSize: 12,
                       color: isDark

@@ -329,6 +329,11 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final filtered = _modules.where((m) {
+      final modId = (m['id'] as String).toLowerCase();
+      if (widget.settings.isConfigured &&
+          !widget.settings.isHubBusinessAllowed(modId)) {
+        return false;
+      }
       if (_searchFilter.isEmpty) return true;
       final q = _searchFilter.toLowerCase();
       final title = (m['title'] as String).toLowerCase();
@@ -387,9 +392,11 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Multi-Industry Business Hub',
-                                style: TextStyle(
+                              Text(
+                                widget.settings.isConfigured
+                                    ? '${widget.settings.businessTypeDisplayName} Workspace'
+                                    : 'Multi-Industry Business Hub',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 22,
                                   fontWeight: FontWeight.w900,
@@ -398,7 +405,9 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Smart POS supports 16 customized business workflows & enterprise modules',
+                                widget.settings.isConfigured
+                                    ? 'Modules & utilities active for your installed business'
+                                    : 'Smart POS supports 16 customized business workflows & enterprise modules',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.8),
                                   fontSize: 13,
@@ -532,7 +541,9 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                             : const Color(0xFFE2E8F0)),
                   ),
                   child: Text(
-                    '${filtered.length} of 16 Models Available',
+                    widget.settings.isConfigured
+                        ? '${filtered.length} Available Modules'
+                        : '${filtered.length} of 16 Models Available',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
