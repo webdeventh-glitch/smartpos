@@ -12,6 +12,7 @@ import '../../widgets/status_pill.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../pos/receipt_dialog.dart';
 import '../pos/register_details_dialog.dart';
+import '../../utils/currency_formatter.dart';
 
 class DashboardScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -561,9 +562,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFE0F2FE),
                       title: PosLocalization.tr('Total Sales',
                           settings: widget.settings),
-                      subtitle: PosLocalization.tr('Total Sales Revenue',
-                          settings: widget.settings),
-                      value: '$currency ${totalSales.toStringAsFixed(2)}',
+                      subtitle: totalSales.abs() >= 1e5
+                          ? CurrencyFormatter.exact(totalSales,
+                              currency: '$currency ')
+                          : PosLocalization.tr('Total Sales Revenue',
+                              settings: widget.settings),
+                      value: CurrencyFormatter.compact(totalSales,
+                          currency: '$currency '),
                       onTap: () => widget.onNavigateToRoute(AppRoute.salesList),
                     ),
 
@@ -574,11 +579,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFDCFCE7),
                       title:
                           PosLocalization.tr('Net', settings: widget.settings),
-                      value: '$currency ${netProfit.toStringAsFixed(2)}',
+                      subtitle: netProfit.abs() >= 1e5
+                          ? CurrencyFormatter.exact(netProfit,
+                              currency: '$currency ')
+                          : null,
+                      value: CurrencyFormatter.compact(netProfit,
+                          currency: '$currency '),
                       showInfo: true,
                       tooltip:
                           'Net Profit = Total Sales - Cost of Goods - Expenses',
-                      onTap: () => widget.onNavigateToRoute(AppRoute.reports),
+                      onTap: () {
+                        if (AuthService.currentUser?.isSuperAdmin ?? false) {
+                          widget.onNavigateToRoute(AppRoute.reports);
+                        }
+                      },
                     ),
 
                     // 3. Invoice due
@@ -588,7 +602,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEF3C7),
                       title: PosLocalization.tr('Invoice due',
                           settings: widget.settings),
-                      value: '$currency ${invoiceDue.toStringAsFixed(2)}',
+                      subtitle: invoiceDue.abs() >= 1e5
+                          ? CurrencyFormatter.exact(invoiceDue,
+                              currency: '$currency ')
+                          : null,
+                      value: CurrencyFormatter.compact(invoiceDue,
+                          currency: '$currency '),
                       onTap: () => widget.onNavigateToRoute(AppRoute.customers),
                     ),
 
@@ -599,7 +618,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEE2E2),
                       title: PosLocalization.tr('Total Sell Return',
                           settings: widget.settings),
-                      value: '$currency ${totalSellReturn.toStringAsFixed(2)}',
+                      subtitle: totalSellReturn.abs() >= 1e5
+                          ? CurrencyFormatter.exact(totalSellReturn,
+                              currency: '$currency ')
+                          : null,
+                      value: CurrencyFormatter.compact(totalSellReturn,
+                          currency: '$currency '),
                       showInfo: true,
                       tooltip: 'Total customer product sales returns',
                       onTap: () =>
@@ -613,9 +637,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFE0F7FA),
                       title: PosLocalization.tr('Total purchase',
                           settings: widget.settings),
-                      subtitle: PosLocalization.tr('Total Purchases',
-                          settings: widget.settings),
-                      value: '$currency ${totalPurchases.toStringAsFixed(2)}',
+                      subtitle: totalPurchases.abs() >= 1e5
+                          ? CurrencyFormatter.exact(totalPurchases,
+                              currency: '$currency ')
+                          : PosLocalization.tr('Total Purchases',
+                              settings: widget.settings),
+                      value: CurrencyFormatter.compact(totalPurchases,
+                          currency: '$currency '),
                       onTap: () =>
                           widget.onNavigateToRoute(AppRoute.purchasesList),
                     ),
@@ -627,7 +655,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEF3C7),
                       title: PosLocalization.tr('Purchase due',
                           settings: widget.settings),
-                      value: '$currency ${purchaseDue.toStringAsFixed(2)}',
+                      subtitle: purchaseDue.abs() >= 1e5
+                          ? CurrencyFormatter.exact(purchaseDue,
+                              currency: '$currency ')
+                          : null,
+                      value: CurrencyFormatter.compact(purchaseDue,
+                          currency: '$currency '),
                       onTap: () => widget.onNavigateToRoute(AppRoute.suppliers),
                     ),
 
@@ -638,8 +671,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEE2E2),
                       title: PosLocalization.tr('Total Purchase Return',
                           settings: widget.settings),
-                      value:
-                          '$currency ${totalPurchaseReturn.toStringAsFixed(2)}',
+                      subtitle: totalPurchaseReturn.abs() >= 1e5
+                          ? CurrencyFormatter.exact(totalPurchaseReturn,
+                              currency: '$currency ')
+                          : null,
+                      value: CurrencyFormatter.compact(totalPurchaseReturn,
+                          currency: '$currency '),
                       showInfo: true,
                       tooltip: 'Total supplier purchase returns',
                       onTap: () =>
@@ -653,7 +690,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEE2E2),
                       title: PosLocalization.tr('Expense',
                           settings: widget.settings),
-                      value: '$currency ${totalExpenses.toStringAsFixed(2)}',
+                      subtitle: totalExpenses.abs() >= 1e5
+                          ? CurrencyFormatter.exact(totalExpenses,
+                              currency: '$currency ')
+                          : null,
+                      value: CurrencyFormatter.compact(totalExpenses,
+                          currency: '$currency '),
                       onTap: () => widget.onNavigateToRoute(AppRoute.expenses),
                     ),
                   ],
@@ -710,12 +752,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   onTap: () =>
                       widget.onNavigateToRoute(AppRoute.inventoryAudit),
                 ),
-                _actionPill(
-                  icon: Icons.analytics_outlined,
-                  label:
-                      PosLocalization.tr('Reports', settings: widget.settings),
-                  onTap: () => widget.onNavigateToRoute(AppRoute.reports),
-                ),
+                if (AuthService.currentUser?.isSuperAdmin ?? false)
+                  _actionPill(
+                    icon: Icons.analytics_outlined,
+                    label: PosLocalization.tr('Reports',
+                        settings: widget.settings),
+                    onTap: () => widget.onNavigateToRoute(AppRoute.reports),
+                  ),
                 _actionPill(
                   icon: Icons.assignment_turned_in_outlined,
                   label: PosLocalization.tr('Sales Orders',
@@ -1598,7 +1641,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       Text(
-                        '$currency ${rev.toStringAsFixed(2)}',
+                        CurrencyFormatter.compact(rev, currency: '$currency '),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
@@ -1801,7 +1844,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       StatusPill(status: s.paymentStatus),
                       const SizedBox(width: 14),
                       Text(
-                        '$currency ${s.totalAmount.toStringAsFixed(2)}',
+                        CurrencyFormatter.compact(s.totalAmount,
+                            currency: '$currency '),
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 13,
@@ -2124,7 +2168,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     Text(
-                      '$currency ${soTotal.toStringAsFixed(2)}',
+                      CurrencyFormatter.compact(soTotal,
+                          currency: '$currency '),
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -2198,7 +2243,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     Text(
-                      '$currency ${poTotal.toStringAsFixed(2)}',
+                      CurrencyFormatter.compact(poTotal,
+                          currency: '$currency '),
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,

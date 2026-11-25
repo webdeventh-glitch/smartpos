@@ -5,15 +5,18 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p_path;
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
+import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
 import '../../services/regional_data_service.dart';
 import '../../widgets/product_thumbnail.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import '../../widgets/searchable_unit_picker.dart';
 
 class AddProductScreen extends StatefulWidget {
   final BusinessSettings settings;
   final Product? productToEdit;
+  final bool isDuplicate;
   final VoidCallback onProductCreated;
   final VoidCallback onCancel;
 
@@ -21,6 +24,7 @@ class AddProductScreen extends StatefulWidget {
     super.key,
     required this.settings,
     this.productToEdit,
+    this.isDuplicate = false,
     required this.onProductCreated,
     required this.onCancel,
   });
@@ -42,7 +46,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _purchasePriceCtrl = TextEditingController(text: '100.00');
   final _profitMarginCtrl = TextEditingController(text: '25.0');
   final _sellingPriceCtrl = TextEditingController(text: '125.00');
-  final _openingStockCtrl = TextEditingController(text: '50');
+  final _openingStockCtrl = TextEditingController(text: '0');
   final _descCtrl = TextEditingController();
   final _imageCtrl = TextEditingController();
 
@@ -171,9 +175,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
         }
         if (widget.productToEdit != null) {
           final p = widget.productToEdit!;
-          _nameCtrl.text = p.name;
-          _skuCtrl.text = p.sku;
-          _barcodeCtrl.text = p.barcode;
+          final isDup = widget.isDuplicate;
+          _nameCtrl.text = isDup ? '${p.name} (Copy)' : p.name;
+          if (!isDup) {
+            _skuCtrl.text = p.sku;
+            _barcodeCtrl.text = p.barcode;
+          } else {
+            _barcodeCtrl.clear();
+          }
           _alertQtyCtrl.text = p.alertQuantity.toString();
           _purchasePriceCtrl.text = p.purchasePrice.toStringAsFixed(2);
           final margin = p.purchasePrice > 0
@@ -181,7 +190,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               : 0.0;
           _profitMarginCtrl.text = margin.toStringAsFixed(1);
           _sellingPriceCtrl.text = p.sellingPrice.toStringAsFixed(2);
-          _openingStockCtrl.text = p.stockQuantity.toString();
+          _openingStockCtrl.text = isDup ? '0' : p.stockQuantity.toString();
           _barcodeType = p.barcodeType;
           _productType = p.type;
           _isFeatured = p.isFeatured;
@@ -224,7 +233,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   (wars.isNotEmpty ? wars.first : null);
           _selectedTaxRateId = p.taxRateId;
           _selectedTaxGroupId = p.taxGroupId;
-          _variations = List.from(loadedVars);
+          _variations = isDup
+              ? loadedVars
+                  .map((v) => ProductVariation(
+                        name: v.name,
+                        subSku: '${v.subSku}-COPY',
+                        purchasePrice: v.purchasePrice,
+                        sellingPrice: v.sellingPrice,
+                        stockQuantity: 0.0,
+                      ))
+                  .toList()
+              : List.from(loadedVars);
+          if (isDup) {
+            _autoGenerateSku();
+          }
         } else {
           if (_units.isNotEmpty && !_units.contains(_selectedUnit)) {
             final defaultMatch = _units.firstWhere(
@@ -260,6 +282,89 @@ class _AddProductScreenState extends State<AddProductScreen> {
         }
       });
     }
+  }
+
+  Future<void> _openSearchBrandDialog() async {
+    final picked = await SearchableSelectDialog.show<Brand>(
+      context,
+      title: 'Select Brand (برانڈ تلاش کریں)',
+      searchHint: 'Type brand name (e.g. Canadian Solar, Inverex)...',
+      items: _brands,
+      selectedItem: _selectedBrand,
+      labelBuilder: (b) => b.name,
+      subtitleBuilder: (b) =>
+          (b.description != null && b.description!.isNotEmpty)
+              ? b.description!
+              : 'Brand ID: #${b.id ?? "-"}',
+      onAddNew: _quickAddBrand,
+      addNewLabel: '+ Add Brand',
+      allowClear: true,
+      clearLabel: 'None / Clear Brand',
+    );
+    setState(() {
+      _selectedBrand = picked;
+      if (_nameCtrl.text.trim().isEmpty &&
+          picked != null &&
+          picked.name != 'Standard') {
+        _nameCtrl.text = picked.name;
+      }
+    });
+  }
+
+  Future<void> _openSearchCategoryDialog() async {
+    final picked = await SearchableSelectDialog.show<Category>(
+      context,
+      title: 'Select Category (کیٹیگری تلاش کریں)',
+      searchHint: 'Type category name or code (e.g. Solar, Panels)...',
+      items: _categories,
+      selectedItem: _selectedCategory,
+      labelBuilder: (c) => c.name,
+      subtitleBuilder: (c) =>
+          c.code.isNotEmpty ? 'Short Code: ${c.code}' : (c.description ?? ''),
+      trailingBuilder: (c) => c.code.isNotEmpty
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                c.code,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF4F46E5),
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
+      onAddNew: _quickAddCategory,
+      addNewLabel: '+ Add Category',
+      allowClear: true,
+      clearLabel: 'None / Clear Category',
+    );
+    setState(() => _selectedCategory = picked);
+    _autoGenerateSku();
+  }
+
+  Future<void> _openSearchSubCategoryDialog() async {
+    final picked = await SearchableSelectDialog.show<String>(
+      context,
+      title: 'Select Sub category (ذیلی کیٹیگری)',
+      searchHint: 'Search or type sub category...',
+      items: _subCategories,
+      selectedItem: _selectedSubCategory,
+      labelBuilder: (s) => s,
+      allowClear: true,
+      clearLabel: 'None / Clear Sub category',
+      onCustomAdd: (val) {
+        if (!_subCategories.contains(val)) {
+          _subCategories.add(val);
+        }
+        return val;
+      },
+    );
+    setState(() => _selectedSubCategory = picked);
   }
 
   void _showQuickAddUnitDialog() {
@@ -658,36 +763,109 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Future<void> _quickAddBrand() async {
     final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
 
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Brand',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        content: TextField(
-            controller: nameCtrl,
-            decoration: const InputDecoration(labelText: 'Brand Name*')),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Add Brand',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            IconButton(
+              icon: const Icon(Icons.close, size: 20),
+              onPressed: () => Navigator.pop(ctx, false),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Brand Name *',
+                  hintText: 'e.g. Canadian Solar, Inverex, Samsung',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: descCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Short Description (Optional)',
+                  hintText: 'Notes, warranty, specs or origin',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF004EEB),
-                foregroundColor: Colors.white),
+              backgroundColor: const Color(0xFF004EEB),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () {
-              if (nameCtrl.text.trim().isNotEmpty) Navigator.pop(ctx, true);
+              if (nameCtrl.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, true);
+              }
             },
-            child: const Text('Add'),
+            child: const Text('Save Brand'),
           ),
         ],
       ),
     );
 
     if (result == true) {
+      final name = nameCtrl.text.trim();
+      final desc = descCtrl.text.trim();
+      if (name.isEmpty) return;
+
+      // Duplicate check (Ultimate POS parity)
+      final existing = _brands
+          .where((b) => b.name.trim().toLowerCase() == name.toLowerCase())
+          .firstOrNull;
+
+      if (existing != null) {
+        setState(() {
+          _selectedBrand = existing;
+          if (_nameCtrl.text.trim().isEmpty) {
+            _nameCtrl.text = existing.name;
+          }
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Brand '$name' already exists. Selected!"),
+              backgroundColor: const Color(0xFF4F46E5),
+            ),
+          );
+        }
+        return;
+      }
+
       final db = await DatabaseService.initialize();
-      final id = await db.insertBrand(Brand(name: nameCtrl.text.trim()));
+      final id = await db.insertBrand(
+        Brand(name: name, description: desc.isEmpty ? null : desc),
+      );
       await _loadMetadata();
+      if (!mounted) return;
       setState(() {
         _selectedBrand =
             _brands.firstWhere((b) => b.id == id, orElse: () => _brands.last);
@@ -695,6 +873,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _nameCtrl.text = _selectedBrand!.name;
         }
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Brand '$name' added & selected!"),
+          backgroundColor: const Color(0xFF10B981),
+        ),
+      );
     }
   }
 
@@ -1220,7 +1404,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
         isFeatured: _isFeatured,
       );
 
-      if (widget.productToEdit != null && widget.productToEdit!.id != null) {
+      if (!widget.isDuplicate &&
+          widget.productToEdit != null &&
+          widget.productToEdit!.id != null) {
         final toUpdate = Product(
           id: widget.productToEdit!.id,
           name: name,
@@ -1267,7 +1453,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       }
 
       if (mounted) {
-        final savedName = widget.productToEdit != null
+        final savedName = (!widget.isDuplicate && widget.productToEdit != null)
             ? widget.productToEdit!.name
             : product.name;
         final savedStock = _productType == 'variable' ? totalVarStock : stock;
@@ -1391,7 +1577,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
 
     final currency = widget.settings.currencySymbol;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
@@ -1417,9 +1602,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      widget.productToEdit != null
-                          ? 'Edit product'
-                          : 'Add new product',
+                      widget.isDuplicate
+                          ? 'Duplicate product'
+                          : (widget.productToEdit != null
+                              ? 'Edit product'
+                              : 'Add new product'),
                       style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -1469,7 +1656,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               : const Icon(Icons.check, size: 16),
                           label: Text(_isSaving
                               ? 'Saving...'
-                              : (widget.productToEdit != null
+                              : ((!widget.isDuplicate &&
+                                      widget.productToEdit != null)
                                   ? 'Update Product'
                                   : 'Save Product')),
                         ),
@@ -1657,7 +1845,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       }),
                       const SizedBox(height: 20),
 
-                      // ROW 2: Unit | Brand | Category
+                      // ROW 2: Unit | Brand | Category (Searchable Selects)
                       LayoutBuilder(builder: (context, constraints) {
                         final isWide = constraints.maxWidth > 800;
                         if (isWide) {
@@ -1667,69 +1855,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               // Unit with [+] button
                               Expanded(
                                 flex: 4,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildFieldLabel('Unit', isRequired: true),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: InkWell(
-                                            onTap: _openSearchUnitDialog,
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            child: InputDecorator(
-                                              decoration:
-                                                  _inputDecor('Select Unit')
-                                                      .copyWith(
-                                                prefixIcon: const Icon(
-                                                    Icons.straighten_rounded,
-                                                    size: 18),
-                                                suffixIcon: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(Icons.search,
-                                                        size: 17,
-                                                        color: isDark
-                                                            ? const Color(
-                                                                0xFF818CF8)
-                                                            : const Color(
-                                                                0xFF4F46E5)),
-                                                    const SizedBox(width: 4),
-                                                    const Icon(
-                                                        Icons
-                                                            .arrow_drop_down_rounded,
-                                                        size: 22),
-                                                    const SizedBox(width: 6),
-                                                  ],
-                                                ),
-                                              ),
-                                              child: Text(
-                                                _selectedUnit.isNotEmpty
-                                                    ? _selectedUnit
-                                                    : 'Select Unit (اکائی تلاش کریں)',
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: _selectedUnit
-                                                          .isNotEmpty
-                                                      ? (isDark
-                                                          ? Colors.white
-                                                          : const Color(
-                                                              0xFF0F172A))
-                                                      : const Color(0xFF94A3B8),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        _buildPlusButton(
-                                            _showQuickAddUnitDialog),
-                                      ],
-                                    ),
-                                  ],
+                                child: SearchSelectField(
+                                  label: 'Unit',
+                                  isRequired: true,
+                                  valueText: _selectedUnit.isNotEmpty
+                                      ? _selectedUnit
+                                      : null,
+                                  placeholder: 'Select Unit (اکائی تلاش کریں)',
+                                  prefixIcon: Icons.straighten_rounded,
+                                  onTap: _openSearchUnitDialog,
+                                  onAdd: _showQuickAddUnitDialog,
                                 ),
                               ),
                               const SizedBox(width: 20),
@@ -1737,43 +1872,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               // Brand with [+] button
                               Expanded(
                                 flex: 4,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildFieldLabel('Brand'),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: DropdownButtonFormField<Brand>(
-                                            initialValue: _selectedBrand,
-                                            decoration:
-                                                _inputDecor('Please Select'),
-                                            items: _brands
-                                                .map((b) => DropdownMenuItem(
-                                                    value: b,
-                                                    child: Text(b.name,
-                                                        style: const TextStyle(
-                                                            fontSize: 13))))
-                                                .toList(),
-                                            onChanged: (val) {
-                                              setState(() {
-                                                _selectedBrand = val;
-                                                if (_nameCtrl.text
-                                                        .trim()
-                                                        .isEmpty &&
-                                                    val != null &&
-                                                    val.name != 'Standard') {
-                                                  _nameCtrl.text = val.name;
-                                                }
-                                              });
-                                            },
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        _buildPlusButton(_quickAddBrand),
-                                      ],
-                                    ),
-                                  ],
+                                child: SearchSelectField(
+                                  label: 'Brand',
+                                  valueText: _selectedBrand?.name,
+                                  placeholder: 'Select Brand (برانڈ تلاش کریں)',
+                                  prefixIcon: Icons.branding_watermark_outlined,
+                                  onTap: _openSearchBrandDialog,
+                                  onAdd: _quickAddBrand,
                                 ),
                               ),
                               const SizedBox(width: 20),
@@ -1781,37 +1886,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               // Category with [+] button
                               Expanded(
                                 flex: 4,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildFieldLabel('Category'),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child:
-                                              DropdownButtonFormField<Category>(
-                                            initialValue: _selectedCategory,
-                                            decoration:
-                                                _inputDecor('Please Select'),
-                                            items: _categories
-                                                .map((c) => DropdownMenuItem(
-                                                    value: c,
-                                                    child: Text(c.name,
-                                                        style: const TextStyle(
-                                                            fontSize: 13))))
-                                                .toList(),
-                                            onChanged: (val) {
-                                              setState(() =>
-                                                  _selectedCategory = val);
-                                              _autoGenerateSku();
-                                            },
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        _buildPlusButton(_quickAddCategory),
-                                      ],
-                                    ),
-                                  ],
+                                child: SearchSelectField(
+                                  label: 'Category',
+                                  isRequired: true,
+                                  valueText: _selectedCategory?.name,
+                                  placeholder:
+                                      'Select Category (کیٹیگری تلاش کریں)',
+                                  prefixIcon: Icons.category_outlined,
+                                  onTap: _openSearchCategoryDialog,
+                                  onAdd: _quickAddCategory,
                                 ),
                               ),
                             ],
@@ -1819,72 +1902,36 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         } else {
                           return Column(
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel('Unit', isRequired: true),
-                                  InkWell(
-                                    onTap: _openSearchUnitDialog,
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: InputDecorator(
-                                      decoration:
-                                          _inputDecor('Select Unit').copyWith(
-                                        prefixIcon: const Icon(
-                                            Icons.straighten_rounded,
-                                            size: 18),
-                                        suffixIcon: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(Icons.search,
-                                                size: 17,
-                                                color: isDark
-                                                    ? const Color(0xFF818CF8)
-                                                    : const Color(0xFF4F46E5)),
-                                            const SizedBox(width: 4),
-                                            const Icon(
-                                                Icons.arrow_drop_down_rounded,
-                                                size: 22),
-                                            const SizedBox(width: 6),
-                                          ],
-                                        ),
-                                      ),
-                                      child: Text(
-                                        _selectedUnit.isNotEmpty
-                                            ? _selectedUnit
-                                            : 'Select Unit (اکائی تلاش کریں)',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: _selectedUnit.isNotEmpty
-                                              ? (isDark
-                                                  ? Colors.white
-                                                  : const Color(0xFF0F172A))
-                                              : const Color(0xFF94A3B8),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              SearchSelectField(
+                                label: 'Unit',
+                                isRequired: true,
+                                valueText: _selectedUnit.isNotEmpty
+                                    ? _selectedUnit
+                                    : null,
+                                placeholder: 'Select Unit (اکائی تلاش کریں)',
+                                prefixIcon: Icons.straighten_rounded,
+                                onTap: _openSearchUnitDialog,
+                                onAdd: _showQuickAddUnitDialog,
                               ),
                               const SizedBox(height: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel('Category'),
-                                  DropdownButtonFormField<Category>(
-                                    initialValue: _selectedCategory,
-                                    decoration: _inputDecor('Please Select'),
-                                    items: _categories
-                                        .map((c) => DropdownMenuItem(
-                                            value: c,
-                                            child: Text(c.name,
-                                                style: const TextStyle(
-                                                    fontSize: 13))))
-                                        .toList(),
-                                    onChanged: (val) =>
-                                        setState(() => _selectedCategory = val),
-                                  ),
-                                ],
+                              SearchSelectField(
+                                label: 'Brand',
+                                valueText: _selectedBrand?.name,
+                                placeholder: 'Select Brand (برانڈ تلاش کریں)',
+                                prefixIcon: Icons.branding_watermark_outlined,
+                                onTap: _openSearchBrandDialog,
+                                onAdd: _quickAddBrand,
+                              ),
+                              const SizedBox(height: 16),
+                              SearchSelectField(
+                                label: 'Category',
+                                isRequired: true,
+                                valueText: _selectedCategory?.name,
+                                placeholder:
+                                    'Select Category (کیٹیگری تلاش کریں)',
+                                prefixIcon: Icons.category_outlined,
+                                onTap: _openSearchCategoryDialog,
+                                onAdd: _quickAddCategory,
                               ),
                             ],
                           );
@@ -1892,38 +1939,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       }),
                       const SizedBox(height: 20),
 
-                      // ROW 3: Sub Category | Business Locations
+                      // ROW 3: Sub Category | Business Locations | Warranty
                       LayoutBuilder(builder: (context, constraints) {
                         final isWide = constraints.maxWidth > 800;
                         if (isWide) {
                           return Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Sub category
+                              // Sub category with Search Select
                               Expanded(
                                 flex: 4,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildFieldLabel('Sub category'),
-                                    DropdownButtonFormField<String>(
-                                      initialValue: _selectedSubCategory,
-                                      hint: const Text('Please Select',
-                                          style: TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF94A3B8))),
-                                      decoration: _inputDecor('Please Select'),
-                                      items: _subCategories
-                                          .map((s) => DropdownMenuItem(
-                                              value: s,
-                                              child: Text(s,
-                                                  style: const TextStyle(
-                                                      fontSize: 13))))
-                                          .toList(),
-                                      onChanged: (val) => setState(
-                                          () => _selectedSubCategory = val),
-                                    ),
-                                  ],
+                                child: SearchSelectField(
+                                  label: 'Sub category',
+                                  valueText: _selectedSubCategory,
+                                  placeholder:
+                                      'Select Sub category (ذیلی کیٹیگری)',
+                                  prefixIcon: Icons.alt_route_rounded,
+                                  onTap: _openSearchSubCategoryDialog,
                                 ),
                               ),
                               const SizedBox(width: 20),
@@ -2020,27 +2052,40 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           );
                         } else {
                           return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              SearchSelectField(
+                                label: 'Sub category',
+                                valueText: _selectedSubCategory,
+                                placeholder:
+                                    'Select Sub category (ذیلی کیٹیگری)',
+                                prefixIcon: Icons.alt_route_rounded,
+                                onTap: _openSearchSubCategoryDialog,
+                              ),
+                              const SizedBox(height: 16),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildFieldLabel('Sub category'),
-                                  DropdownButtonFormField<String>(
-                                    initialValue: _selectedSubCategory,
-                                    hint: const Text('Please Select',
+                                  _buildFieldLabel('Warranty'),
+                                  DropdownButtonFormField<Warranty>(
+                                    initialValue: _selectedWarranty,
+                                    hint: const Text('No Warranty',
                                         style: TextStyle(
                                             fontSize: 13,
                                             color: Color(0xFF94A3B8))),
                                     decoration: _inputDecor('Please Select'),
-                                    items: _subCategories
-                                        .map((s) => DropdownMenuItem(
-                                            value: s,
-                                            child: Text(s,
-                                                style: const TextStyle(
-                                                    fontSize: 13))))
+                                    items: _warranties
+                                        .map((w) => DropdownMenuItem(
+                                              value: w,
+                                              child: Text(w.name,
+                                                  style: const TextStyle(
+                                                      fontSize: 13),
+                                                  overflow:
+                                                      TextOverflow.ellipsis),
+                                            ))
                                         .toList(),
-                                    onChanged: (val) => setState(
-                                        () => _selectedSubCategory = val),
+                                    onChanged: (val) =>
+                                        setState(() => _selectedWarranty = val),
                                   ),
                                 ],
                               ),
@@ -2621,107 +2666,116 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         const SizedBox(height: 16),
                       ],
                       if (_productType == 'single') ...[
-                        Row(
-                          children: [
-                            // Purchase Price
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel(
-                                      '${PosLocalization.tr("Purchase Cost per Unit", settings: widget.settings)} ($currency)'),
-                                  TextFormField(
-                                    controller: _purchasePriceCtrl,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    decoration: _inputDecor('0.00'),
-                                    onChanged: (_) => _recalcSellingPrice(),
-                                    validator: (val) {
-                                      if (val != null &&
-                                          val.trim().isNotEmpty &&
-                                          double.tryParse(val.trim()) == null) {
-                                        return 'Must be a number';
-                                      }
-                                      return null;
-                                    },
+                        Builder(builder: (context) {
+                          final canViewCost = AuthService.currentUser
+                                  ?.hasPermission('report.view_cost_price') ??
+                              true;
+                          return Row(
+                            children: [
+                              if (canViewCost) ...[
+                                // Purchase Price
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildFieldLabel(
+                                          '${PosLocalization.tr("Purchase Cost per Unit", settings: widget.settings)} ($currency)'),
+                                      TextFormField(
+                                        controller: _purchasePriceCtrl,
+                                        keyboardType: const TextInputType
+                                            .numberWithOptions(decimal: true),
+                                        decoration: _inputDecor('0.00'),
+                                        onChanged: (_) => _recalcSellingPrice(),
+                                        validator: (val) {
+                                          if (val != null &&
+                                              val.trim().isNotEmpty &&
+                                              double.tryParse(val.trim()) ==
+                                                  null) {
+                                            return 'Must be a number';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
+                                ),
+                                const SizedBox(width: 16),
 
-                            // Profit Margin (%)
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel('Profit Margin (%)'),
-                                  TextFormField(
-                                    controller: _profitMarginCtrl,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    decoration: _inputDecor('25.0'),
-                                    onChanged: (_) => _recalcSellingPrice(),
+                                // Profit Margin (%)
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildFieldLabel('Profit Margin (%)'),
+                                      TextFormField(
+                                        controller: _profitMarginCtrl,
+                                        keyboardType: const TextInputType
+                                            .numberWithOptions(decimal: true),
+                                        decoration: _inputDecor('25.0'),
+                                        onChanged: (_) => _recalcSellingPrice(),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
+                                ),
+                                const SizedBox(width: 16),
+                              ],
+                              const SizedBox(width: 16),
 
-                            // Selling Price
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel(
-                                      '${PosLocalization.tr("Selling Price", settings: widget.settings)} ($currency)*',
-                                      isRequired: true),
-                                  TextFormField(
-                                    controller: _sellingPriceCtrl,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    decoration: _inputDecor('0.00'),
-                                    onChanged: (_) => _recalcMargin(),
-                                    validator: (val) {
-                                      if (val == null || val.trim().isEmpty) {
-                                        return 'Selling Price required';
-                                      }
-                                      final num = double.tryParse(val.trim());
-                                      if (num == null || num <= 0) {
-                                        return 'Must be > 0';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-
-                            // Opening Stock
-                            if (_manageStock)
+                              // Selling Price
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildFieldLabel(PosLocalization.tr(
-                                        'Opening Stock (Units)',
-                                        settings: widget.settings)),
+                                    _buildFieldLabel(
+                                        '${PosLocalization.tr("Selling Price", settings: widget.settings)} ($currency)*',
+                                        isRequired: true),
                                     TextFormField(
-                                      controller: _openingStockCtrl,
+                                      controller: _sellingPriceCtrl,
                                       keyboardType:
                                           const TextInputType.numberWithOptions(
                                               decimal: true),
-                                      decoration: _inputDecor('50'),
+                                      decoration: _inputDecor('0.00'),
+                                      onChanged: (_) => _recalcMargin(),
+                                      validator: (val) {
+                                        if (val == null || val.trim().isEmpty) {
+                                          return 'Selling Price required';
+                                        }
+                                        final num = double.tryParse(val.trim());
+                                        if (num == null || num <= 0) {
+                                          return 'Must be > 0';
+                                        }
+                                        return null;
+                                      },
                                     ),
                                   ],
                                 ),
                               ),
-                          ],
-                        ),
+                              const SizedBox(width: 16),
+
+                              // Opening Stock
+                              if (_manageStock)
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildFieldLabel(PosLocalization.tr(
+                                          'Opening Stock (Units)',
+                                          settings: widget.settings)),
+                                      TextFormField(
+                                        controller: _openingStockCtrl,
+                                        keyboardType: const TextInputType
+                                            .numberWithOptions(decimal: true),
+                                        decoration: _inputDecor('0'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          );
+                        }),
                       ] else ...[
                         // Variable Product Variations Matrix
                         Row(
@@ -2984,7 +3038,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       label: Text(
                         _isSaving
                             ? 'Saving Product...'
-                            : (widget.productToEdit != null
+                            : ((!widget.isDuplicate &&
+                                    widget.productToEdit != null)
                                 ? 'Update Product'
                                 : 'Save Product'),
                         style: const TextStyle(
@@ -2997,24 +3052,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlusButton(VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        height: 42,
-        width: 42,
-        decoration: BoxDecoration(
-          color: const Color(0xFF004EEB),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: const Center(
-          child: Icon(Icons.add, color: Colors.white, size: 20),
         ),
       ),
     );

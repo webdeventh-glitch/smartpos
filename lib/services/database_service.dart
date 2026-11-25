@@ -370,6 +370,24 @@ class DatabaseService {
   Future<int> insertBrand(Brand brand) => productRepo.insertBrand(brand);
   Future<int> updateBrand(Brand brand) => productRepo.updateBrand(brand);
   Future<int> deleteBrand(int id) => productRepo.deleteBrand(id);
+  Future<List<Map<String, dynamic>>> getProductStockHistory(int productId) =>
+      productRepo.getProductStockHistory(productId);
+  Future<int> bulkUpdateProductPrices({
+    int? categoryId,
+    int? brandId,
+    required String mode,
+    required double sellingDelta,
+    double purchaseDelta = 0.0,
+    bool updatePurchasePrice = false,
+  }) =>
+      productRepo.bulkUpdateProductPrices(
+        categoryId: categoryId,
+        brandId: brandId,
+        mode: mode,
+        sellingDelta: sellingDelta,
+        purchaseDelta: purchaseDelta,
+        updatePurchasePrice: updatePurchasePrice,
+      );
   Future<List<Contact>> getContacts({String? type, String? search}) =>
       contactsRepo.getContacts(type: type, search: search);
   Future<int> deleteContact(int id) => contactsRepo.deleteContact(id);
@@ -990,8 +1008,14 @@ class DatabaseService {
         paidAmount: paidAmount,
         note: note,
       );
-  Future<Map<String, dynamic>> getQuotationConversionStats() =>
-      reportRepo.getQuotationConversionStats();
+  Future<Map<String, dynamic>> getQuotationConversionStats({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) =>
+      reportRepo.getQuotationConversionStats(
+        startDate: startDate,
+        endDate: endDate,
+      );
 
   // RBAC Roles & Permissions
   Future<List<AppRole>> getRoles() => authRepo.getRoles();
@@ -1218,14 +1242,24 @@ class DatabaseService {
     String? status,
     String? transactionType,
     String? search,
+    DateTime? startDate,
+    DateTime? endDate,
   }) =>
       advancedRepo.getCheques(
         status: status,
         transactionType: transactionType,
         search: search,
+        startDate: startDate,
+        endDate: endDate,
       );
-  Future<Map<String, num>> getChequeSummary() =>
-      advancedRepo.getChequeSummary();
+  Future<Map<String, num>> getChequeSummary({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) =>
+      advancedRepo.getChequeSummary(
+        startDate: startDate,
+        endDate: endDate,
+      );
   Future<void> updateChequeStatus({
     required int transactionId,
     required String newStatus,

@@ -84,11 +84,14 @@ class CartItem {
           ? '${product.name} ($variationName)'
           : product.name;
 
-  double get subtotal => isReturnItem
-      ? (unitPrice * quantity)
-      : (packValue - calculatedDiscount).clamp(0.0, double.infinity);
+  double _round2(double v) =>
+      v.isFinite ? double.parse(v.toStringAsFixed(2)) : 0.0;
 
-  double get packValue => unitPrice * quantity;
+  double get subtotal => isReturnItem
+      ? _round2(unitPrice * quantity)
+      : _round2((packValue - calculatedDiscount).clamp(0.0, double.infinity));
+
+  double get packValue => _round2(unitPrice * quantity);
 
   double get calculatedDiscount {
     if (isReturnItem) return 0.0;
@@ -98,8 +101,9 @@ class CartItem {
     final fixedAmt = discountType == 'fixed'
         ? (discountValue > 0 ? discountValue : discount)
         : discount;
-    final total = (pct > 0 ? (packValue * pct) / 100.0 : 0.0) + fixedAmt;
-    return total.clamp(0.0, packValue);
+    final rawPack = unitPrice * quantity;
+    final total = (pct > 0 ? (rawPack * pct) / 100.0 : 0.0) + fixedAmt;
+    return _round2(total.clamp(0.0, packValue));
   }
 
   Map<String, dynamic> toMap(int saleId) => {
@@ -205,7 +209,10 @@ class CartItem {
       product: prod,
       variationId: item.variationId,
       variationName: item.variationName,
-      basePrice: item.unitPrice,
+      basePrice: product?.sellingPrice ??
+          (item.unitMultiplier > 0
+              ? item.unitPrice / item.unitMultiplier
+              : item.unitPrice),
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       discount: item.discountType == 'fixed' ? item.discount : 0.0,

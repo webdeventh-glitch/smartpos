@@ -19,6 +19,7 @@ class SmartAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String? activeLocationName;
   final Function(String)? onLocationChanged;
   final VoidCallback? onOpenSettings;
+  final VoidCallback? onOpenQuickSearch;
 
   const SmartAppBar({
     super.key,
@@ -29,6 +30,7 @@ class SmartAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.activeLocationName,
     this.onLocationChanged,
     this.onOpenSettings,
+    this.onOpenQuickSearch,
   });
 
   @override
@@ -611,6 +613,76 @@ class _SmartAppBarState extends State<SmartAppBar> {
                 ),
 
               const Spacer(),
+
+              // Global Quick Search (Ctrl+K) Pill
+              if (widget.onOpenQuickSearch != null)
+                Tooltip(
+                  message:
+                      'Quick Search Screens, Products & Customers (Ctrl+K)',
+                  child: InkWell(
+                    onTap: widget.onOpenQuickSearch,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      height: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.search_rounded,
+                              size: 16,
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF4F46E5)),
+                          if (!isNarrow) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              'Quick Search',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? const Color(0xFFCBD5E1)
+                                    : const Color(0xFF475569),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF1E293B)
+                                    : const Color(0xFFE2E8F0),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'Ctrl+K',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
 
               // Cash Register Drawer Status Pill
               InkWell(

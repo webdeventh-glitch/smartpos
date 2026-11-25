@@ -131,6 +131,9 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
         final productId = item['product_id'] as int?;
         final variationId = item['variation_id'] as int?;
         final qty = (item['quantity'] as num).toDouble();
+        final bonusQty = (item['bonus_quantity'] as num?)?.toDouble() ?? 0.0;
+        final unitMult = (item['unit_multiplier'] as num?)?.toDouble() ?? 1.0;
+        final stockDelta = (qty + bonusQty) * (unitMult > 0 ? unitMult : 1.0);
         final unitCost = (item['purchase_price'] as num?)?.toDouble() ??
             (item['unit_cost'] as num?)?.toDouble();
         final sellingPrice = (item['selling_price'] as num?)?.toDouble();
@@ -175,7 +178,7 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
               txn,
               productId: productId,
               variationId: variationId,
-              delta: qty,
+              delta: stockDelta,
             );
 
             // If expiry date or batch is provided, update product metadata
@@ -363,6 +366,9 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
           final productId = item['product_id'] as int?;
           final variationId = item['variation_id'] as int?;
           final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
+          final bonusQty = (item['bonus_quantity'] as num?)?.toDouble() ?? 0.0;
+          final unitMult = (item['unit_multiplier'] as num?)?.toDouble() ?? 1.0;
+          final stockDelta = (qty + bonusQty) * (unitMult > 0 ? unitMult : 1.0);
           final unitCost = (item['purchase_price'] as num?)?.toDouble() ??
               (item['unit_cost'] as num?)?.toDouble();
           final sellingPrice = (item['selling_price'] as num?)?.toDouble();
@@ -405,7 +411,7 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
               txn,
               productId: productId,
               variationId: variationId,
-              delta: qty,
+              delta: stockDelta,
             );
 
             if (expDate != null && expDate.isNotEmpty) {
@@ -437,12 +443,15 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
           final productId = item['product_id'] as int?;
           final variationId = item['variation_id'] as int?;
           final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
+          final bonusQty = (item['bonus_quantity'] as num?)?.toDouble() ?? 0.0;
+          final unitMult = (item['unit_multiplier'] as num?)?.toDouble() ?? 1.0;
+          final stockDelta = (qty + bonusQty) * (unitMult > 0 ? unitMult : 1.0);
           if (productId != null) {
             await adjustProductAndVariationStock(
               txn,
               productId: productId,
               variationId: variationId,
-              delta: -qty,
+              delta: -stockDelta,
               clampAtZero: true,
             );
           }
@@ -510,12 +519,15 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
           final productId = item['product_id'] as int?;
           final variationId = item['variation_id'] as int?;
           final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
+          final bonusQty = (item['bonus_quantity'] as num?)?.toDouble() ?? 0.0;
+          final unitMult = (item['unit_multiplier'] as num?)?.toDouble() ?? 1.0;
+          final stockDelta = (qty + bonusQty) * (unitMult > 0 ? unitMult : 1.0);
           if (productId != null) {
             await adjustProductAndVariationStock(
               txn,
               productId: productId,
               variationId: variationId,
-              delta: -qty,
+              delta: -stockDelta,
               clampAtZero: true,
             );
           }

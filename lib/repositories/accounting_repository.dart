@@ -485,9 +485,9 @@ class AccountingRepository extends BaseRepository {
     } catch (_) {}
     final salesRevenue = (grossSalesRev - retRev).clamp(0.0, double.infinity);
 
-    // 7. True Cost of Goods Sold (using unit_multiplier, net of sale returns)
+    // 7. True Cost of Goods Sold (using unit_multiplier & bonus qty, net of sale returns)
     final cogsRows = await db.rawQuery(
-      "SELECT SUM(si.quantity * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs "
+      "SELECT SUM((si.quantity + COALESCE(si.bonus_quantity, 0)) * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs "
       "FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id "
       "WHERE s.sale_status = 'final'",
     );

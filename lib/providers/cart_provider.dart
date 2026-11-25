@@ -43,17 +43,21 @@ class CartState {
   bool get canUndo => undoDepth > 0;
   bool get canRedo => redoDepth > 0;
 
-  double get subtotal => items.fold(0.0, (sum, item) => sum + item.subtotal);
+  static double _round2(double v) =>
+      v.isFinite ? double.parse(v.toStringAsFixed(2)) : 0.0;
+
+  double get subtotal =>
+      _round2(items.fold(0.0, (sum, item) => sum + item.subtotal));
   double get totalItemDiscounts =>
-      items.fold(0.0, (sum, item) => sum + item.calculatedDiscount);
+      _round2(items.fold(0.0, (sum, item) => sum + item.calculatedDiscount));
   double get totalQuantity =>
       items.fold(0.0, (sum, item) => sum + item.quantity);
-  double get salesSubtotal => items
+  double get salesSubtotal => _round2(items
       .where((item) => item.quantity > 0)
-      .fold(0.0, (sum, item) => sum + item.subtotal);
-  double get returnsSubtotal => items
+      .fold(0.0, (sum, item) => sum + item.subtotal));
+  double get returnsSubtotal => _round2(items
       .where((item) => item.quantity < 0)
-      .fold(0.0, (sum, item) => sum + item.subtotal.abs());
+      .fold(0.0, (sum, item) => sum + item.subtotal.abs()));
   bool get hasReturns => items.any((item) => item.isReturnItem);
 
   double get calculatedDiscount {
@@ -62,15 +66,15 @@ class CartState {
     final raw = discountType == 'percentage'
         ? base * (discountValue / 100.0)
         : discountValue;
-    return raw.clamp(0.0, base);
+    return _round2(raw.clamp(0.0, base));
   }
 
   double get taxableSubtotal =>
-      (salesSubtotal - calculatedDiscount).clamp(0.0, double.infinity);
+      _round2((salesSubtotal - calculatedDiscount).clamp(0.0, double.infinity));
 
   double get grandTotal {
     final net = subtotal - calculatedDiscount + orderTax + shippingCharge;
-    return net;
+    return _round2(net);
   }
 
   CartState _withHistory(int undoLen, int redoLen) => CartState(
@@ -326,10 +330,14 @@ class CartNotifier extends Notifier<CartState> {
     double packDiscount = 0.0,
     String? discountType,
     double? discountValue,
+    double? bonusQuantity,
   }) {
     if (index < 0 || index >= state.items.length) return;
     final updated = state.items.map((e) => e.clone()).toList();
     updated[index].unitPrice = unitPrice < 0 ? 0.0 : unitPrice;
+    if (bonusQuantity != null) {
+      updated[index].bonusQuantity = bonusQuantity < 0 ? 0.0 : bonusQuantity;
+    }
     if (discountType != null && discountValue != null) {
       updated[index].setItemDiscount(discountType, discountValue);
     } else if (packDiscount > 0 && discount == 0) {

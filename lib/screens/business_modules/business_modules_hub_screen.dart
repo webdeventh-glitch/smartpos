@@ -214,9 +214,45 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
 
   Future<void> _openModule(Map<String, dynamic> mod) async {
     final modId = (mod['id'] as String).toLowerCase();
-    final isEnabled = widget.settings.isModuleEnabled(modId);
 
-    if (!isEnabled) {
+    if (widget.settings.isConfigured &&
+        !widget.settings.isHubBusinessAllowed(modId)) {
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.lock_rounded,
+                  color: Color(0xFFD97706), size: 22),
+              const SizedBox(width: 10),
+              Flexible(child: Text('${mod['title']} Locked')),
+            ],
+          ),
+          content: Text(
+            'Single-Business Lock: This POS installation is permanently locked to "${widget.settings.businessTypeDisplayName}".\n\n'
+            'Aik time mein sirf installation ke waqt select kiya gaya ek hi business use ho sakta hai.',
+            style: const TextStyle(fontSize: 13, height: 1.4),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4F46E5),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final isEnabled = widget.settings.isModuleEnabled(modId);
+    final isUtility =
+        const {'hrm', 'accounting_crm', 'woocommerce'}.contains(modId);
+
+    if (!isEnabled && isUtility) {
       final shouldEnable = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -233,12 +269,12 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'This specialized module is currently inactive in your active SaaS plan / tier preset (${widget.settings.businessTypeDisplayName}).',
+                'This add-on utility is currently inactive for your store (${widget.settings.businessTypeDisplayName}).',
                 style: const TextStyle(fontSize: 13),
               ),
               const SizedBox(height: 10),
               const Text(
-                'Would you like to activate this module now? It will be saved to your enabled modules in SQLite and visible in your sidebar.',
+                'Would you like to enable this add-on utility now?',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ],
@@ -534,174 +570,198 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final mod = filtered[index];
+                    final modId = (mod['id'] as String).toLowerCase();
                     final color = mod['color'] as Color;
                     final isCurrent =
-                        widget.settings.businessType.toLowerCase() == mod['id'];
+                        widget.settings.businessType.toLowerCase() == modId;
+                    final isLocked = widget.settings.isConfigured &&
+                        !widget.settings.isHubBusinessAllowed(modId);
 
-                    return InkWell(
-                      onTap: () => _openModule(mod),
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color:
-                              isDark ? const Color(0xFF1E293B) : Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: isCurrent
-                                ? (isDark
-                                    ? const Color(0xFF818CF8)
-                                    : const Color(0xFF4F46E5))
-                                : (isDark
-                                    ? const Color(0xFF334155)
-                                    : const Color(0xFFE2E8F0)),
-                            width: isCurrent ? 2 : 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black
-                                  .withValues(alpha: isDark ? 0.2 : 0.03),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
+                    return Opacity(
+                      opacity: isLocked ? 0.58 : 1.0,
+                      child: InkWell(
+                        onTap: () => _openModule(mod),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color:
+                                isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isCurrent
+                                  ? (isDark
+                                      ? const Color(0xFF818CF8)
+                                      : const Color(0xFF4F46E5))
+                                  : (isDark
+                                      ? const Color(0xFF334155)
+                                      : const Color(0xFFE2E8F0)),
+                              width: isCurrent ? 2 : 1,
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(
-                                        alpha: isDark ? 0.2 : 0.1),
-                                    borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black
+                                    .withValues(alpha: isDark ? 0.2 : 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(
+                                          alpha: isDark ? 0.2 : 0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(mod['icon'] as IconData,
+                                        color: color, size: 24),
                                   ),
-                                  child: Icon(mod['icon'] as IconData,
-                                      color: color, size: 24),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? const Color(0xFF0F172A)
-                                        : const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: isLocked
+                                          ? const Color(0xFFFEF3C7)
+                                          : (isDark
+                                              ? const Color(0xFF0F172A)
+                                              : const Color(0xFFF1F5F9)),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      isLocked
+                                          ? 'LOCKED'
+                                          : (mod['badge'] as String),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: isLocked
+                                            ? const Color(0xFFB45309)
+                                            : (isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF64748B)),
+                                      ),
+                                    ),
                                   ),
-                                  child: Text(
-                                    mod['badge'] as String,
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          mod['title'] as String,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            color: isDark
+                                                ? Colors.white
+                                                : const Color(0xFF0F172A),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Builder(
+                                        builder: (context) {
+                                          final isEnabled = widget.settings
+                                              .isModuleEnabled(
+                                                  mod['id'] as String);
+                                          return Container(
+                                            margin:
+                                                const EdgeInsets.only(left: 6),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: isEnabled
+                                                  ? const Color(0xFF10B981)
+                                                      .withValues(alpha: 0.15)
+                                                  : (isDark
+                                                      ? const Color(0xFF334155)
+                                                      : const Color(
+                                                          0xFFE2E8F0)),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              isEnabled ? 'ACTIVE' : 'OFF',
+                                              style: TextStyle(
+                                                color: isEnabled
+                                                    ? const Color(0xFF10B981)
+                                                    : (isDark
+                                                        ? const Color(
+                                                            0xFF94A3B8)
+                                                        : const Color(
+                                                            0xFF64748B)),
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    mod['subtitle'] as String,
                                     style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
                                       color: isDark
                                           ? const Color(0xFF94A3B8)
                                           : const Color(0xFF64748B),
+                                      height: 1.3,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    isLocked
+                                        ? 'Locked to Initial Setup'
+                                        : (mod['actionType'] == 'screen'
+                                            ? 'Open Dedicated Module'
+                                            : 'Launch POS Feature'),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: isLocked
+                                          ? const Color(0xFFD97706)
+                                          : (isDark
+                                              ? const Color(0xFF818CF8)
+                                              : const Color(0xFF4F46E5)),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        mod['title'] as String,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w800,
-                                          color: isDark
-                                              ? Colors.white
-                                              : const Color(0xFF0F172A),
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Builder(
-                                      builder: (context) {
-                                        final isEnabled = widget.settings
-                                            .isModuleEnabled(
-                                                mod['id'] as String);
-                                        return Container(
-                                          margin:
-                                              const EdgeInsets.only(left: 6),
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: isEnabled
-                                                ? const Color(0xFF10B981)
-                                                    .withValues(alpha: 0.15)
-                                                : (isDark
-                                                    ? const Color(0xFF334155)
-                                                    : const Color(0xFFE2E8F0)),
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            isEnabled ? 'ACTIVE' : 'OFF',
-                                            style: TextStyle(
-                                              color: isEnabled
-                                                  ? const Color(0xFF10B981)
-                                                  : (isDark
-                                                      ? const Color(0xFF94A3B8)
-                                                      : const Color(
-                                                          0xFF64748B)),
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  mod['subtitle'] as String,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark
-                                        ? const Color(0xFF94A3B8)
-                                        : const Color(0xFF64748B),
-                                    height: 1.3,
+                                  Icon(
+                                    isLocked
+                                        ? Icons.lock_outline_rounded
+                                        : Icons.arrow_forward_rounded,
+                                    size: 16,
+                                    color: isLocked
+                                        ? const Color(0xFFD97706)
+                                        : (isDark
+                                            ? const Color(0xFF818CF8)
+                                            : const Color(0xFF4F46E5)),
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  mod['actionType'] == 'screen'
-                                      ? 'Open Dedicated Module'
-                                      : 'Launch POS Feature',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? const Color(0xFF818CF8)
-                                        : const Color(0xFF4F46E5),
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.arrow_forward_rounded,
-                                  size: 16,
-                                  color: isDark
-                                      ? const Color(0xFF818CF8)
-                                      : const Color(0xFF4F46E5),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );

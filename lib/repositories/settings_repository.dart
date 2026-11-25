@@ -35,8 +35,14 @@ class SettingsRepository extends BaseRepository {
     if (!allowBusinessTypeChange &&
         current.isConfigured &&
         current.businessType.isNotEmpty) {
-      // Protect against unintended type drift on routine saves unless explicitly switched
+      // Strictly lock business_type, industry_presets, and exclusive vertical modules
+      // to the single business selected during initial installation.
       map['business_type'] = current.businessType;
+      map['industry_presets'] = current.lockedIndustryPreset;
+      final incomingModules = (map['enabled_modules'] as String?) ?? '';
+      map['enabled_modules'] = current.enforceSingleBusinessModules(
+        incomingModules.isNotEmpty ? incomingModules : current.enabledModules,
+      );
     }
     final rawDbPass = (map['db_password'] as String? ?? '');
     if (rawDbPass.isNotEmpty) {

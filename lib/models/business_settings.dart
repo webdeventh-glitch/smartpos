@@ -489,7 +489,14 @@ class BusinessSettings {
         ];
       case 'restaurant':
       case 'cafe':
-        return [...base, moduleRestaurant, moduleHrm, presetRestaurantCafe];
+        return [
+          ...base,
+          moduleRestaurant,
+          moduleManufacturing,
+          moduleBatchExpiry,
+          moduleHrm,
+          presetRestaurantCafe,
+        ];
       case 'repair':
       case 'service':
         return [...base, moduleRepair];
@@ -518,9 +525,15 @@ class BusinessSettings {
       case 'dairy':
       case 'meat_butchery':
       case 'meat':
+        return [
+          ...base,
+          moduleBatchExpiry,
+          moduleVariations,
+          presetRetailSuperStore
+        ];
       case 'fabrics_textile':
       case 'fabrics':
-        return [...base, moduleVariations];
+        return [...base, moduleVariations, presetRetailSuperStore];
       case 'tyres_battery':
       case 'tyres':
       case 'auto_parts':
@@ -530,7 +543,13 @@ class BusinessSettings {
       case 'hardware':
       case 'sanitary_tiles':
       case 'sanitary':
-        return [...base, moduleRepair, moduleVariations];
+        return [
+          ...base,
+          moduleRepair,
+          moduleVariations,
+          moduleBatchExpiry,
+          presetRetailSuperStore
+        ];
       case 'pharmacy':
         return [...base, moduleBatchExpiry, presetPharmacy];
       case 'mobile':
@@ -582,9 +601,118 @@ class BusinessSettings {
     return modules;
   }
 
-  /// Checks if a specific feature or industry module is enabled
+  /// Checks if a specific feature or industry module is enabled.
+  /// Once configured, competing vertical business modules cannot be enabled.
   bool isModuleEnabled(String moduleKey) {
-    return activeModules.contains(moduleKey.toLowerCase());
+    final key = moduleKey.trim().toLowerCase();
+    if (isConfigured && !isModuleAllowedForInstalledBusiness(key)) {
+      return false;
+    }
+    return activeModules.contains(key);
+  }
+
+  /// Checks whether a Business Modules Hub entry is openable for the installed business.
+  bool isHubBusinessAllowed(String hubId) {
+    final id = hubId.trim().toLowerCase();
+    if (!isConfigured) return true;
+    const utilityModules = {'hrm', 'accounting_crm', 'woocommerce'};
+    if (utilityModules.contains(id)) return true;
+    final b = businessType.toLowerCase();
+    switch (id) {
+      case 'general_store':
+        return isGeneral || isUniversal || isCustomOther;
+      case 'supermarket':
+        return isSupermarket || isUniversal || isCustomOther;
+      case 'garments':
+      case 'clothing':
+        return isClothing || isUniversal || isCustomOther;
+      case 'electronics':
+      case 'mobile':
+        return isSolarOrElectronics;
+      case 'wholesale':
+        return isWholesale || isUniversal || isCustomOther;
+      case 'pharmacy':
+        return isPharmacy;
+      case 'restaurant':
+        return isRestaurant;
+      case 'repair':
+        return isRepair || isModuleAllowedForInstalledBusiness(moduleRepair);
+      case 'hotel':
+        return isHotel;
+      case 'gym':
+        return isGym;
+      case 'manufacturing':
+        return isManufacturing ||
+            isModuleAllowedForInstalledBusiness(moduleManufacturing);
+      case 'fruit_wholesale':
+        return isFruitWholesale;
+      case 'poultry':
+        return isPoultry;
+      default:
+        return b == id;
+    }
+  }
+
+  /// Exclusive vertical business identifiers: only ONE installed business vertical is permitted.
+  static const Set<String> exclusiveIndustryKeys = {
+    presetPharmacy,
+    presetRetailSuperStore,
+    presetMobileElectronics,
+    presetSolarHardware,
+    presetRestaurantCafe,
+    moduleRestaurant,
+    moduleHotel,
+    moduleGym,
+    moduleFruitMandi,
+    modulePoultry,
+    moduleManufacturing,
+    moduleRepair,
+  };
+
+  /// Canonical single preset tag locked to [businessType].
+  String get lockedIndustryPreset {
+    switch (businessType.toLowerCase()) {
+      case 'pharmacy':
+        return presetPharmacy;
+      case 'mobile':
+      case 'electronics':
+        return presetMobileElectronics;
+      case 'solar':
+        return presetSolarHardware;
+      case 'restaurant':
+      case 'cafe':
+        return presetRestaurantCafe;
+      default:
+        return presetRetailSuperStore;
+    }
+  }
+
+  /// Returns true only if [moduleKey] is an operational feature OR belongs to the installed [businessType].
+  bool isModuleAllowedForInstalledBusiness(String moduleKey) {
+    final key = moduleKey.trim().toLowerCase();
+    if (!exclusiveIndustryKeys.contains(key)) return true;
+    final allowedDefaults = defaultModulesForBusinessType(businessType)
+        .map((e) => e.toLowerCase())
+        .toSet();
+    if (allowedDefaults.contains(key)) return true;
+    if (key == lockedIndustryPreset.toLowerCase()) return true;
+    return false;
+  }
+
+  /// Filters out any exclusive industry modules that do not belong to the installed [businessType].
+  String enforceSingleBusinessModules(String rawModulesCsv) {
+    final requested = rawModulesCsv
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .where((s) => s.isNotEmpty)
+        .where(isModuleAllowedForInstalledBusiness)
+        .toSet();
+    // Ensure the installed business's own vertical module/preset remains active.
+    final requiredDefaults = defaultModulesForBusinessType(businessType)
+        .map((e) => e.toLowerCase())
+        .where(exclusiveIndustryKeys.contains);
+    requested.addAll(requiredDefaults);
+    return requested.join(',');
   }
 
   /// Returns true if at least one specialized industry module is enabled

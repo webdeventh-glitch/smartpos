@@ -37,6 +37,17 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
   }
 
   void _togglePreset(String presetKey, bool enabled) {
+    if (widget.settings.isConfigured) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Business Locked: Only ${widget.settings.businessTypeDisplayName} (selected during installation) can be used.',
+          ),
+          backgroundColor: const Color(0xFFD97706),
+        ),
+      );
+      return;
+    }
     setState(() {
       final key = presetKey.toLowerCase();
       if (enabled) {
@@ -89,6 +100,17 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
   }
 
   void _applyTierPreset(SaasTierPreset tier) {
+    if (widget.settings.isConfigured) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Locked to ${widget.settings.businessTypeDisplayName}: Another business tier cannot be applied after installation.',
+          ),
+          backgroundColor: const Color(0xFFD97706),
+        ),
+      );
+      return;
+    }
     setState(() {
       _activePresets = {tier.industryPreset.toLowerCase()};
       _activeModules =
@@ -105,11 +127,24 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
   }
 
   void _toggleModule(String key, bool enabled) {
+    final lower = key.toLowerCase();
+    if (widget.settings.isConfigured &&
+        !widget.settings.isModuleAllowedForInstalledBusiness(lower)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Locked: This module belongs to a different business type than ${widget.settings.businessTypeDisplayName}.',
+          ),
+          backgroundColor: const Color(0xFFD97706),
+        ),
+      );
+      return;
+    }
     setState(() {
       if (enabled) {
-        _activeModules.add(key.toLowerCase());
+        _activeModules.add(lower);
       } else {
-        _activeModules.remove(key.toLowerCase());
+        _activeModules.remove(lower);
       }
     });
   }
@@ -119,7 +154,7 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
         widget.settings.businessType);
     setState(() {
       _activeModules = defaults.map((k) => k.toLowerCase()).toSet();
-      _activePresets = {BusinessSettings.presetRetailSuperStore};
+      _activePresets = {widget.settings.lockedIndustryPreset};
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -133,7 +168,7 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
 
   void _enableAll() {
     setState(() {
-      _activeModules = {
+      final allCandidates = {
         BusinessSettings.moduleRestaurant,
         BusinessSettings.moduleRepair,
         BusinessSettings.moduleHotel,
@@ -152,6 +187,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
         BusinessSettings.moduleReturns,
         BusinessSettings.moduleFiscalClosing,
       };
+      _activeModules = widget.settings.isConfigured
+          ? allCandidates
+              .where(widget.settings.isModuleAllowedForInstalledBusiness)
+              .toSet()
+          : allCandidates;
     });
   }
 
@@ -231,7 +271,10 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isEnabled = _activeModules.contains(key.toLowerCase());
+    final isLockedOther = widget.settings.isConfigured &&
+        !widget.settings.isModuleAllowedForInstalledBusiness(key);
+    final isEnabled =
+        !isLockedOther && _activeModules.contains(key.toLowerCase());
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -304,15 +347,19 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        isEnabled ? 'ACTIVE' : 'DISABLED',
+                        isLockedOther
+                            ? 'LOCKED'
+                            : (isEnabled ? 'ACTIVE' : 'DISABLED'),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: isEnabled
-                              ? const Color(0xFF10B981)
-                              : (isDark
-                                  ? const Color(0xFF94A3B8)
-                                  : const Color(0xFF64748B)),
+                          color: isLockedOther
+                              ? const Color(0xFFD97706)
+                              : (isEnabled
+                                  ? const Color(0xFF10B981)
+                                  : (isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B))),
                         ),
                       ),
                     ),
@@ -348,7 +395,7 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
           Switch(
             value: isEnabled,
             activeThumbColor: const Color(0xFF4F46E5),
-            onChanged: (val) => _toggleModule(key, val),
+            onChanged: isLockedOther ? null : (val) => _toggleModule(key, val),
           ),
         ],
       ),
@@ -364,7 +411,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
     required Color color,
     required bool isDark,
   }) {
-    final isSelected = _activePresets.contains(presetKey.toLowerCase());
+    final isSelected = _activePresets.contains(presetKey.toLowerCase()) ||
+        (widget.settings.isConfigured &&
+            widget.settings.lockedIndustryPreset.toLowerCase() ==
+                presetKey.toLowerCase());
+    final isLocked = widget.settings.isConfigured;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -460,7 +511,7 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
           Switch(
             value: isSelected,
             activeThumbColor: color,
-            onChanged: (val) => _togglePreset(presetKey, val),
+            onChanged: isLocked ? null : (val) => _togglePreset(presetKey, val),
           ),
         ],
       ),

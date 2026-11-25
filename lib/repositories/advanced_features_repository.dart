@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import '../models/models.dart';
 import 'base_repository.dart';
 
@@ -12,9 +13,18 @@ class AdvancedFeaturesRepository extends BaseRepository {
     String? status,
     String? transactionType,
     String? search,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final where = <String>["LOWER(payment_method) = 'cheque'"];
     final args = <dynamic>[];
+
+    if (startDate != null && endDate != null) {
+      final startStr = DateFormat('yyyy-MM-dd 00:00:00').format(startDate);
+      final endStr = DateFormat('yyyy-MM-dd 23:59:59').format(endDate);
+      where.add('created_at >= ? AND created_at <= ?');
+      args.addAll([startStr, endStr]);
+    }
 
     final todayStr = DateTime.now().toIso8601String().substring(0, 10);
     if (status != null && status.isNotEmpty && status != 'all') {
@@ -59,8 +69,21 @@ class AdvancedFeaturesRepository extends BaseRepository {
     return rows.map((e) => PaymentTransaction.fromMap(e)).toList();
   }
 
-  Future<Map<String, num>> getChequeSummary() async {
+  Future<Map<String, num>> getChequeSummary({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     final todayStr = DateTime.now().toIso8601String().substring(0, 10);
+    String dateClause = '';
+    final queryArgs = <dynamic>[todayStr, todayStr];
+
+    if (startDate != null && endDate != null) {
+      final startStr = DateFormat('yyyy-MM-dd 00:00:00').format(startDate);
+      final endStr = DateFormat('yyyy-MM-dd 23:59:59').format(endDate);
+      dateClause = ' AND created_at >= ? AND created_at <= ?';
+      queryArgs.addAll([startStr, endStr]);
+    }
+
     final rows = await db.rawQuery('''
       SELECT
         COUNT(*) AS total_count,
@@ -73,8 +96,8 @@ class AdvancedFeaturesRepository extends BaseRepository {
         COALESCE(SUM(CASE WHEN cheque_status = 'bounced' THEN 1 ELSE 0 END), 0) AS bounced_count,
         COALESCE(SUM(CASE WHEN cheque_status = 'bounced' THEN amount ELSE 0 END), 0.0) AS bounced_amount
       FROM payment_transactions
-      WHERE LOWER(payment_method) = 'cheque'
-    ''', [todayStr, todayStr]);
+      WHERE LOWER(payment_method) = 'cheque'$dateClause
+    ''', queryArgs);
 
     final r = rows.first;
     return {

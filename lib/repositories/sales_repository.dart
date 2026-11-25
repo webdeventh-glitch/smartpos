@@ -98,7 +98,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
       if (enforceStock && sale.saleStatus == 'final') {
         for (final item in items) {
           if (item.product.id == null) continue;
-          final baseReq = item.quantity *
+          final baseReq = (item.quantity + item.bonusQuantity) *
               (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
           final prodRows = await txn.query(
             'products',
@@ -131,7 +131,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         await txn.insert('sale_items', item.toMap(saleId));
 
         if (sale.saleStatus == 'final' && item.product.id != null) {
-          final baseDeduction = item.quantity *
+          final baseDeduction = (item.quantity + item.bonusQuantity) *
               (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
 
           // Check if item is a Combo / Bundle product and deduct underlying components
@@ -381,6 +381,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
                   sku: e.product.sku,
                   unitPrice: e.unitPrice,
                   quantity: e.quantity,
+                  bonusQuantity: e.bonusQuantity,
                   discount: e.calculatedDiscount,
                   discountType: e.discountType,
                   discountValue: e.discountValue,
@@ -500,7 +501,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         for (final row in oldItems) {
           final item = SaleItem.fromMap(row);
           if (item.productId != null) {
-            final restoreQty = item.quantity *
+            final restoreQty = (item.quantity + item.bonusQuantity) *
                 (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
             final bundleComponents = await txn.query(
               'product_bundles',
@@ -555,7 +556,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         await txn.insert('sale_items', item.toMap(saleId));
 
         if (isNowFinal && item.product.id != null) {
-          final baseDeduction = item.quantity *
+          final baseDeduction = (item.quantity + item.bonusQuantity) *
               (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
           final isCombo = item.product.type == 'combo' ||
               item.product.type == 'bundle' ||
@@ -714,7 +715,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         for (final row in itemRows) {
           final item = SaleItem.fromMap(row);
           if (item.productId != null) {
-            final qtyToRestore = item.quantity *
+            final qtyToRestore = (item.quantity + item.bonusQuantity) *
                 (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
             final bundleComponents = await txn.query(
               'product_bundles',

@@ -7,10 +7,12 @@ import '../../services/auth_service.dart';
 import '../../services/print_service.dart';
 import '../../services/pdf_export_service.dart';
 import '../../services/ai_assistant_service.dart';
+import '../../utils/currency_formatter.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../pos/pos_power_dialogs.dart';
 import '../products/product_detail_dialog.dart';
+import '../contacts/contact_ledger_dialog.dart';
 
 class ReportsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -148,15 +150,24 @@ class _ReportsScreenState extends State<ReportsScreen>
       filter: _stockExpiryFilter,
       searchQuery: _stockExpirySearchCtrl.text.trim(),
     );
-    final qStats = await db.getQuotationConversionStats();
+    final qStats = await db.getQuotationConversionStats(
+      startDate: _startDate,
+      endDate: _endDate,
+    );
     final actLogs = await db.getActivityLogs(
       limit: 200,
       entityType: _activityEntityFilter,
       action: _activityActionFilter,
       search: _activitySearchCtrl.text.trim(),
     );
-    final cheques = await db.getCheques();
-    final chequeSummary = await db.getChequeSummary();
+    final cheques = await db.getCheques(
+      startDate: _startDate,
+      endDate: _endDate,
+    );
+    final chequeSummary = await db.getChequeSummary(
+      startDate: _startDate,
+      endDate: _endDate,
+    );
     final commReport = await db.getCommissionReport(
       startDate: _startDate,
       endDate: _endDate,
@@ -372,20 +383,6 @@ class _ReportsScreenState extends State<ReportsScreen>
     );
   }
 
-  Future<void> _exportExecutiveReportPdf() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final bytes = await _buildExecutiveReportPdfBytes();
-    final file =
-        await PdfExportService.savePdfFile(bytes, 'Executive_Business_Report');
-    await PdfExportService.openPdfFile(file);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('Report PDF exported & opened: ${file.path}'),
-        backgroundColor: const Color(0xFF10B981),
-      ),
-    );
-  }
-
   void _printRegisterReport() {
     final periodStr = _startDate != null && _endDate != null
         ? '${DateFormat('dd/MM/yyyy').format(_startDate!)} to ${DateFormat('dd/MM/yyyy').format(_endDate!)}'
@@ -419,6 +416,541 @@ class _ReportsScreenState extends State<ReportsScreen>
         htmlContent: html,
         defaultPaperSize: 'a4',
         settings: widget.settings,
+      ),
+    );
+  }
+
+  void _showLowStockModal() {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.red),
+              const SizedBox(width: 8),
+              Text('Low Stock Inventory (${_lowStock.length} Items)'),
+            ],
+          ),
+          content: SizedBox(
+            width: 600,
+            height: 400,
+            child: _lowStock.isEmpty
+                ? const Center(
+                    child: Text('All products are adequately stocked.'))
+                : ListView.separated(
+                    itemCount: _lowStock.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, idx) {
+                      final p = _lowStock[idx];
+                      return ListTile(
+                        dense: true,
+                        title: Text(p.name,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(
+                            'SKU: ${p.sku} • Alert Level: ${p.alertQuantity} ${p.unit}'),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${p.stockQuantity} ${p.unit}',
+                            style: const TextStyle(
+                                color: Colors.red, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          if (p.id != null) _viewProductDetails(p.id!);
+                        },
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<Uint8List> _buildPdfBytesForTab(int tabIndex) {
+    final cur = widget.settings.currencySymbol;
+    final periodStr = _startDate != null && _endDate != null
+        ? '${DateFormat('dd/MM/yyyy').format(_startDate!)} to ${DateFormat('dd/MM/yyyy').format(_endDate!)}'
+        : 'All-Time Financial Statement';
+
+    switch (tabIndex) {
+      case 0:
+        return _buildExecutiveReportPdfBytes();
+
+      case 1: // Purchase & Sale
+        final totalSales = (_report['totalSales'] as double?) ?? 0.0;
+        final paidSales = (_report['totalPaidSales'] as double?) ?? 0.0;
+        final dueSales = (_report['totalDueSales'] as double?) ?? 0.0;
+        final totalPurchases = (_report['totalPurchases'] as double?) ?? 0.0;
+        final paidPurchases = (_report['totalPaidPurchases'] as double?) ?? 0.0;
+        final duePurchases = (_report['totalDuePurchases'] as double?) ?? 0.0;
+        final netTradeDifference = totalSales - totalPurchases;
+        return PdfExportService.generateReportPdf(
+          title: 'Purchase & Sale Comparative Report',
+          subtitle: 'Period: $periodStr',
+          settings: widget.settings,
+          summaryMetrics: {
+            'Invoiced Sales': '$cur${totalSales.toStringAsFixed(2)}',
+            'Stock Purchases': '$cur${totalPurchases.toStringAsFixed(2)}',
+            'Net Trade Gap': '$cur${netTradeDifference.toStringAsFixed(2)}',
+          },
+          headers: const ['Metric / Account', 'Amount'],
+          rows: [
+            ['Total Invoiced Sales', '$cur${totalSales.toStringAsFixed(2)}'],
+            ['Sales Received / Paid', '$cur${paidSales.toStringAsFixed(2)}'],
+            ['Outstanding Sales Due', '$cur${dueSales.toStringAsFixed(2)}'],
+            [
+              'Total Stock Purchases',
+              '$cur${totalPurchases.toStringAsFixed(2)}'
+            ],
+            ['Paid to Suppliers', '$cur${paidPurchases.toStringAsFixed(2)}'],
+            [
+              'Supplier Outstanding Due',
+              '$cur${duePurchases.toStringAsFixed(2)}'
+            ],
+            [
+              'Net Trade Difference',
+              '$cur${netTradeDifference.toStringAsFixed(2)}'
+            ],
+            ['Total Quotations', '${_quotationStats['totalQuotations'] ?? 0}'],
+            [
+              'Converted Invoices',
+              '${_quotationStats['convertedQuotations'] ?? 0}'
+            ],
+            [
+              'Conversion Rate',
+              '${((_quotationStats['conversionRate'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)}%'
+            ],
+          ],
+        );
+
+      case 2: // Cash Register Shifts
+        return PdfExportService.generateReportPdf(
+          title: 'Cash Register Shifts Audit Report',
+          subtitle: 'Period: $periodStr',
+          settings: widget.settings,
+          summaryMetrics: {
+            'Total Shifts': '${_registerReports.length}',
+          },
+          headers: const [
+            'Shift ID',
+            'Cashier',
+            'Opened At',
+            'Closed At',
+            'Cash Sales',
+            'Card Sales',
+            'Closing Amount',
+            'Status'
+          ],
+          rows: _registerReports
+              .map((r) => [
+                    '#${r['id'] ?? "-"}',
+                    '${r['cashier_name'] ?? "Cashier"}',
+                    '${r['opened_at'] ?? "-"}',
+                    '${r['closed_at'] ?? "Open Shift"}',
+                    '$cur${((r['total_sales_cash'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
+                    '$cur${((r['total_sales_card'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
+                    '$cur${((r['closing_amount'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
+                    (r['status'] as String? ?? "open").toUpperCase(),
+                  ])
+              .toList(),
+        );
+
+      case 3: // Stock Expiry
+        return PdfExportService.generateReportPdf(
+          title: 'Stock Expiry & Batch Traceability Report',
+          subtitle: 'Filter: $_stockExpiryFilter',
+          settings: widget.settings,
+          summaryMetrics: {
+            'Alert Items': '${_stockExpiryReports.length}',
+          },
+          headers: const [
+            'Product Name',
+            'SKU',
+            'Batch No',
+            'Expiry Date',
+            'Days Left',
+            'Stock Qty',
+            'Status'
+          ],
+          rows: _stockExpiryReports
+              .map((r) => [
+                    '${r['product_name'] ?? "Item"}',
+                    '${r['sku'] ?? "-"}',
+                    '${r['batch_number'] ?? "-"}',
+                    '${r['expiry_date'] ?? "-"}',
+                    '${r['days_remaining'] ?? "-"}',
+                    '${r['stock_quantity'] ?? 0}',
+                    '${r['status_label'] ?? "-"}',
+                  ])
+              .toList(),
+        );
+
+      case 4: // Trending Products
+        final rawList = List<Map<String, dynamic>>.from(
+            _report['topSellingProducts'] as List<dynamic>? ?? []);
+        return PdfExportService.generateReportPdf(
+          title: 'Top Selling & Trending Products Report',
+          subtitle: 'Period: $periodStr',
+          settings: widget.settings,
+          summaryMetrics: {
+            'Ranked SKUs': '${rawList.length}',
+          },
+          headers: const [
+            'Rank',
+            'Product Name',
+            'SKU',
+            'Units Sold',
+            'Gross Revenue'
+          ],
+          rows: rawList
+              .asMap()
+              .entries
+              .map((entry) => [
+                    '#${entry.key + 1}',
+                    '${entry.value['name'] ?? "Product"}',
+                    '${entry.value['sku'] ?? "-"}',
+                    ((entry.value['quantity'] as num?)?.toDouble() ?? 0.0)
+                        .toStringAsFixed(1),
+                    '$cur${((entry.value['revenue'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
+                  ])
+              .toList(),
+        );
+
+      case 5: // Stock Valuation
+        final sv = _report['stockValuation'] as Map<String, dynamic>? ?? {};
+        final totalUnits = (sv['totalQuantity'] as num?)?.toDouble() ?? 0.0;
+        final stockCost = (sv['stockValueCost'] as double?) ?? 0.0;
+        final stockRetail = (sv['stockValueRetail'] as double?) ?? 0.0;
+        final potentialProfit = (sv['potentialProfit'] as double?) ?? 0.0;
+        return PdfExportService.generateReportPdf(
+          title: 'Inventory Valuation & Stock Audit Report',
+          subtitle:
+              'Generated On: ${DateFormat("dd MMM yyyy HH:mm").format(DateTime.now())}',
+          settings: widget.settings,
+          summaryMetrics: {
+            'Total Units': '${totalUnits.toInt()} Units',
+            'Cost Valuation': '$cur${stockCost.toStringAsFixed(2)}',
+            'Retail Valuation': '$cur${stockRetail.toStringAsFixed(2)}',
+            'Unrealized Profit': '$cur${potentialProfit.toStringAsFixed(2)}',
+          },
+          headers: const ['Valuation Category', 'Value / Metric'],
+          rows: [
+            ['Total Physical Inventory Units', '${totalUnits.toInt()} Units'],
+            [
+              'Stock Asset Value (Purchase Cost)',
+              '$cur${stockCost.toStringAsFixed(2)}'
+            ],
+            [
+              'Projected Realizable Value (Retail)',
+              '$cur${stockRetail.toStringAsFixed(2)}'
+            ],
+            [
+              'Estimated Unrealized Gross Profit',
+              '$cur${potentialProfit.toStringAsFixed(2)}'
+            ],
+            [
+              'Expected Return on Inventory (ROI)',
+              '${stockCost > 0 ? ((potentialProfit / stockCost) * 100).toStringAsFixed(1) : "0.0"}%'
+            ],
+            ['Items with Low Stock Alerts', '${_lowStock.length} items'],
+          ],
+        );
+
+      case 6: // Expense Breakdown
+        final expList = _report['expenseCategories'] as List<dynamic>? ?? [];
+        final totalExpenses = (_report['totalExpenses'] as double?) ?? 0.0;
+        return PdfExportService.generateReportPdf(
+          title: 'Operating Expenses Breakdown Report',
+          subtitle: 'Period: $periodStr',
+          settings: widget.settings,
+          summaryMetrics: {
+            'Total Expenses': '$cur${totalExpenses.toStringAsFixed(2)}',
+            'Categories': '${expList.length}',
+          },
+          headers: const [
+            'Expense Category',
+            'Voucher Count',
+            'Percentage',
+            'Total Amount'
+          ],
+          rows: expList.map((item) {
+            final amt = (item['amount'] as num?)?.toDouble() ?? 0.0;
+            final count = item['count'] as int? ?? 0;
+            final pct = totalExpenses > 0 ? (amt / totalExpenses) * 100 : 0.0;
+            return [
+              '${item['category'] ?? "General"}',
+              '$count vouchers',
+              '${pct.toStringAsFixed(1)}%',
+              '$cur${amt.toStringAsFixed(2)}',
+            ];
+          }).toList(),
+        );
+
+      case 7: // Tax Report
+        final outputTax = (_report['outputTax'] as double?) ?? 0.0;
+        final inputTax = (_report['inputTax'] as double?) ?? 0.0;
+        final netTaxPayable = (_report['netTaxPayable'] as double?) ?? 0.0;
+        return PdfExportService.generateReportPdf(
+          title: 'Tax & GST Fiscal Statement',
+          subtitle: 'Period: $periodStr',
+          settings: widget.settings,
+          summaryMetrics: {
+            'Output Tax': '$cur${outputTax.toStringAsFixed(2)}',
+            'Input Tax': '$cur${inputTax.toStringAsFixed(2)}',
+            'Net Tax Payable': '$cur${netTaxPayable.toStringAsFixed(2)}',
+          },
+          headers: const ['Tax Category', 'Amount'],
+          rows: [
+            [
+              'Output Tax (Collected from Customers on Sales)',
+              '$cur${outputTax.toStringAsFixed(2)}'
+            ],
+            [
+              'Input Tax (Credit on Supplier Purchases)',
+              '($cur${inputTax.toStringAsFixed(2)})'
+            ],
+            [
+              'Net Tax Payable to FBR / Tax Authority',
+              '$cur${netTaxPayable.toStringAsFixed(2)}'
+            ],
+          ],
+        );
+
+      case 8: // Dues
+        final custDue = (_report['totalCustomerDue'] as double?) ?? 0.0;
+        final suppDue = (_report['totalSupplierPayable'] as double?) ?? 0.0;
+        final topDebtors = _report['topDebtors'] as List<dynamic>? ?? [];
+        final topCreditors = _report['topCreditors'] as List<dynamic>? ?? [];
+        final allDuesRows = <List<String>>[];
+        for (final d in topDebtors) {
+          allDuesRows.add([
+            'Customer (Debtor)',
+            '${d['name'] ?? "-"}',
+            '${d['phone'] ?? "-"}',
+            '$cur${((d['balance'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
+          ]);
+        }
+        for (final c in topCreditors) {
+          allDuesRows.add([
+            'Supplier (Creditor)',
+            '${c['name'] ?? "-"}',
+            '${c['phone'] ?? "-"}',
+            '$cur${((c['balance'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
+          ]);
+        }
+        return PdfExportService.generateReportPdf(
+          title: 'Customer Receivables & Supplier Payables Statement',
+          subtitle:
+              'Generated On: ${DateFormat("dd MMM yyyy HH:mm").format(DateTime.now())}',
+          settings: widget.settings,
+          summaryMetrics: {
+            'Receivables (Due)': '$cur${custDue.toStringAsFixed(2)}',
+            'Payables (Due)': '$cur${suppDue.toStringAsFixed(2)}',
+          },
+          headers: const ['Type', 'Party Name', 'Phone', 'Outstanding Balance'],
+          rows: allDuesRows,
+        );
+
+      case 9: // Activity Log
+        return PdfExportService.generateReportPdf(
+          title: 'System Activity Logs & Audit Trail',
+          subtitle:
+              'Generated On: ${DateFormat("dd MMM yyyy HH:mm").format(DateTime.now())}',
+          settings: widget.settings,
+          summaryMetrics: {
+            'Total Logged Events': '${_activityLogs.length}',
+          },
+          headers: const ['Time', 'User', 'Action', 'Entity', 'Details'],
+          rows: _activityLogs
+              .map((l) => [
+                    l.createdAt,
+                    l.userName,
+                    l.action.toUpperCase(),
+                    l.entityType,
+                    l.newValues.isNotEmpty
+                        ? l.newValues
+                        : (l.oldValues.isNotEmpty ? l.oldValues : '-'),
+                  ])
+              .toList(),
+        );
+
+      case 10: // Cheques
+        return PdfExportService.generateReportPdf(
+          title: 'Cheque Clearance & Status Statement',
+          subtitle: 'Period: $periodStr',
+          settings: widget.settings,
+          summaryMetrics: {
+            'Pending':
+                '$cur${((_chequeReportSummary['pendingAmount'] ?? 0)).toDouble().toStringAsFixed(2)}',
+            'Cleared':
+                '$cur${((_chequeReportSummary['clearedAmount'] ?? 0)).toDouble().toStringAsFixed(2)}',
+            'Overdue':
+                '$cur${((_chequeReportSummary['overdueAmount'] ?? 0)).toDouble().toStringAsFixed(2)}',
+          },
+          headers: const [
+            'Cheque #',
+            'Party Name',
+            'Bank',
+            'Due Date',
+            'Status',
+            'Amount'
+          ],
+          rows: _chequeReportRows
+              .map((c) => [
+                    c.chequeNumber.isNotEmpty ? c.chequeNumber : c.refNo,
+                    c.contactName,
+                    c.bankName.isNotEmpty ? c.bankName : '-',
+                    c.chequeDueDate.isNotEmpty ? c.chequeDueDate : '-',
+                    c.isOverdueCheque
+                        ? 'OVERDUE'
+                        : c.chequeStatus.toUpperCase(),
+                    '$cur${c.amount.toStringAsFixed(2)}',
+                  ])
+              .toList(),
+        );
+
+      case 11: // Commissions
+        return PdfExportService.generateReportPdf(
+          title: 'Sales Commission Agents Performance Report',
+          subtitle: 'Period: $periodStr',
+          settings: widget.settings,
+          summaryMetrics: {
+            'Active Agents': '${_commissionReportRows.length}',
+          },
+          headers: const [
+            'Agent Name',
+            'Invoices',
+            'Sales Volume',
+            'Commission Rate',
+            'Earned Commission'
+          ],
+          rows: _commissionReportRows
+              .map((row) => [
+                    (row['agentName'] as String?) ?? '-',
+                    '${row['totalSalesCount'] ?? 0}',
+                    '$cur${((row['totalSalesVolume'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
+                    '${((row['commissionPercent'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)}%',
+                    '$cur${((row['totalCommissionEarned'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
+                  ])
+              .toList(),
+        );
+
+      default:
+        return _buildExecutiveReportPdfBytes();
+    }
+  }
+
+  void _printActiveReport() {
+    switch (_tabController.index) {
+      case 0:
+        _printExecutiveReport();
+        break;
+      case 2:
+        _printRegisterReport();
+        break;
+      case 3:
+        _printStockExpiryReport();
+        break;
+      case 8:
+        final topDebtors = _report['topDebtors'] as List<dynamic>? ?? [];
+        final defaulters = topDebtors
+            .map((d) => Contact(
+                  id: d['id'] as int?,
+                  name: d['name'] as String? ?? 'Customer',
+                  phone: d['phone'] as String? ?? '',
+                  balance: (d['balance'] as num?)?.toDouble() ?? 0.0,
+                  type: 'customer',
+                ))
+            .toList();
+        final html = PrintService.generateDefaultersListHtml(
+          defaulters: defaulters,
+          settings: widget.settings,
+        );
+        showDialog(
+          context: context,
+          builder: (_) => UniversalPrintPreviewDialog(
+            title: 'Customer Receivables & Defaulters List',
+            htmlContent: html,
+            defaultPaperSize: 'a4',
+            settings: widget.settings,
+            pdfGenerator: (_) => _buildPdfBytesForTab(8),
+          ),
+        );
+        break;
+      default:
+        final tabTitles = [
+          'Profit & Loss Statement',
+          'Purchase & Sale Comparative Report',
+          'Cash Register Shifts Audit',
+          'Stock Expiry & Batches',
+          'Top Selling & Trending Products',
+          'Inventory Valuation & Audit',
+          'Operating Expenses Breakdown',
+          'Tax & GST Fiscal Statement',
+          'Customer & Supplier Dues',
+          'Activity Log & Audit Trail',
+          'Cheques Status & Clearance',
+          'Commission Agents Performance',
+        ];
+        final title =
+            tabTitles[_tabController.index.clamp(0, tabTitles.length - 1)];
+        showDialog(
+          context: context,
+          builder: (_) => UniversalPrintPreviewDialog(
+            title: title,
+            htmlContent:
+                '<div style="font-family:sans-serif;padding:30px;text-align:center;"><h2>$title</h2><p>Click PDF tab above to preview and print official document.</p></div>',
+            defaultPaperSize: 'a4',
+            settings: widget.settings,
+            pdfGenerator: (_) => _buildPdfBytesForTab(_tabController.index),
+          ),
+        );
+    }
+  }
+
+  Future<void> _exportActiveReportPdf() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final tabTitles = [
+      'Executive_Profit_Loss_Report',
+      'Purchase_Sale_Comparative_Report',
+      'Register_Shifts_Audit_Report',
+      'Stock_Expiry_Report',
+      'Trending_Products_Report',
+      'Inventory_Valuation_Report',
+      'Operating_Expenses_Report',
+      'Tax_GST_Fiscal_Report',
+      'Customer_Supplier_Dues_Report',
+      'Activity_Audit_Log_Report',
+      'Cheques_Clearance_Report',
+      'Commission_Agents_Report',
+    ];
+    final filename =
+        tabTitles[_tabController.index.clamp(0, tabTitles.length - 1)];
+    final bytes = await _buildPdfBytesForTab(_tabController.index);
+    final file = await PdfExportService.savePdfFile(bytes, filename);
+    await PdfExportService.openPdfFile(file);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Report PDF exported & opened: ${file.path}'),
+        backgroundColor: const Color(0xFF10B981),
       ),
     );
   }
@@ -584,7 +1116,7 @@ class _ReportsScreenState extends State<ReportsScreen>
     final stockCost = (stockVal['stockValueCost'] as double?) ?? 0.0;
 
     final user = AuthService.currentUser;
-    if (user != null && !user.hasPermission('report.view')) {
+    if (user != null && !user.isSuperAdmin) {
       return Scaffold(
         backgroundColor:
             isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
@@ -723,9 +1255,9 @@ class _ReportsScreenState extends State<ReportsScreen>
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.print_rounded, size: 18),
-                      label: const Text('Print Executive Report',
+                      label: const Text('Print Active Report',
                           style: TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: _printExecutiveReport,
+                      onPressed: _printActiveReport,
                     ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
@@ -739,7 +1271,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                       icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
                       label: const Text('Export PDF Report',
                           style: TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: _exportExecutiveReportPdf,
+                      onPressed: _exportActiveReportPdf,
                     ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
@@ -834,8 +1366,8 @@ class _ReportsScreenState extends State<ReportsScreen>
               children: [
                 _topKpi(
                     'TOTAL SALES REVENUE',
-                    '$cur${totalSales.toStringAsFixed(2)}',
-                    '${_report['invoiceCount'] ?? 0} Invoices',
+                    CurrencyFormatter.compact(totalSales, currency: '$cur '),
+                    '${_report['invoiceCount'] ?? 0} Invoices (${CurrencyFormatter.exact(totalSales, currency: cur)})',
                     const Color(0xFF4F46E5),
                     Icons.point_of_sale_rounded,
                     isDark),
@@ -843,10 +1375,10 @@ class _ReportsScreenState extends State<ReportsScreen>
                 _topKpi(
                   'NET PROFIT / LOSS',
                   (user?.hasPermission('report.view_profit') ?? true)
-                      ? '$cur${netProfit.toStringAsFixed(2)}'
+                      ? CurrencyFormatter.compact(netProfit, currency: '$cur ')
                       : 'Restricted',
                   (user?.hasPermission('report.view_profit') ?? true)
-                      ? 'Gross Margin: $cur${((_report['grossProfit'] as double?) ?? 0.0).toStringAsFixed(2)}'
+                      ? 'Gross Margin: ${CurrencyFormatter.compact((_report['grossProfit'] as double?) ?? 0.0, currency: cur)}'
                       : 'Requires report.view_profit',
                   netProfit >= 0
                       ? const Color(0xFF10B981)
@@ -857,8 +1389,9 @@ class _ReportsScreenState extends State<ReportsScreen>
                 const SizedBox(width: 14),
                 _topKpi(
                     'TOTAL PURCHASES',
-                    '$cur${totalPurchases.toStringAsFixed(2)}',
-                    '${_report['poCount'] ?? 0} Purchase Orders',
+                    CurrencyFormatter.compact(totalPurchases,
+                        currency: '$cur '),
+                    '${_report['poCount'] ?? 0} POs (${CurrencyFormatter.exact(totalPurchases, currency: cur)})',
                     const Color(0xFFF59E0B),
                     Icons.shopping_cart_checkout_rounded,
                     isDark),
@@ -866,9 +1399,9 @@ class _ReportsScreenState extends State<ReportsScreen>
                 _topKpi(
                   'INVENTORY ASSET VALUE',
                   (user?.hasPermission('report.view_cost_price') ?? true)
-                      ? '$cur${stockCost.toStringAsFixed(2)}'
+                      ? CurrencyFormatter.compact(stockCost, currency: '$cur ')
                       : 'Restricted',
-                  '${(stockVal['totalQuantity'] as num?)?.toInt() ?? 0} Total Units',
+                  '${CurrencyFormatter.count((stockVal['totalQuantity'] as num?)?.toInt() ?? 0)} Total Units',
                   const Color(0xFF0284C7),
                   Icons.inventory_2_rounded,
                   isDark,
@@ -932,48 +1465,55 @@ class _ReportsScreenState extends State<ReportsScreen>
                 ? const Padding(
                     padding: EdgeInsets.all(16),
                     child: TableSkeletonView(rowCount: 6))
-                : SizedBox(
-                    height: 640,
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        // Tab 1: Profit & Loss Statement
-                        _buildProfitAndLossTab(cur, isDark),
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final screenH = MediaQuery.of(context).size.height;
+                      final dynamicTabHeight =
+                          (screenH - 240).clamp(680.0, 1600.0);
+                      return SizedBox(
+                        height: dynamicTabHeight,
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: [
+                            // Tab 1: Profit & Loss Statement
+                            _buildProfitAndLossTab(cur, isDark),
 
-                        // Tab 2: Purchase & Sale Comparison
-                        _buildPurchaseAndSaleTab(cur, isDark),
+                            // Tab 2: Purchase & Sale Comparison
+                            _buildPurchaseAndSaleTab(cur, isDark),
 
-                        // Tab 3: Cash Register Shifts (Phase 5.1)
-                        _buildRegisterShiftTab(cur, isDark),
+                            // Tab 3: Cash Register Shifts (Phase 5.1)
+                            _buildRegisterShiftTab(cur, isDark),
 
-                        // Tab 4: Stock Expiry & Batches (Phase 5.2)
-                        _buildStockExpiryTab(cur, isDark),
+                            // Tab 4: Stock Expiry & Batches (Phase 5.2)
+                            _buildStockExpiryTab(cur, isDark),
 
-                        // Tab 5: Trending Top Products (Phase 5.3)
-                        _buildTrendingProductsTab(cur, isDark),
+                            // Tab 5: Trending Top Products (Phase 5.3)
+                            _buildTrendingProductsTab(cur, isDark),
 
-                        // Tab 6: Stock Valuation
-                        _buildStockValuationTab(cur, isDark),
+                            // Tab 6: Stock Valuation
+                            _buildStockValuationTab(cur, isDark),
 
-                        // Tab 7: Expense Breakdown
-                        _buildExpenseBreakdownTab(cur, isDark),
+                            // Tab 7: Expense Breakdown
+                            _buildExpenseBreakdownTab(cur, isDark),
 
-                        // Tab 8: Tax Report
-                        _buildTaxReportTab(cur, isDark),
+                            // Tab 8: Tax Report
+                            _buildTaxReportTab(cur, isDark),
 
-                        // Tab 9: Customer & Supplier Dues
-                        _buildContactDuesTab(cur, isDark),
+                            // Tab 9: Customer & Supplier Dues
+                            _buildContactDuesTab(cur, isDark),
 
-                        // Tab 10: Activity Log / Audit Trail
-                        _buildActivityLogTab(isDark),
+                            // Tab 10: Activity Log / Audit Trail
+                            _buildActivityLogTab(isDark),
 
-                        // Tab 11: Cheque Reports (Pending / Cleared)
-                        _buildChequeReportTab(cur, isDark),
+                            // Tab 11: Cheque Reports (Pending / Cleared)
+                            _buildChequeReportTab(cur, isDark),
 
-                        // Tab 12: Commission Agents Report
-                        _buildCommissionReportTab(cur, isDark),
-                      ],
-                    ),
+                            // Tab 12: Commission Agents Report
+                            _buildCommissionReportTab(cur, isDark),
+                          ],
+                        ),
+                      );
+                    },
                   ),
           ],
         ),
@@ -1139,25 +1679,27 @@ class _ReportsScreenState extends State<ReportsScreen>
           ),
           const SizedBox(height: 16),
           _reportRow('Gross Sales Revenue (Final Invoices)',
-              '$cur${totalSales.toStringAsFixed(2)}',
+              CurrencyFormatter.withCompactHint(totalSales, currency: cur),
               isHeader: true),
           const Divider(),
           _reportRow(
             'Cost of Goods Sold (COGS based on purchase cost)',
-            canViewCost ? '($cur${cogs.toStringAsFixed(2)})' : 'Restricted',
+            canViewCost
+                ? '(${CurrencyFormatter.withCompactHint(cogs, currency: cur)})'
+                : 'Restricted',
             color: Colors.red,
           ),
           const Divider(),
           _reportRow('Gross Profit (Revenue - COGS)',
-              '$cur${grossProfit.toStringAsFixed(2)}',
+              CurrencyFormatter.withCompactHint(grossProfit, currency: cur),
               isBold: true, color: const Color(0xFF10B981)),
           const Divider(),
           _reportRow('Total Operating Expenses',
-              '($cur${totalExpenses.toStringAsFixed(2)})',
+              '(${CurrencyFormatter.withCompactHint(totalExpenses, currency: cur)})',
               color: Colors.red),
           const Divider(),
           _reportRow('Stock Adjustment Recoveries',
-              '+$cur${recovered.toStringAsFixed(2)}',
+              '+${CurrencyFormatter.withCompactHint(recovered, currency: cur)}',
               color: const Color(0xFF0284C7)),
           const Divider(),
           const SizedBox(height: 10),
@@ -1188,7 +1730,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                                 : const Color(0xFF991B1B))),
                     const SizedBox(height: 2),
                     Text(
-                        'Net Margin: ${totalSales > 0 ? ((netProfit / totalSales) * 100).toStringAsFixed(1) : "0.0"}%',
+                        'Net Margin: ${totalSales > 0 ? ((netProfit / totalSales) * 100).toStringAsFixed(1) : "0.0"}% | Exact: ${CurrencyFormatter.exact(netProfit, currency: cur)}',
                         style: TextStyle(
                             fontSize: 11,
                             color: netProfit >= 0
@@ -1197,7 +1739,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                   ],
                 ),
                 Text(
-                  '$cur${netProfit.toStringAsFixed(2)}',
+                  CurrencyFormatter.compact(netProfit, currency: '$cur '),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
@@ -1261,17 +1803,23 @@ class _ReportsScreenState extends State<ReportsScreen>
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF4F46E5))),
                       const SizedBox(height: 12),
-                      _miniPnl('Total Invoiced Sales',
-                          '$cur${totalSales.toStringAsFixed(2)}',
+                      _miniPnl(
+                          'Total Invoiced Sales',
+                          CurrencyFormatter.withCompactHint(totalSales,
+                              currency: cur),
                           isBold: true),
-                      _miniPnl('Received / Paid Amount',
-                          '$cur${paidSales.toStringAsFixed(2)}',
+                      _miniPnl(
+                          'Received / Paid Amount',
+                          CurrencyFormatter.withCompactHint(paidSales,
+                              currency: cur),
                           color: const Color(0xFF10B981)),
-                      _miniPnl('Outstanding Sales Due',
-                          '$cur${dueSales.toStringAsFixed(2)}',
+                      _miniPnl(
+                          'Outstanding Sales Due',
+                          CurrencyFormatter.withCompactHint(dueSales,
+                              currency: cur),
                           color: const Color(0xFFEF4444)),
                       _miniPnl('Total Invoice Count',
-                          '${_report['invoiceCount'] ?? 0} invoices'),
+                          '${CurrencyFormatter.count(_report['invoiceCount'] ?? 0)} invoices'),
                     ],
                   ),
                 ),
@@ -1296,17 +1844,23 @@ class _ReportsScreenState extends State<ReportsScreen>
                               fontWeight: FontWeight.bold,
                               color: Color(0xFFD97706))),
                       const SizedBox(height: 12),
-                      _miniPnl('Total Purchases (Stock)',
-                          '$cur${totalPurchases.toStringAsFixed(2)}',
+                      _miniPnl(
+                          'Total Purchases (Stock)',
+                          CurrencyFormatter.withCompactHint(totalPurchases,
+                              currency: cur),
                           isBold: true),
-                      _miniPnl('Paid to Suppliers',
-                          '$cur${paidPurchases.toStringAsFixed(2)}',
+                      _miniPnl(
+                          'Paid to Suppliers',
+                          CurrencyFormatter.withCompactHint(paidPurchases,
+                              currency: cur),
                           color: const Color(0xFF10B981)),
-                      _miniPnl('Supplier Due Payable',
-                          '$cur${duePurchases.toStringAsFixed(2)}',
+                      _miniPnl(
+                          'Supplier Due Payable',
+                          CurrencyFormatter.withCompactHint(duePurchases,
+                              currency: cur),
                           color: const Color(0xFFEF4444)),
                       _miniPnl('Total Purchase Orders',
-                          '${_report['poCount'] ?? 0} orders'),
+                          '${CurrencyFormatter.count(_report['poCount'] ?? 0)} orders'),
                     ],
                   ),
                 ),
@@ -2273,9 +2827,23 @@ class _ReportsScreenState extends State<ReportsScreen>
                                   ),
                                 ),
                               ),
-                              DataCell(Text(item['name'] as String,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold))),
+                              DataCell(
+                                InkWell(
+                                  onTap: () {
+                                    final pid =
+                                        (item['productId'] as num?)?.toInt() ??
+                                            0;
+                                    if (pid > 0) _viewProductDetails(pid);
+                                  },
+                                  child: Text(
+                                    item['name'] as String,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF4F46E5),
+                                    ),
+                                  ),
+                                ),
+                              ),
                               DataCell(Text(item['sku'] as String,
                                   style: const TextStyle(
                                       fontSize: 12, fontFamily: 'monospace'))),
@@ -2426,10 +2994,17 @@ class _ReportsScreenState extends State<ReportsScreen>
     final stockCost = (sv['stockValueCost'] as double?) ?? 0.0;
     final stockRetail = (sv['stockValueRetail'] as double?) ?? 0.0;
     final potentialProfit = (sv['potentialProfit'] as double?) ?? 0.0;
-    final costLabel =
-        canViewCost ? '$cur${stockCost.toStringAsFixed(2)}' : 'Restricted';
+    final costLabel = canViewCost
+        ? CurrencyFormatter.compact(stockCost, currency: '$cur ')
+        : 'Restricted';
     final profitLabel = canViewProfit
-        ? '$cur${potentialProfit.toStringAsFixed(2)}'
+        ? CurrencyFormatter.compact(potentialProfit, currency: '$cur ')
+        : 'Restricted';
+    final costRowLabel = canViewCost
+        ? CurrencyFormatter.withCompactHint(stockCost, currency: cur)
+        : 'Restricted';
+    final profitRowLabel = canViewProfit
+        ? CurrencyFormatter.withCompactHint(potentialProfit, currency: cur)
         : 'Restricted';
 
     return Container(
@@ -2448,7 +3023,9 @@ class _ReportsScreenState extends State<ReportsScreen>
           const SizedBox(height: 16),
           Row(
             children: [
-              _kpiBox('Total Stock Units', '${totalUnits.toInt()} units',
+              _kpiBox(
+                  'Total Stock Units',
+                  '${CurrencyFormatter.count(totalUnits.toInt())} units',
                   const Color(0xFF004EEB)),
               const SizedBox(width: 12),
               _kpiBox(
@@ -2456,7 +3033,7 @@ class _ReportsScreenState extends State<ReportsScreen>
               const SizedBox(width: 12),
               _kpiBox(
                   'Stock Value by Retail',
-                  '$cur${stockRetail.toStringAsFixed(2)}',
+                  CurrencyFormatter.compact(stockRetail, currency: '$cur '),
                   const Color(0xFF10B981)),
               const SizedBox(width: 12),
               _kpiBox('Potential Retail Margin', profitLabel,
@@ -2464,14 +3041,15 @@ class _ReportsScreenState extends State<ReportsScreen>
             ],
           ),
           const SizedBox(height: 24),
-          _reportRow('Inventory Valuation at Purchase Price (Asset)', costLabel,
+          _reportRow(
+              'Inventory Valuation at Purchase Price (Asset)', costRowLabel,
               isHeader: true),
           const Divider(),
           _reportRow('Projected Realizable Value at Selling Price',
-              '$cur${stockRetail.toStringAsFixed(2)}',
+              CurrencyFormatter.withCompactHint(stockRetail, currency: cur),
               isHeader: true),
           const Divider(),
-          _reportRow('Estimated Unrealized Gross Margin', profitLabel,
+          _reportRow('Estimated Unrealized Gross Margin', profitRowLabel,
               isBold: true, color: const Color(0xFF10B981)),
           const Divider(),
           _reportRow(
@@ -2484,6 +3062,24 @@ class _ReportsScreenState extends State<ReportsScreen>
           _reportRow(
               'Products with Low Stock Alerts', '${_lowStock.length} items',
               color: _lowStock.isNotEmpty ? Colors.red : Colors.green),
+          if (_lowStock.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              icon: const Icon(Icons.warning_amber_rounded, size: 16),
+              label: Text('View ${_lowStock.length} Low Stock Alert Items',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 12)),
+              onPressed: _showLowStockModal,
+            ),
+          ],
         ],
       ),
     );
@@ -2600,15 +3196,15 @@ class _ReportsScreenState extends State<ReportsScreen>
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           _reportRow('Output Tax (Sales Tax Collected from Customers)',
-              '$cur${outputTax.toStringAsFixed(2)}',
+              CurrencyFormatter.withCompactHint(outputTax, currency: cur),
               isHeader: true),
           const Divider(),
           _reportRow('Input Tax (Sales Tax Paid on Supplier Purchases)',
-              '($cur${inputTax.toStringAsFixed(2)})',
+              '(${CurrencyFormatter.withCompactHint(inputTax, currency: cur)})',
               color: const Color(0xFF10B981)),
           const Divider(),
           _reportRow('Net Tax Payable to Tax Authorities (Output - Input)',
-              '$cur${netTaxPayable.toStringAsFixed(2)}',
+              CurrencyFormatter.withCompactHint(netTaxPayable, currency: cur),
               isBold: true,
               color: netTaxPayable >= 0
                   ? const Color(0xFFEF4444)
@@ -2689,21 +3285,88 @@ class _ReportsScreenState extends State<ReportsScreen>
                       : ListView.separated(
                           itemCount: topDebtors.length,
                           separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (context, idx) {
+                          itemBuilder: (itemCtx, idx) {
                             final d = topDebtors[idx] as Map<String, dynamic>;
-                            return ListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(d['name'] as String,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
-                              subtitle: Text(d['phone'] as String,
-                                  style: const TextStyle(fontSize: 11)),
-                              trailing: Text(
-                                  '$cur${(d['balance'] as double).toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: Color(0xFFEF4444))),
+                            final bal =
+                                (d['balance'] as num?)?.toDouble() ?? 0.0;
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () async {
+                                final contactId = d['id'] as int?;
+                                if (contactId != null && contactId > 0) {
+                                  final db = await DatabaseService.initialize();
+                                  final contact =
+                                      await db.getContactById(contactId);
+                                  if (!mounted) return;
+                                  if (contact != null) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => ContactLedgerDialog(
+                                        contact: contact,
+                                        contactType: 'customer',
+                                        settings: widget.settings,
+                                        onPaymentRecorded: _load,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 6, horizontal: 4),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: const Color(0xFF4F46E5)
+                                          .withValues(alpha: 0.1),
+                                      child: const Icon(
+                                          Icons.person_outline_rounded,
+                                          size: 15,
+                                          color: Color(0xFF4F46E5)),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(d['name'] as String,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13)),
+                                          const SizedBox(height: 2),
+                                          Text(d['phone'] as String,
+                                              style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey)),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '$cur${bal.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 13,
+                                              color: Color(0xFFEF4444)),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        const Text(
+                                          'Ledger →',
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              color: Color(0xFF4F46E5),
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -2739,21 +3402,88 @@ class _ReportsScreenState extends State<ReportsScreen>
                       : ListView.separated(
                           itemCount: topCreditors.length,
                           separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (context, idx) {
+                          itemBuilder: (itemCtx, idx) {
                             final c = topCreditors[idx] as Map<String, dynamic>;
-                            return ListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(c['name'] as String,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
-                              subtitle: Text(c['phone'] as String,
-                                  style: const TextStyle(fontSize: 11)),
-                              trailing: Text(
-                                  '$cur${(c['balance'] as double).toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: Color(0xFFEF4444))),
+                            final bal =
+                                (c['balance'] as num?)?.toDouble() ?? 0.0;
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () async {
+                                final contactId = c['id'] as int?;
+                                if (contactId != null && contactId > 0) {
+                                  final db = await DatabaseService.initialize();
+                                  final contact =
+                                      await db.getContactById(contactId);
+                                  if (!mounted) return;
+                                  if (contact != null) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => ContactLedgerDialog(
+                                        contact: contact,
+                                        contactType: 'supplier',
+                                        settings: widget.settings,
+                                        onPaymentRecorded: _load,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 6, horizontal: 4),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: const Color(0xFFD97706)
+                                          .withValues(alpha: 0.1),
+                                      child: const Icon(
+                                          Icons.storefront_outlined,
+                                          size: 15,
+                                          color: Color(0xFFD97706)),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(c['name'] as String,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13)),
+                                          const SizedBox(height: 2),
+                                          Text(c['phone'] as String,
+                                              style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey)),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '$cur${bal.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 13,
+                                              color: Color(0xFFEF4444)),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        const Text(
+                                          'Ledger →',
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              color: Color(0xFFD97706),
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             );
                           },
                         ),

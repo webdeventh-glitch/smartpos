@@ -123,8 +123,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
   // Industry Mode Extensions
   String _diningMode = 'Dine-In'; // 'Dine-In', 'Takeaway', 'Delivery'
-  final String _selectedTable = 'Table 1';
-  final String _assignedWaiter = 'Waiter 1';
+  String _selectedTable = 'Table 1';
+  String _assignedWaiter = 'Waiter 1';
 
   // Search & Catalog (Cursor-Paged for 50,000+ SKU scale)
   static const int _posPageSize = 50;
@@ -2507,6 +2507,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         : (item.discount > 0 ? item.discount : item.discountValue);
     final priceCtrl =
         TextEditingController(text: item.unitPrice.toStringAsFixed(2));
+    final bonusCtrl = TextEditingController(
+      text: item.bonusQuantity > 0
+          ? (item.bonusQuantity.truncateToDouble() == item.bonusQuantity
+              ? item.bonusQuantity.toInt().toString()
+              : item.bonusQuantity.toString())
+          : '0',
+    );
     final discCtrl = TextEditingController(
       text: initialDisc > 0
           ? (initialDisc.truncateToDouble() == initialDisc
@@ -2522,6 +2529,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         builder: (context, setDlgState) {
           final curUnitPrice =
               double.tryParse(priceCtrl.text.trim()) ?? item.unitPrice;
+          final curBonus = double.tryParse(bonusCtrl.text.trim()) ?? 0.0;
           final curDiscVal = double.tryParse(discCtrl.text.trim()) ?? 0.0;
           final packVal = curUnitPrice * item.quantity;
           double lineDiscAmt = 0.0;
@@ -2774,6 +2782,49 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     const SizedBox(height: 12),
                   ],
 
+                  // Preview & Bonus Quantity
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Bonus / Free Qty (مفت بونس)',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: textSecondary),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 110,
+                        child: TextField(
+                          controller: bonusCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: textPrimary),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: inputBg,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: inputBorder)),
+                            enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: inputBorder)),
+                          ),
+                          onChanged: (_) => setDlgState(() {}),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
                   // Preview
                   Container(
                     padding: const EdgeInsets.all(10),
@@ -2786,7 +2837,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                            'Line Subtotal (${item.quantity.toInt()} ${item.product.unit}):',
+                            'Line Subtotal (${item.quantity.toInt()} + ${curBonus.toInt()} free):',
                             style:
                                 TextStyle(fontSize: 12, color: textSecondary)),
                         Text('$currency ${lineSubtotal.toStringAsFixed(2)}',
@@ -2898,6 +2949,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     return;
                   }
 
+                  final newBonus =
+                      (double.tryParse(bonusCtrl.text.trim()) ?? 0.0)
+                          .clamp(0.0, 99999.0);
                   ref.read(cartProvider.notifier).updateLineItem(
                         index,
                         unitPrice: newPrice,
@@ -2906,6 +2960,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             lineDiscType == 'percentage' ? newDisc : 0.0,
                         discountType: lineDiscType,
                         discountValue: newDisc,
+                        bonusQuantity: newBonus,
                       );
                   Navigator.pop(ctx);
                 },
@@ -4927,7 +4982,330 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
   }
 
+  // Quick Price & Stock Lookup (Ctrl+L) without adding to active cart
+  void _openPriceCheckDialog() {
+    final queryCtrl = TextEditingController();
+    List<Product> matches = _products.take(8).toList();
+    final currency = widget.settings.currencySymbol;
+    final canViewCost =
+        AuthService.currentUser?.hasPermission('report.view_cost_price') ??
+            true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          return Dialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560, maxHeight: 520),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF0284C7).withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.price_check_rounded,
+                              color: Color(0xFF0284C7), size: 22),
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Quick Price & Stock Check (Ctrl+L)',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800)),
+                              Text(
+                                  'Scan barcode or type product name / SKU to verify price & stock',
+                                  style: TextStyle(
+                                      fontSize: 11, color: Color(0xFF64748B))),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: queryCtrl,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'Scan barcode or search item...',
+                        prefixIcon: const Icon(Icons.qr_code_scanner_rounded),
+                        isDense: true,
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onChanged: (raw) async {
+                        final q = raw.trim();
+                        if (q.isEmpty) {
+                          setDlg(() => matches = _products.take(8).toList());
+                          return;
+                        }
+                        final db = await _dbFuture;
+                        final res = await db.getProductsPaged(
+                          search: q,
+                          page: 1,
+                          pageSize: 12,
+                          includeTotalCount: false,
+                        );
+                        if (ctx.mounted) {
+                          setDlg(() => matches = res.items);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: matches.isEmpty
+                          ? const Center(
+                              child: Text('No matching item found.',
+                                  style: TextStyle(color: Color(0xFF64748B))),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: matches.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (_, idx) {
+                                final p = matches[idx];
+                                return ListTile(
+                                  dense: true,
+                                  title: Text(p.name,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13)),
+                                  subtitle: Text(
+                                    [
+                                      'SKU: ${p.sku}',
+                                      'Stock: ${p.stockQuantity.toStringAsFixed(1)} ${p.unit}',
+                                      if (p.batchNumber?.isNotEmpty == true)
+                                        'Batch: ${p.batchNumber}',
+                                      if (p.expiryDate?.isNotEmpty == true)
+                                        'Exp: ${p.expiryDate}',
+                                      if (canViewCost)
+                                        'Cost: $currency ${p.purchasePrice.toStringAsFixed(2)}',
+                                    ].join(' • '),
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '$currency ${p.sellingPrice.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w900,
+                                          color: Color(0xFF059669),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        tooltip: 'Add to Cart',
+                                        icon: const Icon(
+                                            Icons.add_shopping_cart_rounded,
+                                            size: 18,
+                                            color: Color(0xFF4F46E5)),
+                                        onPressed: () {
+                                          Navigator.pop(ctx);
+                                          _addToCart(p);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    ).then((_) => queryCtrl.dispose());
+  }
+
   // Industry POS Extensions
+  Future<void> _openDiningTablePickerDialog() async {
+    final db = await _dbFuture;
+    final tables = await db.getRestaurantTables();
+    if (!mounted) return;
+
+    final tableList = tables.isNotEmpty
+        ? tables
+        : List.generate(
+            8,
+            (i) => {
+              'name': 'Table ${i + 1}',
+              'section': 'Main Dining',
+              'capacity': 4,
+              'status': 'vacant',
+            },
+          );
+
+    String tempMode = _diningMode;
+    String tempTable = _selectedTable;
+    final waiterCtrl = TextEditingController(text: _assignedWaiter);
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.restaurant_menu_rounded, color: Color(0xFFEA580C)),
+                SizedBox(width: 10),
+                Text('Order Type, Dining Table & Waiter',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              ],
+            ),
+            content: SizedBox(
+              width: 480,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                          value: 'Dine-In',
+                          icon: Icon(Icons.table_restaurant_rounded, size: 16),
+                          label: Text('Dine-In')),
+                      ButtonSegment(
+                          value: 'Takeaway',
+                          icon: Icon(Icons.takeout_dining_rounded, size: 16),
+                          label: Text('Takeaway')),
+                      ButtonSegment(
+                          value: 'Delivery',
+                          icon: Icon(Icons.delivery_dining_rounded, size: 16),
+                          label: Text('Delivery')),
+                    ],
+                    selected: {tempMode},
+                    onSelectionChanged: (s) => setDlg(() => tempMode = s.first),
+                  ),
+                  if (tempMode == 'Dine-In') ...[
+                    const SizedBox(height: 14),
+                    const Text('Select Table',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: tableList.map((t) {
+                        final tName = t['name']?.toString() ?? 'Table';
+                        final status = t['status']?.toString() ?? 'vacant';
+                        final isSelected = tempTable == tName;
+                        final isOccupied = status == 'occupied';
+                        return InkWell(
+                          onTap: () => setDlg(() => tempTable = tName),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFFEA580C)
+                                  : (isOccupied
+                                      ? const Color(0xFFFEF3C7)
+                                      : (isDark
+                                          ? const Color(0xFF0F172A)
+                                          : const Color(0xFFF8FAFC))),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFFEA580C)
+                                    : (isOccupied
+                                        ? const Color(0xFFF59E0B)
+                                        : const Color(0xFFE2E8F0)),
+                              ),
+                            ),
+                            child: Text(
+                              isOccupied ? '$tName (Busy)' : tName,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isOccupied
+                                        ? const Color(0xFF92400E)
+                                        : (isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A))),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: waiterCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Waiter / Server Name',
+                      isDense: true,
+                      prefixIcon: Icon(Icons.person_outline, size: 18),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEA580C),
+                    foregroundColor: Colors.white),
+                onPressed: () {
+                  setState(() {
+                    _diningMode = tempMode;
+                    _selectedTable =
+                        tempMode == 'Dine-In' ? tempTable : tempMode;
+                    _assignedWaiter = waiterCtrl.text.trim().isEmpty
+                        ? 'Waiter 1'
+                        : waiterCtrl.text.trim();
+                  });
+                  Navigator.pop(ctx);
+                  _syncDiningModeServiceCharge(_diningMode);
+                },
+                child: const Text('Apply'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    waiterCtrl.dispose();
+  }
+
   void _openKotDialog() {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -6468,6 +6846,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     return PosHotkeyManager.buildShortcuts(
       onToggleProductPanel: _toggleProductPanelVisibility,
       onOpenDrawer: _openCashDrawer,
+      onPriceCheck: _openPriceCheckDialog,
       onOpenCustomProductDialog: _openCustomProductDialog,
       onToggleWholesaleMode: _toggleWholesaleMode,
       onUndo: () => ref.read(cartProvider.notifier).undo(),
@@ -7324,18 +7703,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         label: Text('$_diningMode: $_selectedTable',
                             style: const TextStyle(
                                 fontSize: 11, fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          setState(() {
-                            if (_diningMode == 'Dine-In') {
-                              _diningMode = 'Takeaway';
-                            } else if (_diningMode == 'Takeaway') {
-                              _diningMode = 'Delivery';
-                            } else {
-                              _diningMode = 'Dine-In';
-                            }
-                          });
-                          _syncDiningModeServiceCharge(_diningMode);
-                        },
+                        onPressed: _openDiningTablePickerDialog,
                       ),
                       const SizedBox(width: 6),
                       ElevatedButton.icon(
@@ -7557,6 +7925,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               onTap: _clearCart,
                               color: const Color(0xFFEF4444),
                               tooltip: 'Cancel Order',
+                              isDark: isDark,
+                            ),
+
+                            // [ ] Price Check [Ctrl+L]
+                            _topIconBtn(
+                              icon: Icons.price_check_rounded,
+                              onTap: _openPriceCheckDialog,
+                              color: const Color(0xFF0284C7),
+                              tooltip: 'Quick Price & Stock Check (Ctrl+L)',
                               isDark: isDark,
                             ),
 

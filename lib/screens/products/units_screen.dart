@@ -544,12 +544,15 @@ class _UnitsScreenState extends State<UnitsScreen> {
         children: [
           Icon(icon, size: 12, color: text),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: text,
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: text,
+              ),
             ),
           ),
         ],

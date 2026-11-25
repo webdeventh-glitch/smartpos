@@ -29,6 +29,7 @@ class AddPurchaseScreen extends StatefulWidget {
 class _PurchaseLineItem {
   final Product product;
   double quantity;
+  double bonusQty;
   double unitCostBeforeDiscount;
   double discountPercent;
   double profitMarginPercent;
@@ -42,6 +43,7 @@ class _PurchaseLineItem {
   int warrantyMonths = 144;
 
   final TextEditingController qtyCtrl;
+  final TextEditingController bonusCtrl;
   final TextEditingController costBeforeDiscCtrl;
   final TextEditingController discPercentCtrl;
   final TextEditingController marginCtrl;
@@ -51,6 +53,7 @@ class _PurchaseLineItem {
   _PurchaseLineItem({
     required this.product,
     this.quantity = 1.0,
+    this.bonusQty = 0.0,
     required this.unitCostBeforeDiscount,
     this.discountPercent = 0.0,
     required this.profitMarginPercent,
@@ -62,6 +65,8 @@ class _PurchaseLineItem {
             text: quantity % 1 == 0
                 ? quantity.toInt().toString()
                 : quantity.toStringAsFixed(1)),
+        bonusCtrl = TextEditingController(
+            text: bonusQty > 0 ? bonusQty.toInt().toString() : '0'),
         costBeforeDiscCtrl = TextEditingController(
             text: unitCostBeforeDiscount.toStringAsFixed(2)),
         discPercentCtrl =
@@ -72,16 +77,20 @@ class _PurchaseLineItem {
             TextEditingController(text: sellingPrice.toStringAsFixed(2)),
         batchCtrl = TextEditingController(text: batchNumber);
 
+  static double _round2(double v) =>
+      v.isFinite ? double.parse(v.toStringAsFixed(2)) : 0.0;
+
   double get netUnitCost {
     final discount = (unitCostBeforeDiscount * (discountPercent / 100));
     final net = unitCostBeforeDiscount - discount;
     return net > 0 ? net : 0.0;
   }
 
-  double get lineTotal => quantity * netUnitCost;
+  double get lineTotal => _round2(quantity * netUnitCost);
 
   void dispose() {
     qtyCtrl.dispose();
+    bonusCtrl.dispose();
     costBeforeDiscCtrl.dispose();
     discPercentCtrl.dispose();
     marginCtrl.dispose();
@@ -192,18 +201,21 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
   }
 
   // ================= Calculations =================
+  static double _round2(double v) =>
+      v.isFinite ? double.parse(v.toStringAsFixed(2)) : 0.0;
+
   double get _totalGoodsSubtotal =>
-      _lineItems.fold(0.0, (sum, it) => sum + it.lineTotal);
+      _round2(_lineItems.fold(0.0, (sum, it) => sum + it.lineTotal));
   double get _totalUnitsCount =>
       _lineItems.fold(0.0, (sum, it) => sum + it.quantity);
 
   double get _orderDiscountCalculated {
     final val = double.tryParse(_discountAmountCtrl.text.trim()) ?? 0.0;
     if (_discountType == 'fixed') {
-      return val.clamp(0.0, _totalGoodsSubtotal);
+      return _round2(val.clamp(0.0, _totalGoodsSubtotal));
     } else if (_discountType == 'percentage') {
-      return (_totalGoodsSubtotal * (val / 100))
-          .clamp(0.0, _totalGoodsSubtotal);
+      return _round2(
+          (_totalGoodsSubtotal * (val / 100)).clamp(0.0, _totalGoodsSubtotal));
     }
     return 0.0;
   }
@@ -211,7 +223,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
   double get _orderTaxCalculated {
     final netAfterDiscount = _totalGoodsSubtotal - _orderDiscountCalculated;
     if (netAfterDiscount <= 0 || _taxRate <= 0) return 0.0;
-    return netAfterDiscount * (_taxRate / 100);
+    return _round2(netAfterDiscount * (_taxRate / 100));
   }
 
   double get _shippingCharges =>
@@ -225,7 +237,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         _orderTaxCalculated +
         _shippingCharges +
         _additionalExpenses;
-    return total > 0 ? total : 0.0;
+    return total > 0 ? _round2(total) : 0.0;
   }
 
   double get _amountPaid {
@@ -234,7 +246,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
   }
 
   double get _balanceDue =>
-      _grandTotal > _amountPaid ? _grandTotal - _amountPaid : 0.0;
+      _grandTotal > _amountPaid ? _round2(_grandTotal - _amountPaid) : 0.0;
 
   DateTime? get _calculatedDueDate {
     final termNum = int.tryParse(_payTermNumberCtrl.text.trim());
@@ -791,6 +803,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
           'product_name': it.product.name,
           'sku': it.product.sku,
           'quantity': it.quantity,
+          'bonus_quantity': it.bonusQty,
           'unit_cost_before_discount': it.unitCostBeforeDiscount,
           'discount_percent': it.discountPercent,
           'purchase_price': it.netUnitCost,
@@ -1342,22 +1355,23 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                             controller: _hTableScroll,
                             scrollDirection: Axis.horizontal,
                             child: SizedBox(
-                              width: 1320,
+                              width: 1410,
                               child: Table(
                                 columnWidths: const {
                                   0: FixedColumnWidth(40), // #
                                   1: FlexColumnWidth(2.6), // Product Name
                                   2: FixedColumnWidth(110), // Quantity
-                                  3: FixedColumnWidth(110), // Cost Before Disc
-                                  4: FixedColumnWidth(90), // Disc %
-                                  5: FixedColumnWidth(100), // Net Cost
-                                  6: FixedColumnWidth(110), // Line Total
-                                  7: FixedColumnWidth(95), // Profit Margin %
-                                  8: FixedColumnWidth(
+                                  3: FixedColumnWidth(85), // Bonus Qty
+                                  4: FixedColumnWidth(110), // Cost Before Disc
+                                  5: FixedColumnWidth(90), // Disc %
+                                  6: FixedColumnWidth(100), // Net Cost
+                                  7: FixedColumnWidth(110), // Line Total
+                                  8: FixedColumnWidth(95), // Profit Margin %
+                                  9: FixedColumnWidth(
                                       115), // Unit Selling Price
-                                  9: FixedColumnWidth(130), // Lot / Batch No
-                                  10: FixedColumnWidth(140), // MFG / EXP Date
-                                  11: FixedColumnWidth(50), // Delete
+                                  10: FixedColumnWidth(130), // Lot / Batch No
+                                  11: FixedColumnWidth(140), // MFG / EXP Date
+                                  12: FixedColumnWidth(50), // Delete
                                 },
                                 defaultVerticalAlignment:
                                     TableCellVerticalAlignment.middle,
@@ -1372,6 +1386,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                       _th('#'),
                                       _th('Product Name & SKU'),
                                       _th('Purchase Qty'),
+                                      _th('Bonus (Free)'),
                                       _th('Unit Cost (Gross)'),
                                       _th('Disc %'),
                                       _th('Net Unit Cost'),
@@ -1475,7 +1490,38 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                           ),
                                         ),
 
-                                        // 3: Unit Cost (Before Discount)
+                                        // 3: Bonus / Free Qty
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 6),
+                                          child: TextFormField(
+                                            controller: it.bonusCtrl,
+                                            keyboardType: const TextInputType
+                                                .numberWithOptions(
+                                                decimal: true),
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF059669)),
+                                            decoration: inputDeco.copyWith(
+                                              hintText: '0',
+                                              contentPadding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 8),
+                                            ),
+                                            onChanged: (val) {
+                                              final b =
+                                                  double.tryParse(val.trim()) ??
+                                                      0.0;
+                                              it.bonusQty = b > 0 ? b : 0.0;
+                                              setState(() {});
+                                            },
+                                          ),
+                                        ),
+
+                                        // 4: Unit Cost (Before Discount)
                                         Padding(
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 6, vertical: 6),

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/models.dart';
@@ -967,5 +968,260 @@ class ProductRepository extends BaseRepository {
 
   Future<int> deleteBrand(int id) async {
     return await db.delete('brands', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Returns chronological stock movement ledger (Purchases, Sales, Returns, Adjustments, Transfers) for a product.
+  Future<List<Map<String, dynamic>>> getProductStockHistory(
+      int productId) async {
+    final entries = <Map<String, dynamic>>[];
+
+    try {
+      final saleRows = await db.rawQuery('''
+        SELECT si.quantity, si.unit_multiplier, si.unit_price, si.batch_number,
+               s.invoice_no, s.customer_name, s.created_at, s.sale_status
+        FROM sale_items si
+        JOIN sales s ON s.id = si.sale_id
+        WHERE si.product_id = ? AND s.sale_status = 'final'
+        ORDER BY s.created_at DESC
+        LIMIT 100
+      ''', [productId]);
+      for (final r in saleRows) {
+        final q = (r['quantity'] as num?)?.toDouble() ?? 0.0;
+        final mult = (r['unit_multiplier'] as num?)?.toDouble() ?? 1.0;
+        entries.add({
+          'type': 'Sale',
+          'refNo': r['invoice_no'] ?? '',
+          'party': r['customer_name'] ?? 'Walk-in Customer',
+          'qtyChange': -(q * mult),
+          'unitPrice': (r['unit_price'] as num?)?.toDouble() ?? 0.0,
+          'batch': r['batch_number'] ?? '',
+          'date': r['created_at']?.toString() ?? '',
+        });
+      }
+    } catch (_) {}
+
+    try {
+      final srRows = await db.rawQuery('''
+        SELECT sri.quantity, sri.unit_multiplier, sri.unit_price, sri.batch_number,
+               sr.ref_no, sr.customer_name, sr.date
+        FROM sale_return_items sri
+        JOIN sale_returns sr ON sr.id = sri.return_id
+        WHERE sri.product_id = ?
+        ORDER BY sr.date DESC
+        LIMIT 50
+      ''', [productId]);
+      for (final r in srRows) {
+        final q = (r['quantity'] as num?)?.toDouble() ?? 0.0;
+        final mult = (r['unit_multiplier'] as num?)?.toDouble() ?? 1.0;
+        entries.add({
+          'type': 'Sale Return',
+          'refNo': r['ref_no'] ?? '',
+          'party': r['customer_name'] ?? '',
+          'qtyChange': q * mult,
+          'unitPrice': (r['unit_price'] as num?)?.toDouble() ?? 0.0,
+          'batch': r['batch_number'] ?? '',
+          'date': r['date']?.toString() ?? '',
+        });
+      }
+    } catch (_) {}
+
+    try {
+      final purchaseRows = await db.query(
+        'purchases',
+        where: "status = 'received'",
+        orderBy: 'created_at DESC',
+        limit: 200,
+      );
+      for (final p in purchaseRows) {
+        final rawJson = p['items_json']?.toString() ?? '[]';
+        final decoded = jsonDecode(rawJson);
+        if (decoded is List) {
+          for (final it in decoded) {
+            if (it is Map && (it['product_id'] as num?)?.toInt() == productId) {
+              final q = (it['quantity'] as num?)?.toDouble() ?? 0.0;
+              final bonus = (it['bonus_quantity'] as num?)?.toDouble() ?? 0.0;
+              entries.add({
+                'type': 'Purchase',
+                'refNo': p['ref_no'] ?? '',
+                'party': p['supplier_name'] ?? '',
+                'qtyChange': q + bonus,
+                'unitPrice': (it['purchase_price'] as num?)?.toDouble() ??
+                    (it['unit_cost'] as num?)?.toDouble() ??
+                    0.0,
+                'batch':
+                    (it['batch_number'] ?? it['lot_number'] ?? '').toString(),
+                'date': p['created_at']?.toString() ?? '',
+              });
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final prRows = await db.rawQuery('''
+        SELECT pri.quantity, pri.unit_price, pri.batch_number,
+               pr.ref_no, pr.supplier_name, pr.date
+        FROM purchase_return_items pri
+        JOIN purchase_returns pr ON pr.id = pri.return_id
+        WHERE pri.product_id = ?
+        ORDER BY pr.date DESC
+        LIMIT 50
+      ''', [productId]);
+      for (final r in prRows) {
+        final q = (r['quantity'] as num?)?.toDouble() ?? 0.0;
+        entries.add({
+          'type': 'Purchase Return',
+          'refNo': r['ref_no'] ?? '',
+          'party': r['supplier_name'] ?? '',
+          'qtyChange': -q,
+          'unitPrice': (r['unit_price'] as num?)?.toDouble() ?? 0.0,
+          'batch': r['batch_number'] ?? '',
+          'date': r['date']?.toString() ?? '',
+        });
+      }
+    } catch (_) {}
+
+    try {
+      final adjRows = await db.query(
+        'stock_adjustments',
+        orderBy: 'date DESC',
+        limit: 100,
+      );
+      for (final a in adjRows) {
+        final rawJson = a['items_json']?.toString() ?? '[]';
+        final decoded = jsonDecode(rawJson);
+        if (decoded is List) {
+          for (final it in decoded) {
+            if (it is Map && (it['product_id'] as num?)?.toInt() == productId) {
+              final q = (it['quantity'] as num?)?.toDouble() ?? 0.0;
+              final dir = it['direction']?.toString() ??
+                  (a['adjustment_type']?.toString() == 'addition'
+                      ? 'in'
+                      : 'out');
+              entries.add({
+                'type':
+                    'Stock Adjustment (${a['adjustment_type'] ?? 'normal'})',
+                'refNo': a['ref_no'] ?? '',
+                'party': a['location_name'] ?? '',
+                'qtyChange': dir == 'in' ? q.abs() : -q.abs(),
+                'unitPrice': (it['unit_cost'] as num?)?.toDouble() ?? 0.0,
+                'batch': '',
+                'date': a['date']?.toString() ?? '',
+              });
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final trRows = await db.query(
+        'stock_transfers',
+        orderBy: 'date DESC',
+        limit: 100,
+      );
+      for (final t in trRows) {
+        final rawJson = t['items_json']?.toString() ?? '[]';
+        final decoded = jsonDecode(rawJson);
+        if (decoded is List) {
+          for (final it in decoded) {
+            if (it is Map && (it['product_id'] as num?)?.toInt() == productId) {
+              final q = (it['quantity'] as num?)?.toDouble() ?? 0.0;
+              entries.add({
+                'type':
+                    'Transfer (${t['from_location_name']} → ${t['to_location_name']})',
+                'refNo': t['ref_no'] ?? '',
+                'party': t['status']?.toString() ?? 'completed',
+                'qtyChange': q,
+                'unitPrice': 0.0,
+                'batch': '',
+                'date': t['date']?.toString() ?? '',
+              });
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    entries.sort((a, b) =>
+        (b['date']?.toString() ?? '').compareTo(a['date']?.toString() ?? ''));
+    return entries;
+  }
+
+  /// Bulk updates selling and/or purchase prices by percentage or fixed amount.
+  Future<int> bulkUpdateProductPrices({
+    int? categoryId,
+    int? brandId,
+    required String mode, // 'percent' or 'fixed'
+    required double sellingDelta,
+    double purchaseDelta = 0.0,
+    bool updatePurchasePrice = false,
+  }) async {
+    final whereParts = <String>[];
+    final whereArgs = <dynamic>[];
+    if (categoryId != null) {
+      whereParts.add('category_id = ?');
+      whereArgs.add(categoryId);
+    }
+    if (brandId != null) {
+      whereParts.add('brand_id = ?');
+      whereArgs.add(brandId);
+    }
+    final whereClause = whereParts.isEmpty ? null : whereParts.join(' AND ');
+
+    int updated = 0;
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'products',
+        columns: ['id', 'purchase_price', 'selling_price'],
+        where: whereClause,
+        whereArgs: whereArgs.isEmpty ? null : whereArgs,
+      );
+      for (final r in rows) {
+        final id = (r['id'] as num?)?.toInt();
+        if (id == null) continue;
+        final oldPurchase = (r['purchase_price'] as num?)?.toDouble() ?? 0.0;
+        final oldSelling = (r['selling_price'] as num?)?.toDouble() ?? 0.0;
+
+        double newPurchase = oldPurchase;
+        if (updatePurchasePrice) {
+          newPurchase = mode == 'percent'
+              ? oldPurchase * (1 + purchaseDelta / 100.0)
+              : oldPurchase + purchaseDelta;
+          if (newPurchase < 0) newPurchase = 0.0;
+        }
+
+        double newSelling = mode == 'percent'
+            ? oldSelling * (1 + sellingDelta / 100.0)
+            : oldSelling + sellingDelta;
+        if (newSelling < 0) newSelling = 0.0;
+
+        await txn.update(
+          'products',
+          {
+            'purchase_price': double.parse(newPurchase.toStringAsFixed(2)),
+            'selling_price': double.parse(newSelling.toStringAsFixed(2)),
+          },
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+        updated++;
+      }
+    });
+
+    await recordActivity(
+      action: 'bulk_price_update',
+      entityType: 'product',
+      newValues: {
+        'updatedCount': updated,
+        'mode': mode,
+        'sellingDelta': sellingDelta,
+        'purchaseDelta': purchaseDelta,
+        'categoryId': categoryId,
+        'brandId': brandId,
+      },
+    );
+    return updated;
   }
 }

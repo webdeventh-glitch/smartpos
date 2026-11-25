@@ -11,6 +11,7 @@ import '../services/database_service.dart';
 import '../services/qulop_service.dart';
 import '../widgets/smart_app_bar.dart';
 import '../widgets/smart_sidebar.dart';
+import '../widgets/quick_command_palette.dart';
 import 'pos/register_details_dialog.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'pos/pos_terminal_screen.dart';
@@ -95,7 +96,36 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   bool _handleGlobalKeyEvent(KeyEvent event) {
     AuthService.recordActivity();
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.keyK &&
+        HardwareKeyboard.instance.isControlPressed) {
+      _openQuickCommandPalette();
+      return true;
+    }
     return false;
+  }
+
+  void _openQuickCommandPalette() {
+    if (!mounted) return;
+    QuickCommandPaletteDialog.show(
+      context,
+      settings: _settings,
+      onNavigateToRoute: (route) {
+        if (route == AppRoute.addProduct) {
+          setState(() {
+            _productToEdit = null;
+            _isDuplicateProduct = false;
+          });
+        }
+        _navigateTo(route);
+      },
+      onOpenPos: () => _onOpenPos(),
+      onEditProduct: (p) => setState(() {
+        _productToEdit = p;
+        _isDuplicateProduct = false;
+        ref.read(navigationProvider.notifier).goTo(AppRoute.addProduct);
+      }),
+    );
   }
 
   @override
@@ -117,6 +147,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   }
 
   Product? _productToEdit;
+  bool _isDuplicateProduct = false;
   Product? _productToPrintLabel;
   Sale? _saleToResumeInPos;
 
@@ -182,6 +213,48 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   bool _canAccessRoute(AppRoute route) {
     final user = ref.read(authProvider) ?? AuthService.currentUser;
+    if (_settings.isConfigured) {
+      switch (route) {
+        case AppRoute.restaurantCafe:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleRestaurant)) {
+            return false;
+          }
+          break;
+        case AppRoute.repairService:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleRepair)) {
+            return false;
+          }
+          break;
+        case AppRoute.hotelManagement:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleHotel)) {
+            return false;
+          }
+          break;
+        case AppRoute.gymFitness:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleGym)) {
+            return false;
+          }
+          break;
+        case AppRoute.manufacturing:
+          if (!_settings
+              .isModuleEnabled(BusinessSettings.moduleManufacturing)) {
+            return false;
+          }
+          break;
+        case AppRoute.fruitMandi:
+          if (!_settings.isModuleEnabled(BusinessSettings.moduleFruitMandi)) {
+            return false;
+          }
+          break;
+        case AppRoute.poultryBusiness:
+          if (!_settings.isModuleEnabled(BusinessSettings.modulePoultry)) {
+            return false;
+          }
+          break;
+        default:
+          break;
+      }
+    }
     if (user == null || user.isAdmin) return true;
     switch (route) {
       case AppRoute.dashboard:
@@ -236,7 +309,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       case AppRoute.chequeManagement:
         return user.hasPermission('account.manage');
       case AppRoute.reports:
-        return user.hasPermission('report.view');
+        return user.isSuperAdmin;
       case AppRoute.stockTransfers:
         return user.hasPermission('inventory.transfer');
       case AppRoute.stockAdjustments:
@@ -314,10 +387,17 @@ class _MainShellState extends ConsumerState<MainShell> {
           settings: _settings,
           onNavigateToAddProduct: () => setState(() {
             _productToEdit = null;
+            _isDuplicateProduct = false;
             ref.read(navigationProvider.notifier).goTo(AppRoute.addProduct);
           }),
           onNavigateToEditProduct: (p) => setState(() {
             _productToEdit = p;
+            _isDuplicateProduct = false;
+            ref.read(navigationProvider.notifier).goTo(AppRoute.addProduct);
+          }),
+          onNavigateToDuplicateProduct: (p) => setState(() {
+            _productToEdit = p;
+            _isDuplicateProduct = true;
             ref.read(navigationProvider.notifier).goTo(AppRoute.addProduct);
           }),
           onNavigateToPrintLabels: (p) => setState(() {
@@ -361,12 +441,15 @@ class _MainShellState extends ConsumerState<MainShell> {
         return AddProductScreen(
           settings: _settings,
           productToEdit: _productToEdit,
+          isDuplicate: _isDuplicateProduct,
           onProductCreated: () => setState(() {
             _productToEdit = null;
+            _isDuplicateProduct = false;
             ref.read(navigationProvider.notifier).goTo(AppRoute.productsList);
           }),
           onCancel: () => setState(() {
             _productToEdit = null;
+            _isDuplicateProduct = false;
             ref.read(navigationProvider.notifier).goTo(AppRoute.productsList);
           }),
         );
@@ -524,6 +607,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                 onOpenRegisterDetails: _onOpenRegister,
                 onToggleSidebar: () =>
                     setState(() => _sidebarCollapsed = !_sidebarCollapsed),
+                onOpenQuickSearch: _openQuickCommandPalette,
                 settings: _settings,
                 activeLocationName: _activeLocationName,
                 onLocationChanged: (loc) {

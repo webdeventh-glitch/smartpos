@@ -8,10 +8,12 @@ import '../../widgets/data_table_pagination_bar.dart';
 import '../../widgets/product_thumbnail.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'add_product_dialog.dart';
+import 'add_product_screen.dart';
 import 'product_detail_dialog.dart';
 import 'print_labels_screen.dart';
 import '../../services/print_service.dart';
 import '../../services/localization_service.dart';
+import '../../utils/currency_formatter.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../purchases/add_purchase_screen.dart';
 
@@ -19,6 +21,7 @@ class ProductsListScreen extends StatefulWidget {
   final BusinessSettings settings;
   final VoidCallback? onNavigateToAddProduct;
   final Function(Product)? onNavigateToEditProduct;
+  final Function(Product)? onNavigateToDuplicateProduct;
   final Function(Product?)? onNavigateToPrintLabels;
 
   const ProductsListScreen({
@@ -26,6 +29,7 @@ class ProductsListScreen extends StatefulWidget {
     required this.settings,
     this.onNavigateToAddProduct,
     this.onNavigateToEditProduct,
+    this.onNavigateToDuplicateProduct,
     this.onNavigateToPrintLabels,
   });
 
@@ -135,6 +139,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         user.hasPermission('inventory.adjust');
   }
 
+  bool get _canViewCost =>
+      AuthService.currentUser?.hasPermission('report.view_cost_price') ?? true;
+
   void _denyAction(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -167,6 +174,341 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         ),
       );
     }
+  }
+
+  void _duplicateProduct(Product product) {
+    if (!_canCreateProduct) {
+      _denyAction('Access Denied: Missing product.create permission.');
+      return;
+    }
+    if (widget.onNavigateToDuplicateProduct != null) {
+      widget.onNavigateToDuplicateProduct!(product);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AddProductScreen(
+            settings: widget.settings,
+            productToEdit: product,
+            isDuplicate: true,
+            onProductCreated: () {
+              Navigator.pop(context);
+              _load();
+            },
+            onCancel: () => Navigator.pop(context),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openStockHistoryDialog(Product product) async {
+    if (product.id == null) return;
+    final db = await DatabaseService.initialize();
+    final history = await db.getProductStockHistory(product.id!);
+    if (!mounted) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currency = widget.settings.currencySymbol;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 740, maxHeight: 560),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.history_rounded,
+                          color: Color(0xFF4F46E5), size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Stock History: ${product.name}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            'SKU: ${product.sku}  •  Current Stock: ${product.stockQuantity.toStringAsFixed(1)} ${product.unit}',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20),
+                if (history.isEmpty)
+                  const Expanded(
+                    child: Center(
+                      child: Text(
+                        'No purchases, sales, returns, or adjustments recorded for this product yet.',
+                        style: TextStyle(color: Color(0xFF64748B)),
+                      ),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: history.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (_, idx) {
+                        final row = history[idx];
+                        final delta =
+                            (row['qtyChange'] as num?)?.toDouble() ?? 0.0;
+                        final isIn = delta >= 0;
+                        final batch = (row['batch'] ?? '').toString();
+                        final party = (row['party'] ?? '').toString();
+                        final price =
+                            (row['unitPrice'] as num?)?.toDouble() ?? 0.0;
+                        return ListTile(
+                          dense: true,
+                          leading: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isIn
+                                  ? const Color(0xFF10B981)
+                                      .withValues(alpha: 0.14)
+                                  : const Color(0xFFEF4444)
+                                      .withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${isIn ? "+" : ""}${delta.toStringAsFixed(1)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                                color: isIn
+                                    ? const Color(0xFF059669)
+                                    : const Color(0xFFDC2626),
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            '${row['type']}  •  #${row['refNo']}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                          subtitle: Text(
+                            [
+                              if (party.isNotEmpty) party,
+                              if (batch.isNotEmpty) 'Batch: $batch',
+                              if (price > 0)
+                                'Rate: $currency ${price.toStringAsFixed(2)}',
+                            ].join('  •  '),
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          trailing: Text(
+                            (row['date'] ?? '').toString().split('T').first,
+                            style: const TextStyle(
+                                fontSize: 11, color: Color(0xFF64748B)),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openBulkPriceUpdateDialog() async {
+    if (!_canEditProduct) {
+      _denyAction('Access Denied: Missing product.edit permission.');
+      return;
+    }
+    int? catId = _selectedCategory;
+    int? brandId = _selectedBrand;
+    String mode = 'percent';
+    bool updatePurchase = false;
+    final sellDeltaCtrl = TextEditingController(text: '5');
+    final buyDeltaCtrl = TextEditingController(text: '0');
+    bool saving = false;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          final currency = widget.settings.currencySymbol;
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.price_change_outlined, color: Color(0xFF4F46E5)),
+                SizedBox(width: 10),
+                Text('Bulk Price Update',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+              ],
+            ),
+            content: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Update prices across all products or a specific Category / Brand (+ to increase, - to decrease).',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<int?>(
+                    initialValue: catId,
+                    decoration: const InputDecoration(
+                        labelText: 'Filter by Category', isDense: true),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                          value: null, child: Text('All Categories')),
+                      ..._categories.map((c) => DropdownMenuItem<int?>(
+                          value: c.id, child: Text(c.name))),
+                    ],
+                    onChanged: (v) => setDlg(() => catId = v),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int?>(
+                    initialValue: brandId,
+                    decoration: const InputDecoration(
+                        labelText: 'Filter by Brand', isDense: true),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                          value: null, child: Text('All Brands')),
+                      ..._brands.map((b) => DropdownMenuItem<int?>(
+                          value: b.id, child: Text(b.name))),
+                    ],
+                    onChanged: (v) => setDlg(() => brandId = v),
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<String>(
+                    segments: [
+                      const ButtonSegment(
+                          value: 'percent', label: Text('Percentage (%)')),
+                      ButtonSegment(
+                          value: 'fixed',
+                          label: Text('Fixed Amount ($currency)')),
+                    ],
+                    selected: {mode},
+                    onSelectionChanged: (s) => setDlg(() => mode = s.first),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: sellDeltaCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true, signed: true),
+                    decoration: InputDecoration(
+                      labelText: mode == 'percent'
+                          ? 'Selling Price Change % (e.g. 5 or -5)'
+                          : 'Selling Price Change ($currency, e.g. 100 or -50)',
+                      isDense: true,
+                    ),
+                  ),
+                  if (_canViewCost) ...[
+                    const SizedBox(height: 10),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text('Also update Purchase Cost'),
+                      value: updatePurchase,
+                      onChanged: (v) =>
+                          setDlg(() => updatePurchase = v ?? false),
+                    ),
+                    if (updatePurchase)
+                      TextField(
+                        controller: buyDeltaCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true, signed: true),
+                        decoration: InputDecoration(
+                          labelText: mode == 'percent'
+                              ? 'Purchase Cost Change %'
+                              : 'Purchase Cost Change ($currency)',
+                          isDense: true,
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: saving ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white),
+                icon: const Icon(Icons.check_rounded, size: 16),
+                label: Text(saving ? 'Updating...' : 'Apply Prices'),
+                onPressed: saving
+                    ? null
+                    : () async {
+                        final sellDelta =
+                            double.tryParse(sellDeltaCtrl.text.trim());
+                        if (sellDelta == null) return;
+                        final buyDelta =
+                            double.tryParse(buyDeltaCtrl.text.trim()) ?? 0.0;
+                        setDlg(() => saving = true);
+                        final db = await DatabaseService.initialize();
+                        final count = await db.bulkUpdateProductPrices(
+                          categoryId: catId,
+                          brandId: brandId,
+                          mode: mode,
+                          sellingDelta: sellDelta,
+                          purchaseDelta: buyDelta,
+                          updatePurchasePrice: updatePurchase,
+                        );
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        await _load();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  'Updated prices on $count product(s) successfully.'),
+                              backgroundColor: const Color(0xFF10B981),
+                            ),
+                          );
+                        }
+                      },
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void _viewProductDetails(Product product) {
@@ -769,6 +1111,22 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: () => _printPriceList(paginatedProducts),
                       ),
+                      if (_canEditProduct)
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF7C3AED),
+                            side: const BorderSide(color: Color(0xFF7C3AED)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon:
+                              const Icon(Icons.price_change_outlined, size: 18),
+                          label: const Text('Update Prices',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          onPressed: _openBulkPriceUpdateDialog,
+                        ),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFFEA580C),
@@ -877,7 +1235,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 Expanded(
                   child: _metricCard(
                       'Total Units in Stock',
-                      '${totalUnitsCount.toStringAsFixed(0)} Units',
+                      '${CurrencyFormatter.count(totalUnitsCount)} Units',
                       Icons.stacked_bar_chart_rounded,
                       const Color(0xFF0284C7),
                       isDark
@@ -889,13 +1247,17 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 Expanded(
                   child: _metricCard(
                       'Inventory Retail Value',
-                      '$currency${totalInventoryValue.toStringAsFixed(2)}',
+                      CurrencyFormatter.compact(totalInventoryValue,
+                          currency: '$currency '),
                       Icons.account_balance_wallet_outlined,
                       const Color(0xFF059669),
                       isDark
                           ? const Color(0xFF064E3B).withValues(alpha: 0.4)
                           : const Color(0xFFECFDF5),
-                      isDark: isDark),
+                      isDark: isDark,
+                      subtitle: totalInventoryValue.abs() >= 1e5
+                          ? 'Exact: ${CurrencyFormatter.exact(totalInventoryValue, currency: "$currency ")}'
+                          : null),
                 ),
               ],
             ),
@@ -1205,7 +1567,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                           const BorderRadius.vertical(top: Radius.circular(12)),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
-                          final minWidth = max(constraints.maxWidth, 1180.0);
+                          final minWidth = max(constraints.maxWidth, 940.0);
                           return SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: ConstrainedBox(
@@ -1213,13 +1575,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               child: Table(
                                 columnWidths: const {
                                   0: FlexColumnWidth(
-                                      3.6), // Product Item & Type
-                                  1: FlexColumnWidth(1.8), // SKU & Barcode
-                                  2: FlexColumnWidth(1.8), // Category / Brand
-                                  3: FlexColumnWidth(1.6), // Selling Price
-                                  4: FlexColumnWidth(
-                                      2.0), // Stock Quantity & Quick Stock In
-                                  5: FlexColumnWidth(1.7), // Actions
+                                      2.8), // Product Item & Type
+                                  1: FlexColumnWidth(1.5), // SKU & Barcode
+                                  2: FlexColumnWidth(1.5), // Category / Brand
+                                  3: FlexColumnWidth(1.4), // Selling Price
+                                  4: FlexColumnWidth(1.6), // Stock Quantity
+                                  5: FlexColumnWidth(1.6), // Actions
                                 },
                                 children: [
                                   TableRow(
@@ -1731,26 +2092,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                             spacing: 2,
                                             runSpacing: 2,
                                             children: [
-                                              if (_canQuickStockIn)
-                                                IconButton(
-                                                  padding:
-                                                      const EdgeInsets.all(4),
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                          minWidth: 28,
-                                                          minHeight: 28),
-                                                  tooltip: PosLocalization.tr(
-                                                      'Quick Stock In',
-                                                      settings:
-                                                          widget.settings),
-                                                  icon: const Icon(
-                                                      Icons
-                                                          .add_business_rounded,
-                                                      size: 17,
-                                                      color: Color(0xFF059669)),
-                                                  onPressed: () =>
-                                                      _openQuickStockIn(p),
-                                                ),
                                               IconButton(
                                                 padding:
                                                     const EdgeInsets.all(4),
@@ -1849,6 +2190,59 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                                               0xFFDC2626)),
                                                   onPressed: () => _delete(p),
                                                 ),
+                                              PopupMenuButton<String>(
+                                                tooltip: 'More Actions',
+                                                padding: EdgeInsets.zero,
+                                                icon: Icon(
+                                                  Icons.more_vert_rounded,
+                                                  size: 18,
+                                                  color: isDark
+                                                      ? const Color(0xFF94A3B8)
+                                                      : const Color(0xFF475569),
+                                                ),
+                                                onSelected: (val) {
+                                                  if (val == 'history') {
+                                                    _openStockHistoryDialog(p);
+                                                  } else if (val ==
+                                                      'duplicate') {
+                                                    _duplicateProduct(p);
+                                                  }
+                                                },
+                                                itemBuilder: (_) => [
+                                                  const PopupMenuItem(
+                                                    value: 'history',
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                            Icons
+                                                                .history_rounded,
+                                                            size: 16,
+                                                            color: Color(
+                                                                0xFF0284C7)),
+                                                        SizedBox(width: 8),
+                                                        Text('Stock History'),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  if (_canCreateProduct)
+                                                    const PopupMenuItem(
+                                                      value: 'duplicate',
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(
+                                                              Icons
+                                                                  .copy_rounded,
+                                                              size: 16,
+                                                              color: Color(
+                                                                  0xFF4F46E5)),
+                                                          SizedBox(width: 8),
+                                                          Text(
+                                                              'Duplicate Product'),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -1889,7 +2283,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
   Widget _metricCard(
       String title, String value, IconData icon, Color color, Color bgColor,
-      {required bool isDark}) {
+      {required bool isDark, String? subtitle}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1927,8 +2321,19 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
-                        color:
-                            isDark ? Colors.white : const Color(0xFF0F172A))),
+                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    overflow: TextOverflow.ellipsis),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
+                      overflow: TextOverflow.ellipsis),
+                ],
               ],
             ),
           ),

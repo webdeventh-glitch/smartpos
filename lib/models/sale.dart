@@ -73,7 +73,11 @@ class Sale {
 
   final String cashierName;
 
-  double get dueAmount => totalAmount - paidAmount;
+  double get dueAmount {
+    final raw = (totalAmount - paidAmount).clamp(0.0, double.infinity);
+    return raw.isFinite ? double.parse(raw.toStringAsFixed(2)) : 0.0;
+  }
+
   bool get isQuotation => saleStatus == 'quotation';
   bool get isSalesOrder => saleStatus == 'sales_order';
   bool get isPendingSalesOrder => isSalesOrder && orderStatus != 'completed';

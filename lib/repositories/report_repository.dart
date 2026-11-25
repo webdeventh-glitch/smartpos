@@ -365,7 +365,7 @@ class ReportRepository extends BaseRepository {
 
     // True COGS for Dashboard period (net of returned items cost)
     final cogsResult = await db.rawQuery(
-      "SELECT SUM(si.quantity * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs "
+      "SELECT SUM((si.quantity + COALESCE(si.bonus_quantity, 0)) * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs "
       "FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id "
       "WHERE s.sale_status = 'final'${salesDateClause.replaceAll('created_at', 's.created_at')}",
       salesArgs,
@@ -401,7 +401,7 @@ class ReportRepository extends BaseRepository {
     final salesRes = await db.rawQuery(
         "SELECT SUM(total_amount) as total_sales FROM sales WHERE sale_status = 'final'");
     final cogsRes = await db.rawQuery(
-      "SELECT SUM(si.quantity * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs "
+      "SELECT SUM((si.quantity + COALESCE(si.bonus_quantity, 0)) * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs "
       "FROM sale_items si "
       "JOIN sales s ON si.sale_id = s.id "
       "LEFT JOIN products p ON si.product_id = p.id "
@@ -514,9 +514,9 @@ class ReportRepository extends BaseRepository {
         (salesRes.first['total_due'] as num?)?.toDouble() ?? 0.0;
     final outputTax = (salesRes.first['output_tax'] as num?)?.toDouble() ?? 0.0;
 
-    // 2. COGS (Cost of goods sold with unit_multiplier, net of sale returns)
+    // 2. COGS (Cost of goods sold with unit_multiplier & bonus qty, net of sale returns)
     final cogsRes = await db.rawQuery(
-      "SELECT SUM(si.quantity * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id WHERE s.sale_status = 'final'$salesDateClause",
+      "SELECT SUM((si.quantity + COALESCE(si.bonus_quantity, 0)) * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id WHERE s.sale_status = 'final'$salesDateClause",
       salesArgs,
     );
     final grossCogs = (cogsRes.first['cogs'] as num?)?.toDouble() ?? 0.0;
@@ -590,13 +590,14 @@ class ReportRepository extends BaseRepository {
     final netProfit = grossProfit - totalExpenses + recoveredAmount;
     final netTaxPayable = outputTax - inputTax;
 
-    // 6. Top 10 Best-Selling / Trending Products
+    // 6. Top 50 Best-Selling / Trending Products
     final topProductsRes = await db.rawQuery(
-      "SELECT si.product_name, p.sku, SUM(si.quantity) as total_qty, SUM(si.subtotal) as total_rev FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id WHERE s.sale_status = 'final'$salesDateClause GROUP BY si.product_name, p.sku ORDER BY total_qty DESC LIMIT 10",
+      "SELECT COALESCE(si.product_id, p.id, 0) as product_id, si.product_name, p.sku, SUM(si.quantity) as total_qty, SUM(si.subtotal) as total_rev FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id WHERE s.sale_status = 'final'$salesDateClause GROUP BY si.product_id, si.product_name, p.sku ORDER BY total_qty DESC LIMIT 50",
       salesArgs,
     );
     final topSellingProducts = topProductsRes
         .map((r) => {
+              'productId': (r['product_id'] as num?)?.toInt() ?? 0,
               'name': r['product_name'] as String? ?? 'Product',
               'sku': r['sku'] as String? ?? '-',
               'quantity': (r['total_qty'] as num?)?.toDouble() ?? 0.0,
@@ -604,32 +605,34 @@ class ReportRepository extends BaseRepository {
             })
         .toList();
 
-    // 7. Customer Receivables & Top Debtors
+    // 7. Customer Receivables & Top Debtors (Top 50)
     final custDuesRes = await db.rawQuery(
         "SELECT SUM(balance) as total_ar FROM contacts WHERE type = 'customer' AND balance > 0");
     final totalCustomerDue =
         (custDuesRes.first['total_ar'] as num?)?.toDouble() ?? 0.0;
 
     final topDebtorsRes = await db.rawQuery(
-        "SELECT name, phone, balance FROM contacts WHERE type = 'customer' AND balance > 0 ORDER BY balance DESC LIMIT 5");
+        "SELECT id, name, phone, balance FROM contacts WHERE type = 'customer' AND balance > 0 ORDER BY balance DESC LIMIT 50");
     final topDebtors = topDebtorsRes
         .map((r) => {
+              'id': (r['id'] as num?)?.toInt() ?? 0,
               'name': r['name'] as String? ?? 'Customer',
               'phone': r['phone'] as String? ?? '-',
               'balance': (r['balance'] as num?)?.toDouble() ?? 0.0,
             })
         .toList();
 
-    // 8. Supplier Payables & Top Creditors
+    // 8. Supplier Payables & Top Creditors (Top 50)
     final suppDuesRes = await db.rawQuery(
         "SELECT SUM(balance) as total_ap FROM contacts WHERE type = 'supplier' AND balance > 0");
     final totalSupplierPayable =
         (suppDuesRes.first['total_ap'] as num?)?.toDouble() ?? 0.0;
 
     final topCreditorsRes = await db.rawQuery(
-        "SELECT name, phone, balance FROM contacts WHERE type = 'supplier' AND balance > 0 ORDER BY balance DESC LIMIT 5");
+        "SELECT id, name, phone, balance FROM contacts WHERE type = 'supplier' AND balance > 0 ORDER BY balance DESC LIMIT 50");
     final topCreditors = topCreditorsRes
         .map((r) => {
+              'id': (r['id'] as num?)?.toInt() ?? 0,
               'name': r['name'] as String? ?? 'Supplier',
               'phone': r['phone'] as String? ?? '-',
               'balance': (r['balance'] as num?)?.toDouble() ?? 0.0,
@@ -849,11 +852,23 @@ class ReportRepository extends BaseRepository {
   }
 
   /// Tracks quotation conversion funnel metrics (Step 3.4).
-  Future<Map<String, dynamic>> getQuotationConversionStats() async {
+  Future<Map<String, dynamic>> getQuotationConversionStats({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    String whereClause = "sale_status = 'quotation'";
+    final List<dynamic> whereArgs = [];
+    if (startDate != null && endDate != null) {
+      final startStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(startDate);
+      final endStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(endDate);
+      whereClause += ' AND created_at >= ? AND created_at <= ?';
+      whereArgs.addAll([startStr, endStr]);
+    }
     final rows = await db.query(
       'sales',
       columns: ['id', 'total_amount', 'converted_to_sale_id'],
-      where: "sale_status = 'quotation'",
+      where: whereClause,
+      whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
     );
     int convertedCount = 0;
     double quotedTotal = 0.0;

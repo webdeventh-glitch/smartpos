@@ -66,19 +66,38 @@ void main() {
       expect(current.isConfigured, isTrue);
       expect(current.businessType, equals('solar'));
 
-      // Attempt to switch business type to clothing or pharmacy post-installation
+      // Attempt to switch business type, preset, or inject other business modules post-installation
       final illicitUpdate = current.copyWith(
         businessName: 'Apex Electronics & Clothing',
         businessType: 'clothing',
+        industryPresets: 'pharmacy,restaurant_cafe',
+        enabledModules:
+            'restaurant,hotel,gym,fruit_mandi,poultry,pharmacy,expenses',
       );
       await dbService.updateBusinessSettings(illicitUpdate);
 
-      // Verify that businessName updated, but businessType was strictly LOCKED
+      // Verify that businessName updated, but businessType, preset, and vertical modules remain strictly LOCKED
       final postAttempt = await dbService.getBusinessSettings();
       expect(postAttempt.businessName, equals('Apex Electronics & Clothing'));
       expect(postAttempt.businessType, equals('solar'),
           reason:
               'Business type must remain locked to the first-installation configuration');
+      expect(postAttempt.industryPresets,
+          equals(BusinessSettings.presetSolarHardware));
+      expect(postAttempt.isModuleEnabled(BusinessSettings.moduleRestaurant),
+          isFalse);
+      expect(
+          postAttempt.isModuleEnabled(BusinessSettings.moduleHotel), isFalse);
+      expect(postAttempt.isModuleEnabled(BusinessSettings.moduleGym), isFalse);
+      expect(postAttempt.isModuleEnabled(BusinessSettings.moduleFruitMandi),
+          isFalse);
+      expect(
+          postAttempt.isModuleEnabled(BusinessSettings.modulePoultry), isFalse);
+      expect(
+          postAttempt.isModuleEnabled(BusinessSettings.moduleExpenses), isTrue);
+      expect(postAttempt.isHubBusinessAllowed('hotel'), isFalse);
+      expect(postAttempt.isHubBusinessAllowed('pharmacy'), isFalse);
+      expect(postAttempt.isHubBusinessAllowed('hrm'), isTrue);
     });
   });
 }

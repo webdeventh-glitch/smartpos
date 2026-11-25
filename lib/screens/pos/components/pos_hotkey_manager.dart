@@ -11,6 +11,7 @@ class PosHotkeyManager {
   static Map<ShortcutActivator, VoidCallback> buildShortcuts({
     required VoidCallback onToggleProductPanel,
     VoidCallback? onOpenDrawer,
+    VoidCallback? onPriceCheck,
     required VoidCallback onOpenCustomProductDialog,
     required VoidCallback onToggleWholesaleMode,
     required VoidCallback onUndo,
@@ -31,6 +32,9 @@ class PosHotkeyManager {
       if (onOpenDrawer != null)
         const SingleActivator(LogicalKeyboardKey.keyD, control: true):
             onOpenDrawer,
+      if (onPriceCheck != null)
+        const SingleActivator(LogicalKeyboardKey.keyL, control: true):
+            onPriceCheck,
       const SingleActivator(LogicalKeyboardKey.f11): onOpenCustomProductDialog,
       const SingleActivator(LogicalKeyboardKey.f12): onToggleWholesaleMode,
       const SingleActivator(LogicalKeyboardKey.keyZ, control: true): onUndo,

@@ -125,7 +125,11 @@ class _SmartSidebarState extends State<SmartSidebar> {
 
   bool _isModEnabled(String key) {
     if (widget.settings == null) return true;
-    return widget.settings!.isModuleEnabled(key);
+    final s = widget.settings!;
+    if (s.isConfigured && !s.isModuleAllowedForInstalledBusiness(key)) {
+      return false;
+    }
+    return s.isModuleEnabled(key);
   }
 
   @override
@@ -801,7 +805,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
         can('inventory.adjust') ||
         can('inventory.audit') ||
         can('inventory.manage');
-    final canReports = can('report.view');
+    // Reports & Settings are strictly visible and manageable by Super Admin (Owner)
+    final canReports = user?.isSuperAdmin == true;
     final canKhata = can('customer.view') ||
         can('customer.manage') ||
         can('supplier.manage') ||
