@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/models.dart';
@@ -9,9 +11,14 @@ import 'app_logger.dart';
 import 'auth_service.dart';
 import 'database_encryption_service.dart';
 import 'database_service.dart';
+import 'embedded_database_service.dart';
+import 'qulop_service.dart';
 
 /// Enterprise Software Update & Encrypted Database Backup Center Service
 class BackupUpdateService {
+  static const String currentAppVersion = '1.1.1';
+  static const int currentBuildNumber = 3;
+
   static BackupUpdateService? _instance;
   static BackupUpdateService get instance =>
       _instance ??= BackupUpdateService._();
@@ -20,6 +27,67 @@ class BackupUpdateService {
   Timer? _autoBackupTimer;
 
   bool get isSchedulerRunning => _autoBackupTimer != null;
+
+  /// Compares semantic versions (`1.1.2` vs `1.1.1`) plus optional build numbers.
+  static bool isNewerVersion(
+    String remoteVersion, {
+    String currentVersion = currentAppVersion,
+    int? remoteBuild,
+    int currentBuild = currentBuildNumber,
+  }) {
+    List<int> parseParts(String v) {
+      final clean = v.trim().toLowerCase().replaceFirst(RegExp(r'^v'), '');
+      final base = clean.split('+').first.split('-').first;
+      return base
+          .split('.')
+          .map((seg) => int.tryParse(seg.trim()) ?? 0)
+          .toList();
+    }
+
+    final rParts = parseParts(remoteVersion);
+    final cParts = parseParts(currentVersion);
+    final len = rParts.length > cParts.length ? rParts.length : cParts.length;
+    for (int i = 0; i < len; i++) {
+      final r = i < rParts.length ? rParts[i] : 0;
+      final c = i < cParts.length ? cParts[i] : 0;
+      if (r > c) return true;
+      if (r < c) return false;
+    }
+    if (remoteBuild != null && remoteBuild > currentBuild) return true;
+    return false;
+  }
+
+  File _updateConfigFile({Directory? baseDirOverride}) {
+    final base = baseDirOverride?.path ?? path.join(_getBaseDir(), 'SmartPOS');
+    return File(path.join(base, 'update_config.json'));
+  }
+
+  Future<String> loadUpdateFeedUrl({Directory? baseDirOverride}) async {
+    try {
+      final f = _updateConfigFile(baseDirOverride: baseDirOverride);
+      if (!f.existsSync()) return '';
+      final decoded = jsonDecode(await f.readAsString());
+      if (decoded is Map && decoded['feed_url'] is String) {
+        return (decoded['feed_url'] as String).trim();
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  Future<void> saveUpdateFeedUrl(String url,
+      {Directory? baseDirOverride}) async {
+    final f = _updateConfigFile(baseDirOverride: baseDirOverride);
+    if (!f.parent.existsSync()) {
+      f.parent.createSync(recursive: true);
+    }
+    await f.writeAsString(
+      jsonEncode({
+        'feed_url': url.trim(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }),
+      flush: true,
+    );
+  }
 
   /// Resolves interval in hours from frequency setting ('daily', 'weekly', 'custom').
   static Duration intervalForSettings(BusinessSettings settings) {
@@ -304,43 +372,361 @@ class BackupUpdateService {
     }
   }
 
-  /// Online Update Check simulation
-  Future<Map<String, dynamic>> checkOnlineUpdate() async {
-    await Future.delayed(const Duration(milliseconds: 1200));
-    return {
-      'has_update': true,
-      'current_version': '2.5.0',
-      'latest_version': '2.6.2',
-      'release_date': '2026-10-23',
-      'release_notes':
-          '• Multi-Industry POS presets (Super Store, Mobile IMEI, Solar BOM, Restaurant KOT)\n'
-              '• Strict Walk-in Upfront payment rule & Customer Credit Ledger\n'
-              '• Cash Register X-Report & Z-Report Shift Reconciliation\n'
-              '• Embedded REST API server for companion Flutter Mobile App',
-      'download_size_mb': 18.4,
-    };
+  /// Checks license eligibility and fetches real `version.json` manifest from vendor's update URL.
+  Future<Map<String, dynamic>> checkOnlineUpdate({
+    BusinessSettings? settings,
+    String? feedUrlOverride,
+    http.Client? httpClient,
+    Directory? baseDirOverride,
+  }) async {
+    final resolvedSettings = settings ??
+        (DatabaseService.instanceOrNull != null
+            ? await DatabaseService.instance.getBusinessSettings()
+            : BusinessSettings());
+
+    // 1. Local License Gate
+    final licStatus = await QulopService.checkCurrentQulop(resolvedSettings);
+    if (!licStatus.isValid) {
+      return {
+        'has_update': false,
+        'update_allowed': false,
+        'current_version': currentAppVersion,
+        'current_build': currentBuildNumber,
+        'blocked_reason':
+            'Active license required for software updates (${licStatus.message}).',
+      };
+    }
+    if (!licStatus.allowUpdates) {
+      return {
+        'has_update': false,
+        'update_allowed': false,
+        'current_version': currentAppVersion,
+        'current_build': currentBuildNumber,
+        'blocked_reason':
+            'Online software updates are disabled on your current license plan. Please contact vendor to enable updates or renew.',
+      };
+    }
+
+    // 2. Resolve Vendor Update Manifest URL
+    final feedUrl = (feedUrlOverride ??
+            await loadUpdateFeedUrl(baseDirOverride: baseDirOverride))
+        .trim();
+    if (feedUrl.isEmpty) {
+      return {
+        'has_update': false,
+        'update_allowed': true,
+        'needs_feed_url': true,
+        'current_version': currentAppVersion,
+        'current_build': currentBuildNumber,
+        'message':
+            'Update Server URL is not set yet. Enter your vendor version.json URL and click Check Now.',
+      };
+    }
+
+    final uri = Uri.tryParse(feedUrl);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+      return {
+        'has_update': false,
+        'update_allowed': true,
+        'error': 'Invalid update manifest URL: $feedUrl',
+        'current_version': currentAppVersion,
+        'current_build': currentBuildNumber,
+      };
+    }
+
+    final client = httpClient ?? http.Client();
+    final ownsClient = httpClient == null;
+    try {
+      final resp = await client.get(uri).timeout(const Duration(seconds: 12));
+      if (resp.statusCode < 200 || resp.statusCode >= 300) {
+        return {
+          'has_update': false,
+          'update_allowed': true,
+          'error': 'Update server returned HTTP ${resp.statusCode}',
+          'current_version': currentAppVersion,
+          'current_build': currentBuildNumber,
+        };
+      }
+
+      final manifest = jsonDecode(resp.body);
+      if (manifest is! Map) {
+        return {
+          'has_update': false,
+          'update_allowed': true,
+          'error': 'Malformed update manifest JSON.',
+          'current_version': currentAppVersion,
+          'current_build': currentBuildNumber,
+        };
+      }
+
+      // 3. Optional Remote Website License Verification Endpoint
+      final licenseVerifyUrl =
+          (manifest['license_verify_url'] ?? '').toString().trim();
+      if (licenseVerifyUrl.isNotEmpty) {
+        final verifyUri = Uri.tryParse(licenseVerifyUrl);
+        if (verifyUri != null &&
+            verifyUri.hasScheme &&
+            verifyUri.hasAuthority) {
+          try {
+            final hwId = await QulopService.getHardwareId();
+            final mac = await QulopService.getDeviceMacAddress();
+            final verifyResp = await client
+                .post(
+                  verifyUri,
+                  headers: const {'Content-Type': 'application/json'},
+                  body: jsonEncode({
+                    'license_key': resolvedSettings.purchaseKey,
+                    'hardware_id': hwId,
+                    'mac_address': mac,
+                    'business_name': resolvedSettings.businessName,
+                    'business_type': resolvedSettings.businessType,
+                    'current_version': currentAppVersion,
+                  }),
+                )
+                .timeout(const Duration(seconds: 10));
+            if (verifyResp.statusCode >= 200 && verifyResp.statusCode < 300) {
+              final body = jsonDecode(verifyResp.body);
+              if (body is Map && body['allow_update'] == false) {
+                return {
+                  'has_update': false,
+                  'update_allowed': false,
+                  'current_version': currentAppVersion,
+                  'current_build': currentBuildNumber,
+                  'blocked_reason': (body['message'] ??
+                          'Server denied software update for this license.')
+                      .toString(),
+                };
+              }
+            } else if (verifyResp.statusCode == 403 ||
+                verifyResp.statusCode == 401) {
+              return {
+                'has_update': false,
+                'update_allowed': false,
+                'current_version': currentAppVersion,
+                'current_build': currentBuildNumber,
+                'blocked_reason':
+                    'License server denied update access (HTTP ${verifyResp.statusCode}).',
+              };
+            }
+          } catch (e, st) {
+            AppLogger.warning(
+                'BackupUpdateService',
+                'Remote license verify unreachable; falling back to local signed key check',
+                e,
+                st);
+          }
+        }
+      }
+
+      final latestVersion = (manifest['version'] ?? '').toString().trim();
+      final latestBuild = int.tryParse((manifest['build'] ?? '').toString());
+      final hasUpdate = latestVersion.isNotEmpty &&
+          isNewerVersion(latestVersion, remoteBuild: latestBuild);
+
+      return {
+        'has_update': hasUpdate,
+        'update_allowed': true,
+        'current_version': currentAppVersion,
+        'current_build': currentBuildNumber,
+        'latest_version':
+            latestVersion.isNotEmpty ? latestVersion : currentAppVersion,
+        'latest_build': latestBuild,
+        'release_date': (manifest['release_date'] ?? '').toString(),
+        'release_notes': (manifest['release_notes'] ?? '').toString(),
+        'download_url': (manifest['download_url'] ?? '').toString().trim(),
+        'sha256': (manifest['sha256'] ?? '').toString().trim().toLowerCase(),
+        'download_size_mb': manifest['download_size_mb'] ?? 0,
+      };
+    } catch (e) {
+      return {
+        'has_update': false,
+        'update_allowed': true,
+        'error': 'Unable to check updates: $e',
+        'current_version': currentAppVersion,
+        'current_build': currentBuildNumber,
+      };
+    } finally {
+      if (ownsClient) client.close();
+    }
   }
 
-  /// Offline Package Verification and Migration
+  /// Downloads verified installer `.exe`, enforces SHA-256 checksum, and creates a mandatory encrypted DB backup first.
+  Future<Map<String, dynamic>> downloadAndPrepareSafeUpdate({
+    required Map<String, dynamic> updateInfo,
+    required BusinessSettings settings,
+    http.Client? httpClient,
+    Directory? backupDirOverride,
+    Directory? stagingDirOverride,
+    String? dbPathOverride,
+  }) async {
+    final licStatus = await QulopService.checkCurrentQulop(settings);
+    if (!licStatus.isValid || !licStatus.allowUpdates) {
+      return {
+        'success': false,
+        'error':
+            'Update blocked: Active update-eligible software license required.',
+      };
+    }
+
+    final downloadUrl = (updateInfo['download_url'] ?? '').toString().trim();
+    final expectedSha256 =
+        (updateInfo['sha256'] ?? '').toString().trim().toLowerCase();
+    final latestVersion =
+        (updateInfo['latest_version'] ?? 'latest').toString().trim();
+
+    final uri = Uri.tryParse(downloadUrl);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+      return {'success': false, 'error': 'Invalid download_url in manifest.'};
+    }
+
+    final client = httpClient ?? http.Client();
+    final ownsClient = httpClient == null;
+    try {
+      final resp = await client.get(uri).timeout(const Duration(minutes: 5));
+      if (resp.statusCode < 200 || resp.statusCode >= 300) {
+        return {
+          'success': false,
+          'error': 'Failed downloading update (HTTP ${resp.statusCode}).',
+        };
+      }
+
+      final bytes = resp.bodyBytes;
+      if (bytes.length < 2 || bytes[0] != 0x4D || bytes[1] != 0x5A) {
+        return {
+          'success': false,
+          'error':
+              'Downloaded file is not a valid Windows executable (missing MZ header). Update aborted safely.',
+        };
+      }
+
+      final actualSha256 = sha256.convert(bytes).toString().toLowerCase();
+      if (expectedSha256.isNotEmpty && actualSha256 != expectedSha256) {
+        return {
+          'success': false,
+          'error':
+              'SHA-256 verification failed! Downloaded installer may be corrupted or tampered. Update aborted.',
+        };
+      }
+
+      // Mandatory encrypted pre-update database backup BEFORE launching any installer
+      final backupFile = await createBackup(
+        customNote: 'pre_update_v$latestVersion',
+        targetDir: backupDirOverride,
+        dbPathOverride: dbPathOverride,
+      );
+      await enforceBackupRetention(
+        keepCount: settings.backupRetentionCount > 0
+            ? settings.backupRetentionCount
+            : 10,
+        targetDir: backupDirOverride,
+      );
+
+      final stagingDir = stagingDirOverride ??
+          Directory(path.join(_getBaseDir(), 'SmartPOS', 'updates'));
+      if (!stagingDir.existsSync()) {
+        stagingDir.createSync(recursive: true);
+      }
+      final safeVer = latestVersion.replaceAll(RegExp(r'[^0-9A-Za-z._-]'), '_');
+      final installerFile = File(
+        path.join(stagingDir.path, 'SmartPOS_Update_v$safeVer.exe'),
+      );
+      await installerFile.writeAsBytes(bytes, flush: true);
+
+      return {
+        'success': true,
+        'installer_path': installerFile.path,
+        'backup_path': backupFile.path,
+        'sha256': actualSha256,
+        'version': latestVersion,
+      };
+    } catch (e) {
+      return {'success': false, 'error': 'Update download failed: $e'};
+    } finally {
+      if (ownsClient) client.close();
+    }
+  }
+
+  /// Safely checkpoints SQLite WAL, stops embedded MySQL, and executes Inno Setup upgrade without touching database.
+  Future<void> launchPreparedInstallerSafely(
+    String installerPath, {
+    bool exitApp = true,
+  }) async {
+    final openDb = DatabaseService.instanceOrNull;
+    if (openDb != null && openDb.db.isOpen) {
+      await openDb.checkpointWal();
+      if (openDb.dbFilePath != null) {
+        await DatabaseService.closeOpenInstanceIfPathMatches(
+            openDb.dbFilePath!);
+      }
+    }
+    if (EmbeddedDatabaseService.isRunning.value) {
+      await EmbeddedDatabaseService.stopServer(
+          port: EmbeddedDatabaseService.activePort);
+    }
+    await Process.start(
+      installerPath,
+      const [
+        '/VERYSILENT',
+        '/SUPPRESSMSGBOXES',
+        '/NORESTART',
+        '/CLOSEAPPLICATIONS',
+        '/MERGETASKS=!cleaninstall',
+      ],
+      mode: ProcessStartMode.detached,
+    );
+    if (exitApp) {
+      exit(0);
+    }
+  }
+
+  /// Offline Package Verification, Mandatory Backup, and Safe Migration / Installer Launch
   Future<Map<String, dynamic>> applyOfflineUpdatePackage(
-      String packagePath) async {
+    String packagePath, {
+    bool launchExe = false,
+  }) async {
     final file = File(packagePath);
     if (!file.existsSync()) {
       return {
         'success': false,
-        'error': 'Update package file not found at $packagePath'
+        'error': 'Update package file not found at $packagePath',
       };
     }
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    // Create encrypted pre-update backup first so database is always recoverable
+    final backup = await createBackup(customNote: 'pre_offline_update');
+
+    if (packagePath.toLowerCase().endsWith('.exe')) {
+      final bytes = await file
+          .openRead(0, 2)
+          .fold<List<int>>(<int>[], (acc, chunk) => acc..addAll(chunk));
+      if (bytes.length < 2 || bytes[0] != 0x4D || bytes[1] != 0x5A) {
+        return {
+          'success': false,
+          'error': 'Selected .exe file is not a valid Windows installer.',
+        };
+      }
+      if (launchExe) {
+        await launchPreparedInstallerSafely(file.path);
+      }
+      return {
+        'success': true,
+        'launched_installer': launchExe,
+        'backup_path': backup.path,
+        'message':
+            'Encrypted pre-update backup saved at ${backup.path}. Ready to upgrade without touching database.',
+      };
+    }
+
     final db = await DatabaseService.initialize();
     await db.ensureSchemaMigration();
 
     return {
       'success': true,
+      'backup_path': backup.path,
       'message':
-          'Offline update package verified and database schema successfully migrated without data loss!',
+          'Pre-update backup saved at ${backup.path} and database schema migrated safely without data loss!',
       'migrated_tables': [
+        'business_settings',
         'payment_transactions',
         'product_serials_batches',
         'product_bundles',

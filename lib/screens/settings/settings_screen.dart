@@ -146,8 +146,8 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _isCreatingBackup = false;
   List<FileSystemEntity> _backupFiles = [];
   bool _isLoadingBackups = false;
-  final TextEditingController _offlinePkgCtrl =
-      TextEditingController(text: r'D:\updates\smartpos_v2.6_update.pkg');
+  final TextEditingController _offlinePkgCtrl = TextEditingController(text: '');
+  final TextEditingController _updateFeedUrlCtrl = TextEditingController();
   bool _isStartingApi = false;
   bool _autoBackupEnabled = false;
   String _backupFrequency = 'daily';
@@ -440,11 +440,15 @@ class _SettingsScreenState extends State<SettingsScreen>
     final hwId = await QulopService.getHardwareId();
     final mac = await QulopService.getDeviceMacAddress();
     final status = await QulopService.checkCurrentQulop(widget.settings);
+    final feedUrl = await BackupUpdateService.instance.loadUpdateFeedUrl();
     if (mounted) {
       setState(() {
         _hostHwId = hwId;
         _hostMac = mac;
         _currentLicenseStatus = status;
+        if (_updateFeedUrlCtrl.text.isEmpty && feedUrl.isNotEmpty) {
+          _updateFeedUrlCtrl.text = feedUrl;
+        }
       });
     }
   }
@@ -496,6 +500,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     _currencyPrecisionCtrl.dispose();
     _quantityPrecisionCtrl.dispose();
     _offlinePkgCtrl.dispose();
+    _updateFeedUrlCtrl.dispose();
     _dbHostCtrl.dispose();
     _dbPortCtrl.dispose();
     _dbNameCtrl.dispose();
@@ -620,10 +625,27 @@ class _SettingsScreenState extends State<SettingsScreen>
       _updateStatusMessage = '';
     });
     try {
-      final info = await BackupUpdateService.instance.checkOnlineUpdate();
+      final enteredUrl = _updateFeedUrlCtrl.text.trim();
+      if (enteredUrl.isNotEmpty) {
+        await BackupUpdateService.instance.saveUpdateFeedUrl(enteredUrl);
+      }
+      final info = await BackupUpdateService.instance.checkOnlineUpdate(
+        settings: widget.settings,
+        feedUrlOverride: enteredUrl.isNotEmpty ? enteredUrl : null,
+      );
       if (mounted) {
         setState(() {
           _updateInfo = info;
+          if (info['blocked_reason'] != null) {
+            _updateStatusMessage = info['blocked_reason'].toString();
+          } else if (info['error'] != null) {
+            _updateStatusMessage = info['error'].toString();
+          } else if (info['message'] != null) {
+            _updateStatusMessage = info['message'].toString();
+          } else if (info['has_update'] == false) {
+            _updateStatusMessage =
+                'You are already on the latest version (v${BackupUpdateService.currentAppVersion}+${BackupUpdateService.currentBuildNumber}).';
+          }
         });
       }
     } catch (e) {
@@ -640,24 +662,38 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   Future<void> _applyOnlineUpdate() async {
+    if (_updateInfo == null || _updateInfo!['has_update'] != true) return;
     setState(() => _isApplyingUpdate = true);
     try {
-      await Future.delayed(const Duration(milliseconds: 1000));
-      final db = await DatabaseService.initialize();
-      await db.ensureSchemaMigration();
+      final prep =
+          await BackupUpdateService.instance.downloadAndPrepareSafeUpdate(
+        updateInfo: _updateInfo!,
+        settings: widget.settings,
+      );
+      if (prep['success'] != true) {
+        if (mounted) {
+          setState(() {
+            _updateStatusMessage =
+                prep['error']?.toString() ?? 'Failed preparing update.';
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                backgroundColor: Colors.red,
+                content: Text(prep['error']?.toString() ?? 'Update failed')),
+          );
+        }
+        return;
+      }
+
       if (mounted) {
         setState(() {
           _updateStatusMessage =
-              'Smart POS upgraded to v${_updateInfo?['latest_version'] ?? '2.6.2'}! Schema migration complete.';
+              'Verified SHA-256 & saved encrypted DB backup (${prep['backup_path']}). Launching silent upgrade...';
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Color(0xFF10B981),
-            content: Text(
-                'Update applied successfully! Enterprise schemas migrated.'),
-          ),
-        );
       }
+      await BackupUpdateService.instance.launchPreparedInstallerSafely(
+        prep['installer_path'] as String,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -677,31 +713,26 @@ class _SettingsScreenState extends State<SettingsScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             backgroundColor: Colors.orange,
-            content: Text('Please enter package file path.')),
+            content: Text('Please enter installer or package file path.')),
       );
       return;
     }
 
     setState(() => _isApplyingUpdate = true);
     try {
-      File pkgFile = File(pathVal);
-      if (!pkgFile.existsSync()) {
-        pkgFile.parent.createSync(recursive: true);
-        pkgFile.writeAsStringSync('Smart POS Offline Upgrade Archive v2.6.2');
-      }
-
-      final res = await BackupUpdateService.instance
-          .applyOfflineUpdatePackage(pkgFile.path);
+      final res = await BackupUpdateService.instance.applyOfflineUpdatePackage(
+        pathVal,
+        launchExe: pathVal.toLowerCase().endsWith('.exe'),
+      );
       if (mounted) {
         if (res['success'] == true) {
           setState(() {
-            _updateStatusMessage =
-                '${res['message']}\nMigrated Tables: ${(res['migrated_tables'] as List?)?.join(', ')}';
+            _updateStatusMessage = '${res['message']}';
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               backgroundColor: Color(0xFF10B981),
-              content: Text('Offline migration applied successfully!'),
+              content: Text('Pre-update backup created & update verified!'),
             ),
           );
         } else {
@@ -7263,7 +7294,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const Text(
-                                'v2.5.0 Enterprise',
+                                'v${BackupUpdateService.currentAppVersion}+${BackupUpdateService.currentBuildNumber} Enterprise',
                                 style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
@@ -7273,7 +7304,25 @@ class _SettingsScreenState extends State<SettingsScreen>
                           ],
                         ),
                       ),
-                      if (_updateInfo != null) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _updateFeedUrlCtrl,
+                        style: const TextStyle(fontSize: 12),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          labelText: 'Vendor Update Feed URL (version.json)',
+                          hintText:
+                              'https://yourdomain.com/updates/smartpos/version.json',
+                          prefixIcon: const Icon(Icons.link_rounded, size: 18),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                        ),
+                      ),
+                      if (_updateInfo != null &&
+                          _updateInfo!['has_update'] == true &&
+                          _updateInfo!['update_allowed'] == true) ...[
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.all(14),

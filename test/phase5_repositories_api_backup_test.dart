@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:desktop_starter/models/models.dart';
 import 'package:desktop_starter/services/database_service.dart';
 import 'package:desktop_starter/services/backup_update_service.dart';
@@ -66,8 +68,21 @@ void main() {
         () async {
       final backupService = BackupUpdateService.instance;
 
-      // Online check simulation
-      final onlineInfo = await backupService.checkOnlineUpdate();
+      // Online check via manifest endpoint (license-gated)
+      final mockClient = MockClient((_) async => http.Response(
+            jsonEncode({
+              'version': '2.6.2',
+              'build': 10,
+              'download_url': 'https://updates.example.com/Setup.exe',
+              'release_notes': 'Enterprise patches and safe migrations',
+            }),
+            200,
+          ));
+      final onlineInfo = await backupService.checkOnlineUpdate(
+        feedUrlOverride: 'https://updates.example.com/version.json',
+        httpClient: mockClient,
+      );
+      expect(onlineInfo['update_allowed'], isTrue);
       expect(onlineInfo['has_update'], isTrue);
       expect(onlineInfo['latest_version'], equals('2.6.2'));
       expect(onlineInfo['release_notes'], isNotEmpty);

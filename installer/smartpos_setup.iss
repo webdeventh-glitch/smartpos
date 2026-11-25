@@ -39,7 +39,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
-Name: "cleaninstall"; Description: "Fresh installation (Clear existing database and launch First-Time Setup Wizard)"; Flags: unchecked; GroupDescription: "Setup Options:"
+Name: "cleaninstall"; Description: "Fresh installation (Clear existing database and launch First-Time Setup Wizard)"; Flags: unchecked dontinheritcheck; GroupDescription: "Setup Options:"
 
 [Files]
 ; Copy all build release output files (including SmartPOS.exe, sqlite3.dll, data/app.so)
@@ -60,12 +60,22 @@ Filename: "netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Smar
 
 [Code]
 procedure CurStepChanged(CurStep: TSetupStep);
+var
+  DataDir: String;
 begin
   if CurStep = ssPostInstall then
   begin
-    if WizardIsTaskSelected('cleaninstall') then
+    { Never delete customer database during silent/auto upgrades }
+    if (not WizardSilent()) and WizardIsTaskSelected('cleaninstall') then
     begin
-      DelTree(ExpandConstant('{localappdata}\SmartPOS'), True, True, True);
+      DataDir := ExpandConstant('{localappdata}\SmartPOS');
+      if DirExists(DataDir) then
+      begin
+        if MsgBox('WARNING: You selected "Fresh installation". This will permanently delete existing Smart POS databases and settings on this PC. Continue?', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+        begin
+          DelTree(DataDir, True, True, True);
+        end;
+      end;
     end;
   end;
 end;

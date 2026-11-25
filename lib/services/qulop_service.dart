@@ -23,6 +23,8 @@ class QulopStatus {
   final String message;
   final String? clientName;
   final String? targetMac;
+  final String? businessType;
+  final bool allowUpdates;
   final DateTime? issueDate;
   final DateTime? expiryDate;
   final int remainingDays;
@@ -35,6 +37,8 @@ class QulopStatus {
     required this.message,
     this.clientName,
     this.targetMac,
+    this.businessType,
+    this.allowUpdates = true,
     this.issueDate,
     this.expiryDate,
     this.remainingDays = 0,
@@ -258,6 +262,8 @@ class QulopService {
     required String clientName,
     required String macAddress,
     required String tierCode, // TRL, QTR, HLF, YRL, CST, LFT
+    String businessType = '',
+    bool allowUpdates = true,
     DateTime? expiryDate,
     DateTime? customExpiryDate,
     int? customDays,
@@ -294,7 +300,7 @@ class QulopService {
       }
     }
 
-    final payload = {
+    final payload = <String, dynamic>{
       'c': clientName.trim(),
       'm': cleanMac,
       't': tierCode.toUpperCase(),
@@ -302,6 +308,8 @@ class QulopService {
       'e': tierCode.toUpperCase() == 'LFT'
           ? '9999-12-31'
           : finalExpiry.toIso8601String().split('T').first,
+      if (businessType.trim().isNotEmpty) 'b': businessType.trim(),
+      if (!allowUpdates) 'u': 0,
     };
 
     final payloadJson = jsonEncode(payload);
@@ -435,6 +443,8 @@ class QulopService {
     final targetMac = (data['m'] as String? ?? '').trim().toUpperCase();
     final expiryStr = data['e'] as String? ?? '';
     final issueStr = data['i'] as String? ?? '';
+    final businessType = (data['b'] as String?)?.trim();
+    final allowUpdates = data['u'] != 0 && data['u'] != false;
 
     // Hardware Lock Check
     final isWildcard = targetMac == 'WILDCARD' || targetMac == 'ANY';
@@ -566,6 +576,8 @@ class QulopService {
       message: 'Active & Verified',
       clientName: clientName,
       targetMac: targetMac,
+      businessType: businessType,
+      allowUpdates: allowUpdates,
       issueDate: DateTime.tryParse(issueStr),
       expiryDate: expiryDate,
       remainingDays: remaining,
