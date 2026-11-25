@@ -716,7 +716,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Qulop License Warning: Your Smart POS ${qulopStatus.tierLabel} will expire in ${qulopStatus.remainingDays} days. Please contact vendor (+92 300 1234567) to renew.',
+                              'Qulop License Warning: Your Smart POS ${qulopStatus.tierLabel} will expire in ${qulopStatus.remainingDays} days. Please contact vendor (+92 313 8437438 / WhatsApp: +92 320 1166949) to renew.',
                               style: const TextStyle(
                                   color: Color(0xFF92400E),
                                   fontSize: 12,

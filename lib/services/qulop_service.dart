@@ -868,7 +868,8 @@ class QulopService {
     required String tierLabel,
     required String key,
     required String expiryDateStr,
-    String vendorContact = '+92 300 1234567',
+    String vendorContact =
+        '+92 313 8437438 / WhatsApp: +92 320 1166949 (webpixels.net)',
   }) {
     return '''
 *SMART POS OFFICIAL SOFTWARE LICENSE*

@@ -32,9 +32,10 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
 
   static const String companyName = 'Webdeventh Software Solutions';
   static const String developerName = 'Engr. Muhammad Rafiq (Webdeventh)';
-  static const String websiteUrl = 'https://webdeventh.com';
-  static const String phoneDisplay = '+92 300 1234567';
-  static const String phoneRaw = '923001234567';
+  static const String websiteUrl = 'https://webpixels.net';
+  static const String phoneDisplay = '+92 313 8437438';
+  static const String whatsappOnlyDisplay = '+92 320 1166949';
+  static const String whatsappOnlyRaw = '923201166949';
   static const String emailAddress = 'webdeventh@gmail.com';
   static const String appVersion =
       'v1.1.1 (Release 2026.11.23 - Enterprise Stable)';
@@ -80,9 +81,9 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
   void _openWhatsApp() {
     final businessName = widget.settings?.businessName ?? 'Our Business';
     final msg = Uri.encodeComponent(
-      'Hello Webdeventh Support! I am contacting you regarding Smart POS Enterprise for "$businessName" (Machine ID: $_machineId).',
+      'Hello Smart POS Support! I am contacting you regarding Smart POS Enterprise for "$businessName" (Machine ID: $_machineId).',
     );
-    final waUrl = 'https://wa.me/$phoneRaw?text=$msg';
+    final waUrl = 'https://wa.me/$whatsappOnlyRaw?text=$msg';
     _openUrl(waUrl);
   }
 
@@ -323,8 +324,8 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                               iconColor: const Color(0xFF25D366),
                               bgColor: const Color(0xFF25D366)
                                   .withValues(alpha: 0.1),
-                              title: 'WhatsApp Chat',
-                              subtitle: phoneDisplay,
+                              title: 'WhatsApp Only',
+                              subtitle: whatsappOnlyDisplay,
                               actionLabel: 'Chat Now',
                               onTap: _openWhatsApp,
                               isDark: isDark,
@@ -354,14 +355,14 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
 
                       Row(
                         children: [
-                          // Mobile Call
+                          // Mobile Call / WhatsApp
                           Expanded(
                             child: _contactTile(
                               icon: Icons.phone_in_talk_rounded,
                               iconColor: const Color(0xFF4F46E5),
                               bgColor: const Color(0xFF4F46E5)
                                   .withValues(alpha: 0.1),
-                              title: 'Helpline / Call',
+                              title: 'Phone / WhatsApp',
                               subtitle: phoneDisplay,
                               actionLabel: 'Copy Phone',
                               onTap: () {

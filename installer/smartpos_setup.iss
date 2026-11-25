@@ -4,7 +4,7 @@
 #define MyAppName "Smart POS Enterprise"
 #define MyAppVersion "1.1.1"
 #define MyAppPublisher "Webdeventh"
-#define MyAppURL "https://webdeventh.com"
+#define MyAppURL "https://webpixels.net"
 #define MyAppExeName "SmartPOS.exe"
 
 [Setup]

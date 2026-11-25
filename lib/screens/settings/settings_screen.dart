@@ -5850,7 +5850,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                               const SizedBox(height: 10),
                               Text(
                                 'Webdeventh Software Solutions (Engr. Muhammad Rafiq)\n'
-                                'Website: https://webdeventh.com  â€¢  WhatsApp: +92 300 1234567  â€¢  Email: webdeventh@gmail.com',
+                                'Website: https://webpixels.net  •  Phone / WhatsApp: +92 313 8437438  •  WhatsApp Only: +92 320 1166949  •  Email: webdeventh@gmail.com',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: isDark

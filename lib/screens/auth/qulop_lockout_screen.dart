@@ -450,7 +450,7 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                 // Vendor WhatsApp Assistance Help
                 Center(
                   child: Text(
-                    'Need a key or renewal? Contact software vendor via WhatsApp.',
+                    'Need a key or renewal? Visit webpixels.net  •  Phone / WhatsApp: +92 313 8437438  •  WhatsApp Only: +92 320 1166949',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.white.withValues(alpha: 0.6),

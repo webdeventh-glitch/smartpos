@@ -40,7 +40,7 @@ void main() {
     );
 
     await tester.runAsync(() async {
-      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await Future<void>.delayed(const Duration(milliseconds: 600));
     });
     await tester.pump();
 
@@ -69,7 +69,7 @@ void main() {
     // Click on POS button in Header (navigates to POS terminal Screenshot 2)
     await tester.tap(find.text('POS'));
     await tester.runAsync(() async {
-      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await Future<void>.delayed(const Duration(milliseconds: 600));
     });
     await tester.pump();
 
