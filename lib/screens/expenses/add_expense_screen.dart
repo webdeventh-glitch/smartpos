@@ -7,6 +7,7 @@ import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
 import '../../services/regional_data_service.dart';
 import '../../utils/currency_formatter.dart';
+import '../../widgets/searchable_select_dialog.dart';
 
 /// Full-page UltimatePOS-style Add / Edit Expense screen.
 class AddExpenseScreen extends StatefulWidget {
@@ -414,33 +415,22 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _gridRow([
-                                _fieldBlock(
-                                  'Business Location:*',
-                                  DropdownButtonFormField<int>(
-                                    initialValue: _locationId,
-                                    isExpanded: true,
-                                    decoration: _inputDeco(isDark),
-                                    items: _locations.isEmpty
-                                        ? [
-                                            const DropdownMenuItem(
-                                              value: 1,
-                                              child: Text('Main Branch HQ'),
-                                            )
-                                          ]
-                                        : _locations
-                                            .map((l) => DropdownMenuItem<int>(
-                                                  value: l.id ?? 1,
-                                                  child: Text(l.name,
-                                                      overflow: TextOverflow
-                                                          .ellipsis),
-                                                ))
-                                            .toList(),
-                                    onChanged: (v) {
-                                      if (v != null) {
-                                        setState(() => _locationId = v);
-                                      }
-                                    },
-                                  ),
+                                SearchableDropdownField<BusinessLocation>(
+                                  label: 'Business Location',
+                                  isRequired: true,
+                                  selectedItem: _locations
+                                      .where((l) => (l.id ?? 1) == _locationId)
+                                      .firstOrNull,
+                                  items: _locations,
+                                  labelBuilder: (l) => l.name,
+                                  placeholder: 'Main Branch HQ',
+                                  searchHint: 'Search branch/location...',
+                                  prefixIcon: Icons.location_on_outlined,
+                                  onChanged: (l) {
+                                    if (l != null) {
+                                      setState(() => _locationId = l.id ?? 1);
+                                    }
+                                  },
                                 ),
                                 _fieldBlock(
                                   'Expense Title:',
@@ -461,41 +451,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               ]),
                               const SizedBox(height: 16),
                               _gridRow([
-                                _fieldBlock(
-                                  'Expense Category:',
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: DropdownButtonFormField<String>(
-                                          initialValue: _selectedCategory,
-                                          isExpanded: true,
-                                          decoration: _inputDeco(isDark),
-                                          items: _categories
-                                              .map((c) => DropdownMenuItem(
-                                                    value: c,
-                                                    child: Text(c,
-                                                        overflow: TextOverflow
-                                                            .ellipsis),
-                                                  ))
-                                              .toList(),
-                                          onChanged: (v) {
-                                            if (v != null) {
-                                              setState(
-                                                  () => _selectedCategory = v);
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      IconButton(
-                                        tooltip: 'Add Category',
-                                        onPressed: _promptAddCategory,
-                                        icon: const Icon(
-                                            Icons.add_circle_outline,
-                                            color: Color(0xFF4F46E5)),
-                                      ),
-                                    ],
-                                  ),
+                                SearchableDropdownField<String>(
+                                  label: 'Expense Category',
+                                  selectedItem: _selectedCategory,
+                                  items: _categories,
+                                  labelBuilder: (c) => c,
+                                  placeholder: 'Select Category',
+                                  searchHint: 'Search expense category...',
+                                  prefixIcon: Icons.category_outlined,
+                                  onAdd: _promptAddCategory,
+                                  onChanged: (v) {
+                                    if (v != null) {
+                                      setState(() => _selectedCategory = v);
+                                    }
+                                  },
                                 ),
                                 _fieldBlock(
                                   'Sub category:',
@@ -536,64 +505,48 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                     ),
                                   ),
                                 ),
-                                _fieldBlock(
-                                  'Expense for:',
-                                  DropdownButtonFormField<String>(
-                                    initialValue: _expenseForUser.isEmpty
-                                        ? ''
-                                        : (_users.any((u) =>
-                                                u.name == _expenseForUser)
-                                            ? _expenseForUser
-                                            : ''),
-                                    isExpanded: true,
-                                    decoration: _inputDeco(isDark),
-                                    items: [
-                                      const DropdownMenuItem(
-                                          value: '', child: Text('None')),
-                                      ..._users.map((u) => DropdownMenuItem(
-                                            value: u.name,
-                                            child: Text(u.name,
-                                                overflow:
-                                                    TextOverflow.ellipsis),
-                                          )),
-                                    ],
-                                    onChanged: (v) => setState(
-                                        () => _expenseForUser = v ?? ''),
-                                  ),
+                                SearchableDropdownField<User>(
+                                  label: 'Expense for',
+                                  selectedItem: _expenseForUser.isEmpty
+                                      ? null
+                                      : _users
+                                          .where(
+                                              (u) => u.name == _expenseForUser)
+                                          .firstOrNull,
+                                  items: _users,
+                                  labelBuilder: (u) => u.name,
+                                  subtitleBuilder: (u) => u.role.toUpperCase(),
+                                  placeholder: 'None',
+                                  searchHint: 'Search staff/user...',
+                                  prefixIcon: Icons.person_outline_rounded,
+                                  allowClear: true,
+                                  clearLabel: 'None',
+                                  onChanged: (u) => setState(
+                                      () => _expenseForUser = u?.name ?? ''),
                                 ),
-                                _fieldBlock(
-                                  'Expense for contact:',
-                                  DropdownButtonFormField<int?>(
-                                    initialValue: _selectedContactId,
-                                    isExpanded: true,
-                                    decoration: _inputDeco(isDark),
-                                    items: [
-                                      const DropdownMenuItem<int?>(
-                                          value: null,
-                                          child: Text('Please Select')),
-                                      ..._contacts
-                                          .map((c) => DropdownMenuItem<int?>(
-                                                value: c.id,
-                                                child: Text(
-                                                  '${c.name} (${c.type})',
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              )),
-                                    ],
-                                    onChanged: (v) {
-                                      setState(() {
-                                        _selectedContactId = v;
-                                        _selectedContactName = v == null
-                                            ? ''
-                                            : (_contacts
-                                                    .where((c) => c.id == v)
-                                                    .map((c) => c.name)
-                                                    .firstOrNull ??
-                                                '');
-                                      });
-                                    },
-                                  ),
+                                SearchableDropdownField<Contact>(
+                                  label: 'Expense for contact',
+                                  selectedItem: _selectedContactId == null
+                                      ? null
+                                      : _contacts
+                                          .where(
+                                              (c) => c.id == _selectedContactId)
+                                          .firstOrNull,
+                                  items: _contacts,
+                                  labelBuilder: (c) => c.name,
+                                  subtitleBuilder: (c) =>
+                                      '${c.type.toUpperCase()} • ${c.phone}',
+                                  placeholder: 'Please Select',
+                                  searchHint: 'Search customer/supplier...',
+                                  prefixIcon: Icons.contacts_outlined,
+                                  allowClear: true,
+                                  clearLabel: 'Please Select',
+                                  onChanged: (c) {
+                                    setState(() {
+                                      _selectedContactId = c?.id;
+                                      _selectedContactName = c?.name ?? '';
+                                    });
+                                  },
                                 ),
                               ]),
                               const SizedBox(height: 16),
@@ -659,37 +612,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                   helperText:
                                       'Max File size: 5MB • Allowed: .pdf, .csv, .zip, .doc, .docx, .jpeg, .jpg, .png',
                                 ),
-                                _fieldBlock(
-                                  'Applicable Tax:',
-                                  DropdownButtonFormField<String>(
-                                    initialValue: _selectedTaxName,
-                                    isExpanded: true,
-                                    decoration: _inputDeco(isDark),
-                                    items: [
-                                      const DropdownMenuItem(
-                                          value: 'None', child: Text('None')),
-                                      ..._taxRates.map((t) => DropdownMenuItem(
-                                            value: t.name,
-                                            child: Text(
-                                                '${t.name} (${t.amount}%)',
-                                                overflow:
-                                                    TextOverflow.ellipsis),
-                                          )),
-                                    ],
-                                    onChanged: (v) {
-                                      setState(() {
-                                        _selectedTaxName = v ?? 'None';
-                                        _selectedTaxRate = v == null ||
-                                                v == 'None'
-                                            ? 0.0
-                                            : (_taxRates
-                                                    .where((t) => t.name == v)
-                                                    .map((t) => t.amount)
-                                                    .firstOrNull ??
-                                                0.0);
-                                      });
-                                    },
-                                  ),
+                                SearchableDropdownField<TaxRate>(
+                                  label: 'Applicable Tax',
+                                  selectedItem: _selectedTaxName == 'None'
+                                      ? null
+                                      : _taxRates
+                                          .where(
+                                              (t) => t.name == _selectedTaxName)
+                                          .firstOrNull,
+                                  items: _taxRates,
+                                  labelBuilder: (t) =>
+                                      '${t.name} (${t.amount}%)',
+                                  placeholder: 'None',
+                                  searchHint: 'Search tax rate...',
+                                  prefixIcon: Icons.percent_rounded,
+                                  allowClear: true,
+                                  clearLabel: 'None',
+                                  onChanged: (t) {
+                                    setState(() {
+                                      _selectedTaxName = t?.name ?? 'None';
+                                      _selectedTaxRate = t?.amount ?? 0.0;
+                                    });
+                                  },
                                 ),
                                 _fieldBlock(
                                   'Total amount:*',
@@ -918,26 +862,25 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                 const SizedBox(height: 14),
                                 SizedBox(
                                   width: 480,
-                                  child: _fieldBlock(
-                                    'Payment Method:*',
-                                    DropdownButtonFormField<String>(
-                                      initialValue: _paymentMethod,
-                                      decoration: _inputDeco(isDark),
-                                      items: const [
-                                        'Cash',
-                                        'Bank Transfer',
-                                        'Card / POS',
-                                        'Cheque',
-                                      ]
-                                          .map((m) => DropdownMenuItem(
-                                              value: m, child: Text(m)))
-                                          .toList(),
-                                      onChanged: (v) {
-                                        if (v != null) {
-                                          setState(() => _paymentMethod = v);
-                                        }
-                                      },
-                                    ),
+                                  child: SearchableDropdownField<String>(
+                                    label: 'Payment Method',
+                                    isRequired: true,
+                                    selectedItem: _paymentMethod,
+                                    items: const [
+                                      'Cash',
+                                      'Bank Transfer',
+                                      'Card / POS',
+                                      'Cheque',
+                                    ],
+                                    labelBuilder: (m) => m,
+                                    placeholder: 'Cash',
+                                    searchHint: 'Search payment method...',
+                                    prefixIcon: Icons.payments_outlined,
+                                    onChanged: (v) {
+                                      if (v != null) {
+                                        setState(() => _paymentMethod = v);
+                                      }
+                                    },
                                   ),
                                 ),
                                 const SizedBox(height: 14),
