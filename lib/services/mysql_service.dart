@@ -1616,11 +1616,29 @@ class MySqlService {
     await conn.execute('''
       CREATE TABLE IF NOT EXISTS `expenses` (
         `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `location_id` INT DEFAULT 1,
+        `title` VARCHAR(255) DEFAULT '',
+        `payment_to` VARCHAR(255) DEFAULT '',
         `category` VARCHAR(150) NOT NULL,
+        `sub_category` VARCHAR(150) DEFAULT '',
         `amount` DECIMAL(12,2) NOT NULL,
+        `paid_amount` DECIMAL(12,2) NULL,
+        `payment_status` VARCHAR(30) DEFAULT 'paid',
         `ref_no` VARCHAR(100) NULL,
         `note` TEXT NULL,
         `date` VARCHAR(50) NOT NULL,
+        `payment_method` VARCHAR(50) DEFAULT 'cash',
+        `expense_for_user` VARCHAR(150) DEFAULT '',
+        `contact_id` INT NULL,
+        `contact_name` VARCHAR(255) DEFAULT '',
+        `tax_rate` DECIMAL(8,2) DEFAULT 0.00,
+        `tax_name` VARCHAR(100) DEFAULT '',
+        `document_path` TEXT NULL,
+        `is_refund` TINYINT(1) DEFAULT 0,
+        `is_recurring` TINYINT(1) DEFAULT 0,
+        `recurring_interval` INT DEFAULT 0,
+        `recurring_unit` VARCHAR(20) DEFAULT 'Days',
+        `recurring_repetitions` INT NULL,
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB;
     ''');
@@ -2107,6 +2125,41 @@ class MySqlService {
         'total_in_words_language', "VARCHAR(20) DEFAULT 'en'");
     await _addMySqlColumnIfMissing(conn, 'business_settings',
         'show_total_in_words', 'TINYINT(1) DEFAULT 1');
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'location_id', 'INT DEFAULT 1');
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'title', "VARCHAR(255) DEFAULT ''");
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'payment_to', "VARCHAR(255) DEFAULT ''");
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'sub_category', "VARCHAR(150) DEFAULT ''");
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'paid_amount', 'DECIMAL(12,2) NULL');
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'payment_status', "VARCHAR(30) DEFAULT 'paid'");
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'payment_method', "VARCHAR(50) DEFAULT 'cash'");
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'expense_for_user', "VARCHAR(150) DEFAULT ''");
+    await _addMySqlColumnIfMissing(conn, 'expenses', 'contact_id', 'INT NULL');
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'contact_name', "VARCHAR(255) DEFAULT ''");
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'tax_rate', 'DECIMAL(8,2) DEFAULT 0.00');
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'tax_name', "VARCHAR(100) DEFAULT ''");
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'document_path', 'TEXT NULL');
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'is_refund', 'TINYINT(1) DEFAULT 0');
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'is_recurring', 'TINYINT(1) DEFAULT 0');
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'recurring_interval', 'INT DEFAULT 0');
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'recurring_unit', "VARCHAR(20) DEFAULT 'Days'");
+    await _addMySqlColumnIfMissing(
+        conn, 'expenses', 'recurring_repetitions', 'INT NULL');
   }
 
   static Future<void> _seedSettings(

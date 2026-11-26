@@ -198,6 +198,44 @@ class DatabaseSchema {
         'default_barcode_type_setting',
       );
     }
+    if (fromVersion < 16 && toVersion >= 16) {
+      await _applyV16UltimatePosExpenses(db);
+      await _recordMigration(
+        db,
+        16,
+        'ultimate_pos_expenses_parity',
+      );
+    }
+  }
+
+  static Future<void> _applyV16UltimatePosExpenses(Database db) async {
+    await _addColumnIfMissing(
+        db, 'expenses', 'location_id', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'expenses', 'title', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'expenses', 'payment_to', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'expenses', 'sub_category', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'expenses', 'paid_amount', 'REAL');
+    await _addColumnIfMissing(
+        db, 'expenses', 'payment_status', "TEXT DEFAULT 'paid'");
+    await _addColumnIfMissing(
+        db, 'expenses', 'expense_for_user', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'expenses', 'contact_id', 'INTEGER');
+    await _addColumnIfMissing(
+        db, 'expenses', 'contact_name', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'expenses', 'tax_rate', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(db, 'expenses', 'tax_name', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'expenses', 'document_path', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'expenses', 'is_refund', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'expenses', 'is_recurring', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'expenses', 'recurring_interval', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'expenses', 'recurring_unit', "TEXT DEFAULT 'Days'");
+    await _addColumnIfMissing(
+        db, 'expenses', 'recurring_repetitions', 'INTEGER');
   }
 
   static Future<void> _applyV15DefaultBarcodeType(Database db) async {
@@ -3326,12 +3364,29 @@ class DatabaseSchema {
     await db.execute('''
       CREATE TABLE expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        location_id INTEGER DEFAULT 1,
+        title TEXT DEFAULT '',
+        payment_to TEXT DEFAULT '',
         category TEXT NOT NULL,
+        sub_category TEXT DEFAULT '',
         amount REAL NOT NULL,
+        paid_amount REAL,
+        payment_status TEXT DEFAULT 'paid',
         ref_no TEXT,
         note TEXT,
         date TEXT NOT NULL,
-        payment_method TEXT DEFAULT 'cash'
+        payment_method TEXT DEFAULT 'cash',
+        expense_for_user TEXT DEFAULT '',
+        contact_id INTEGER,
+        contact_name TEXT DEFAULT '',
+        tax_rate REAL DEFAULT 0.0,
+        tax_name TEXT DEFAULT '',
+        document_path TEXT DEFAULT '',
+        is_refund INTEGER DEFAULT 0,
+        is_recurring INTEGER DEFAULT 0,
+        recurring_interval INTEGER DEFAULT 0,
+        recurring_unit TEXT DEFAULT 'Days',
+        recurring_repetitions INTEGER
       )
     ''');
 

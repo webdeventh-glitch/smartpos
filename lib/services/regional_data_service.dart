@@ -1307,6 +1307,40 @@ if (\$dialog.ShowDialog(\$form) -eq [System.Windows.Forms.DialogResult]::OK) {
     }
   }
 
+  /// Picks an expense attachment document (max 5 MB) and copies it into
+  /// `%LOCALAPPDATA%/SmartPOS/expense_documents/`.
+  static Future<String?> pickExpenseDocument() async {
+    try {
+      final pickedPath = await _runNativeDialog(
+        title: 'Attach Document (PDF, CSV, ZIP, DOC, DOCX, JPG, PNG)',
+        filter:
+            'Allowed Files (*.pdf;*.csv;*.zip;*.doc;*.docx;*.jpeg;*.jpg;*.png)|*.pdf;*.csv;*.zip;*.doc;*.docx;*.jpeg;*.jpg;*.png|All Files (*.*)|*.*',
+      );
+      if (pickedPath == null) return null;
+      final src = File(pickedPath);
+      if (!await src.exists()) return null;
+      final size = await src.length();
+      if (size > 5 * 1024 * 1024) {
+        throw Exception('File size exceeds 5 MB limit.');
+      }
+      final base = Platform.environment['LOCALAPPDATA'] ??
+          Platform.environment['APPDATA'] ??
+          Directory.current.path;
+      final dir = Directory(p.join(base, 'SmartPOS', 'expense_documents'));
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      final ext = p.extension(pickedPath);
+      final dest =
+          p.join(dir.path, 'exp_${DateTime.now().millisecondsSinceEpoch}$ext');
+      await src.copy(dest);
+      return dest;
+    } catch (e) {
+      debugPrint('Error picking expense document: $e');
+      rethrow;
+    }
+  }
+
   /// Opens native Windows file dialog to pick an invoice or payment receipt document (.pdf, .jpg, .png, .csv, .doc, .zip)
   static Future<String?> pickPaymentDocument() async {
     try {

@@ -18,7 +18,7 @@ class DatabaseService {
   final String? dbFilePath;
   DatabaseService(this.db, {this.dbFilePath});
 
-  static const int currentSchemaVersion = 15;
+  static const int currentSchemaVersion = 16;
   static DatabaseService? _instance;
   static DatabaseService? get instanceOrNull => _instance;
   static DatabaseService get instance =>
@@ -619,7 +619,37 @@ class DatabaseService {
   Future<List<ContactPayment>> getContactPayments(int contactId) =>
       contactsRepo.getContactPayments(contactId);
   Future<List<Expense>> getExpenses() => expenseRepo.getExpenses();
-  Future<int> addExpense(Expense expense) => expenseRepo.addExpense(expense);
+  Future<int> addExpense(
+    Expense expense, {
+    String paymentNote = '',
+    String accountName = 'Cash Register',
+  }) =>
+      expenseRepo.addExpense(
+        expense,
+        paymentNote: paymentNote,
+        accountName: accountName,
+      );
+  Future<void> updateExpense(Expense expense) =>
+      expenseRepo.updateExpense(expense);
+  Future<void> deleteExpense(int id) => expenseRepo.deleteExpense(id);
+  Future<void> recordExpensePayment({
+    required int expenseId,
+    required double amount,
+    required String paymentMethod,
+    required String paidOn,
+    String note = '',
+    String accountName = 'Cash Register',
+  }) =>
+      expenseRepo.recordExpensePayment(
+        expenseId: expenseId,
+        amount: amount,
+        paymentMethod: paymentMethod,
+        paidOn: paidOn,
+        note: note,
+        accountName: accountName,
+      );
+  Future<List<Map<String, dynamic>>> getExpensePayments(int expenseId) =>
+      expenseRepo.getExpensePayments(expenseId);
   Future<String> generateNextAccountTransferRef() =>
       accountingRepo.generateNextAccountTransferRef();
   Future<List<PaymentAccount>> getPaymentAccounts() =>
