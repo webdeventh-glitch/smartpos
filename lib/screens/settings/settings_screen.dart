@@ -180,7 +180,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _showWarrantyOnInvoice = true;
   bool _showTotalInWords = true;
   String _primaryLanguage = 'en';
-  String _totalInWordsLanguage = 'ur';
+  String _totalInWordsLanguage = 'en';
   bool _enableSecondaryLanguage = false;
   String _secondaryLanguage = 'ur';
   late TextEditingController _invoiceHeadingCtrl;
@@ -322,9 +322,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     _showWarrantyOnInvoice = s.showWarrantyOnInvoice;
     _showTotalInWords = s.showTotalInWords;
     _primaryLanguage = s.primaryLanguage.isNotEmpty ? s.primaryLanguage : 'en';
-    _totalInWordsLanguage = s.totalInWordsLanguage.isNotEmpty
-        ? s.totalInWordsLanguage
-        : (_primaryLanguage == 'en' ? 'en' : _primaryLanguage);
+    _totalInWordsLanguage = _primaryLanguage;
     _enableSecondaryLanguage =
         s.isSecondaryLanguageAllowed ? s.enableSecondaryLanguage : false;
     _secondaryLanguage =
@@ -8643,7 +8641,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          'Primary (${_totalInWordsLanguage.toUpperCase()}): ${NumberToWordsService.convert(3650.0, language: _totalInWordsLanguage, currencySymbol: _currencySymCtrl.text.trim(), currencyCode: _currencyCodeCtrl.text.trim())}',
+                          'Primary (${_primaryLanguage.toUpperCase()}): ${NumberToWordsService.convert(3650.0, language: _primaryLanguage, currencySymbol: _currencySymCtrl.text.trim(), currencyCode: _currencyCodeCtrl.text.trim())}',
                           style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -10001,7 +9999,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         if (_showTotalInWords) ...[
           const SizedBox(height: 2),
           Text(
-            'Words: ${NumberToWordsService.convert(1850.0, language: _totalInWordsLanguage, currencySymbol: _currencySymCtrl.text)}',
+            'Words: ${NumberToWordsService.convert(1850.0, language: _primaryLanguage, currencySymbol: _currencySymCtrl.text)}',
             style: const TextStyle(
                 fontFamily: 'monospace',
                 fontStyle: FontStyle.italic,

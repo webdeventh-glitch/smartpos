@@ -279,7 +279,7 @@ class _RecordContactPaymentDialogState
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cur = widget.settings.currencySymbol;
     final curCode = widget.settings.currencyCode;
-    final wordsLang = widget.settings.totalInWordsLanguage;
+    final wordsLang = widget.settings.activePrimaryLanguage;
 
     final parsedAmount = double.tryParse(_amountCtrl.text.trim()) ?? 0.0;
     final amountWords = NumberToWordsService.convert(

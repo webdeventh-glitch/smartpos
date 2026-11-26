@@ -198,7 +198,7 @@ class BusinessSettings {
     this.showWarrantyOnInvoice = true,
     this.showTotalInWords = true,
     this.primaryLanguage = 'en',
-    this.totalInWordsLanguage = 'ur',
+    this.totalInWordsLanguage = 'en',
     this.enableSecondaryLanguage = false,
     this.secondaryLanguage = 'ur',
     this.invoiceHeading = 'TAX INVOICE',
@@ -1256,8 +1256,10 @@ class BusinessSettings {
             modelAsBool(map['show_warranty_on_invoice'], true),
         showTotalInWords: modelAsBool(map['show_total_in_words'], true),
         primaryLanguage: modelAsString(map['primary_language'], 'en'),
-        totalInWordsLanguage:
-            modelAsString(map['total_in_words_language'], 'ur'),
+        totalInWordsLanguage: modelAsString(
+          map['total_in_words_language'],
+          modelAsString(map['primary_language'], 'en'),
+        ),
         enableSecondaryLanguage:
             modelAsBool(map['enable_secondary_language'], false),
         secondaryLanguage: modelAsString(map['secondary_language'], 'ur'),

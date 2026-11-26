@@ -171,9 +171,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   @override
   void initState() {
     super.initState();
-    _wordsLanguage = widget.settings.totalInWordsLanguage.isNotEmpty
-        ? widget.settings.totalInWordsLanguage
-        : 'ur';
+    _wordsLanguage = widget.settings.hasEffectiveSecondaryLanguage
+        ? widget.settings.secondaryLanguage
+        : widget.settings.activePrimaryLanguage;
     _showProductPanel = widget.settings.showPosProductPanel;
     _shortcutsJson = widget.settings.keyboardShortcutsJson;
     _shortcutBindings =
@@ -253,13 +253,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         oldWidget.settings.serverPort != widget.settings.serverPort) {
       unawaited(LanRealtimeService.instance.configure(widget.settings));
     }
-    if (oldWidget.settings.totalInWordsLanguage !=
-        widget.settings.totalInWordsLanguage) {
-      if (widget.settings.totalInWordsLanguage.isNotEmpty) {
-        setState(() {
-          _wordsLanguage = widget.settings.totalInWordsLanguage;
-        });
-      }
+    if (oldWidget.settings.primaryLanguage != widget.settings.primaryLanguage ||
+        oldWidget.settings.enableSecondaryLanguage !=
+            widget.settings.enableSecondaryLanguage ||
+        oldWidget.settings.secondaryLanguage !=
+            widget.settings.secondaryLanguage) {
+      setState(() {
+        _wordsLanguage = widget.settings.hasEffectiveSecondaryLanguage
+            ? widget.settings.secondaryLanguage
+            : widget.settings.activePrimaryLanguage;
+      });
     }
   }
 

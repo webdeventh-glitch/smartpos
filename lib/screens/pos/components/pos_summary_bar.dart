@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../models/models.dart';
 import '../../../services/number_to_words_service.dart';
 import '../../../services/localization_service.dart';
+import '../../../utils/currency_formatter.dart';
 
 /// Clean modular widget representing the bottom cart summary breakdown
 /// (items, subtotal, discount, tax, shipping, grand total payable)
@@ -166,7 +167,8 @@ class PosSummaryBar extends StatelessWidget {
                         SizedBox(width: isSmallScreen ? 8 : 14),
                         _summaryBlock(
                           PosLocalization.tr('SUBTOTAL', settings: settings),
-                          '$currency ${subtotal.toStringAsFixed(2)}',
+                          CurrencyFormatter.exact(subtotal,
+                              currency: '$currency '),
                           isDark: isDark,
                           isSmall: isSmallScreen,
                         ),
@@ -176,8 +178,9 @@ class PosSummaryBar extends StatelessWidget {
                           discountValue <= 0
                               ? '$currency 0.00'
                               : (discountType == 'percentage'
-                                  ? '${discountValue.toStringAsFixed(discountValue.truncateToDouble() == discountValue ? 0 : 2)}% ($currency ${calculatedDiscount.toStringAsFixed(2)})'
-                                  : '$currency ${calculatedDiscount.toStringAsFixed(2)}'),
+                                  ? '${discountValue.toStringAsFixed(discountValue.truncateToDouble() == discountValue ? 0 : 2)}% (${CurrencyFormatter.exact(calculatedDiscount, currency: '$currency ')})'
+                                  : CurrencyFormatter.exact(calculatedDiscount,
+                                      currency: '$currency ')),
                           isEditable: true,
                           onEdit: onEditDiscount,
                           isDark: isDark,
@@ -187,7 +190,8 @@ class PosSummaryBar extends StatelessWidget {
                         _summaryBlock(
                           PosLocalization.tr('ORDER TAX(+)',
                               settings: settings),
-                          '$currency ${orderTax.toStringAsFixed(2)}',
+                          CurrencyFormatter.exact(orderTax,
+                              currency: '$currency '),
                           isEditable: true,
                           onEdit: onEditTax,
                           isDark: isDark,
@@ -196,7 +200,8 @@ class PosSummaryBar extends StatelessWidget {
                         SizedBox(width: isSmallScreen ? 8 : 14),
                         _summaryBlock(
                           PosLocalization.tr('SHIPPING(+)', settings: settings),
-                          '$currency ${shippingCharge.toStringAsFixed(2)}',
+                          CurrencyFormatter.exact(shippingCharge,
+                              currency: '$currency '),
                           isEditable: true,
                           onEdit: onEditShipping,
                           isDark: isDark,
@@ -267,7 +272,7 @@ class PosSummaryBar extends StatelessWidget {
                             ],
                           ),
                           Text(
-                            grandTotal.toStringAsFixed(2),
+                            CurrencyFormatter.exact(grandTotal),
                             style: TextStyle(
                               fontSize: isSmallScreen ? 20 : 26,
                               fontWeight: FontWeight.w900,
