@@ -8914,48 +8914,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                     const SizedBox(
                                                                         width:
                                                                             6),
-                                                                    // Dedicated "Search (F3)" badge button
-                                                                    Container(
-                                                                      padding: const EdgeInsets
-                                                                          .symmetric(
-                                                                          horizontal:
-                                                                              8,
-                                                                          vertical:
-                                                                              3),
-                                                                      decoration:
-                                                                          BoxDecoration(
-                                                                        color: isDark
-                                                                            ? const Color(0xFF312E81)
-                                                                            : const Color(0xFFEEF2FF),
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(4),
-                                                                        border: Border.all(
-                                                                            color: isDark
-                                                                                ? const Color(0xFF4338CA)
-                                                                                : const Color(0xFFC7D2FE)),
-                                                                      ),
-                                                                      child:
-                                                                          Row(
-                                                                        mainAxisSize:
-                                                                            MainAxisSize.min,
-                                                                        children: [
-                                                                          Icon(
-                                                                              Icons.search,
-                                                                              size: 12,
-                                                                              color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
-                                                                          const SizedBox(
-                                                                              width: 4),
-                                                                          Text(
-                                                                            PosLocalization.tr('Search (F3)',
-                                                                                settings: widget.settings),
-                                                                            style: TextStyle(
-                                                                                fontSize: 10.5,
-                                                                                fontWeight: FontWeight.bold,
-                                                                                color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                    ),
                                                                     const SizedBox(
                                                                         width:
                                                                             4),
@@ -9082,40 +9040,23 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                             : borderColor,
                                                                       ),
                                                                     ),
-                                                                    child: Row(
-                                                                      mainAxisSize:
-                                                                          MainAxisSize
-                                                                              .min,
-                                                                      children: [
-                                                                        Icon(
-                                                                          _customWalkInNameCtrl.text.trim().isNotEmpty
-                                                                              ? Icons.badge
-                                                                              : Icons.badge_outlined,
-                                                                          size:
-                                                                              13,
-                                                                          color: _customWalkInNameCtrl.text.trim().isNotEmpty
-                                                                              ? const Color(0xFF10B981)
-                                                                              : textSecondary,
-                                                                        ),
-                                                                        const SizedBox(
-                                                                            width:
-                                                                                4),
-                                                                        Text(
-                                                                          _customWalkInNameCtrl.text.trim().isNotEmpty
-                                                                              ? _customWalkInNameCtrl.text.trim()
-                                                                              : '+ Bill Name',
-                                                                          style:
-                                                                              TextStyle(
-                                                                            fontSize:
-                                                                                10.5,
-                                                                            fontWeight:
-                                                                                FontWeight.bold,
-                                                                            color: _customWalkInNameCtrl.text.trim().isNotEmpty
-                                                                                ? const Color(0xFF10B981)
-                                                                                : textSecondary,
-                                                                          ),
-                                                                        ),
-                                                                      ],
+                                                                    child: Icon(
+                                                                      _customWalkInNameCtrl
+                                                                              .text
+                                                                              .trim()
+                                                                              .isNotEmpty
+                                                                          ? Icons
+                                                                              .badge
+                                                                          : Icons
+                                                                              .badge_outlined,
+                                                                      size: 15,
+                                                                      color: _customWalkInNameCtrl
+                                                                              .text
+                                                                              .trim()
+                                                                              .isNotEmpty
+                                                                          ? const Color(
+                                                                              0xFF10B981)
+                                                                          : textSecondary,
                                                                     ),
                                                                   ),
                                                                 ),
@@ -9312,7 +9253,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                     },
                                                     child: Container(
                                                       width: 38,
-                                                      height: 38,
+                                                      height: 40,
                                                       decoration: BoxDecoration(
                                                         color: isDark
                                                             ? const Color(
