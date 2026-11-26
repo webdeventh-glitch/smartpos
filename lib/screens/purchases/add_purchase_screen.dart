@@ -2821,7 +2821,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                   Icon(Icons.add_circle_outline_rounded,
                       size: 14, color: Color(0xFF4F46E5)),
                   SizedBox(width: 4),
-                  Text('+ Add Supplier',
+                  Text('Add Supplier',
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
