@@ -8809,7 +8809,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                     Row(
                                       children: [
                                         Expanded(
-                                          flex: 1,
+                                          flex: 4,
                                           child: Row(
                                             children: [
                                               // Customer Selector with Live Search (F3) - Expanded
@@ -9289,7 +9289,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                         if (!isTabletCompact) ...[
                                           const SizedBox(width: 10),
                                           Expanded(
-                                            flex: 2,
+                                            flex: 6,
                                             child: _buildBarcodeSearchRow(
                                               isDark: isDark,
                                               inputBg: inputBg,
