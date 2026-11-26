@@ -617,7 +617,7 @@ class BusinessSettings {
           presetMobileElectronics
         ];
       case 'solar':
-        return [...base, moduleRepair, moduleVariations, presetSolarHardware];
+        return [...base, moduleVariations, presetSolarHardware];
       case 'clothing':
       case 'garments':
         return [...base, moduleVariations];
