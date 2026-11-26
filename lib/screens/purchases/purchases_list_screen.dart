@@ -793,7 +793,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                               1.4), // PAID AMOUNT
                                           8: FlexColumnWidth(
                                               1.2), // BALANCE DUE
-                                          9: FlexColumnWidth(1.25), // ACTIONS
+                                          9: FixedColumnWidth(112), // ACTIONS
                                         },
                                         defaultVerticalAlignment:
                                             TableCellVerticalAlignment.middle,
@@ -1266,33 +1266,37 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                 PosLocalization.tr('Update Status'), isDark),
           ),
       ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0F9FF),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: const Color(0xFF0284C7).withValues(alpha: 0.65),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0F9FF),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: const Color(0xFF0284C7).withValues(alpha: 0.65),
+            ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              PosLocalization.tr('Actions'),
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                PosLocalization.tr('Actions'),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0284C7),
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(
+                Icons.arrow_drop_down_rounded,
+                size: 16,
                 color: Color(0xFF0284C7),
               ),
-            ),
-            const SizedBox(width: 2),
-            const Icon(
-              Icons.arrow_drop_down_rounded,
-              size: 16,
-              color: Color(0xFF0284C7),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
