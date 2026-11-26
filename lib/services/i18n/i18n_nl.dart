@@ -1756,4 +1756,6 @@ const Map<String, String> i18nExtraNl = {
   '● LIVE LEDGER AUDIT': '● Live Grootboek Audit',
   'Expirable Product (Track Expiry Date)':
       'Houdbaarheidsproduct (Vervaldatum bijhouden)',
+  'Edit Purchase': 'Inkoop bewerken',
+  'Update Purchase Invoice': 'Inkoopfactuur bijwerken',
 };

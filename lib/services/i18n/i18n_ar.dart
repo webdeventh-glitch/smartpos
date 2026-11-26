@@ -1732,4 +1732,6 @@ const Map<String, String> i18nExtraAr = {
   '● LIVE LEDGER AUDIT': '● مباشر دفتر الأستاذ تدقيق',
   'Expirable Product (Track Expiry Date)':
       'منتج قابل للانتهاء (تتبع تاريخ الانتهاء)',
+  'Edit Purchase': 'تعديل الشراء',
+  'Update Purchase Invoice': 'تحديث فاتورة الشراء',
 };

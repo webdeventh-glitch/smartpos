@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -188,6 +189,100 @@ void main() {
       expect(find.text('Browse Catalog'), findsOneWidget);
       expect(find.text('Save Purchase Invoice'), findsOneWidget);
       expect(find.text('Save & Print GRN (F2)'), findsOneWidget);
+    });
+
+    test('updatePurchase atomically adjusts stock, supplier balance, and items',
+        () async {
+      final dbService =
+          await DatabaseService.initialize(customPath: inMemoryDatabasePath);
+      final supplierId = await dbService.addContact(
+        Contact(
+          name: 'Solar Vendor',
+          type: 'supplier',
+          phone: '03001112233',
+          balance: 0.0,
+        ),
+      );
+      final prodId = await dbService.addProduct(
+        Product(
+          name: '550W Solar Panel',
+          sku: 'SOLAR-550',
+          barcode: 'SOLAR-550',
+          categoryName: 'Solar',
+          purchasePrice: 20000.0,
+          sellingPrice: 23000.0,
+          stockQuantity: 10.0,
+        ),
+      );
+
+      final initialItems = [
+        {
+          'product_id': prodId,
+          'product_name': '550W Solar Panel',
+          'sku': 'SOLAR-550',
+          'quantity': 5.0,
+          'bonus_quantity': 0.0,
+          'unit_cost_before_discount': 20000.0,
+          'discount_percent': 0.0,
+          'purchase_price': 20000.0,
+          'profit_margin': 15.0,
+          'selling_price': 23000.0,
+          'subtotal': 100000.0,
+        }
+      ];
+
+      final purchaseId = await dbService.createPurchase(
+        purchase: Purchase(
+          refNo: 'PO-EDIT-01',
+          supplierId: supplierId,
+          supplierName: 'Solar Vendor',
+          totalAmount: 100000.0,
+          paidAmount: 40000.0,
+          status: 'received',
+          paymentStatus: 'partial',
+          createdAt: '2026-11-26 09:00:00',
+          itemsJson: jsonEncode(initialItems),
+        ),
+        items: initialItems,
+      );
+
+      var prod =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      expect(prod.stockQuantity, 15.0);
+      var sup = (await dbService.getContacts(type: 'supplier'))
+          .firstWhere((c) => c.id == supplierId);
+      expect(sup.balance, 60000.0);
+
+      // Edit purchase: fix mistaken stock count from 5 -> 12
+      final updatedItems = [
+        {
+          ...initialItems.first,
+          'quantity': 12.0,
+          'subtotal': 240000.0,
+        }
+      ];
+      final ok = await dbService.updatePurchase(
+        purchase: Purchase(
+          id: purchaseId,
+          refNo: 'PO-EDIT-01',
+          supplierId: supplierId,
+          supplierName: 'Solar Vendor',
+          totalAmount: 240000.0,
+          paidAmount: 100000.0,
+          status: 'received',
+          paymentStatus: 'partial',
+          createdAt: '2026-11-26 09:00:00',
+          itemsJson: jsonEncode(updatedItems),
+        ),
+        items: updatedItems,
+      );
+      expect(ok, isTrue);
+
+      prod = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      expect(prod.stockQuantity, 22.0); // 10 initial + 12 updated
+      sup = (await dbService.getContacts(type: 'supplier'))
+          .firstWhere((c) => c.id == supplierId);
+      expect(sup.balance, 140000.0); // 240000 - 100000
     });
   });
 }

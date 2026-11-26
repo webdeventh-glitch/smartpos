@@ -575,6 +575,20 @@ class DatabaseService {
         bankName: bankName,
         chequeDueDate: chequeDueDate,
       );
+  Future<bool> updatePurchase({
+    required Purchase purchase,
+    required List<Map<String, dynamic>> items,
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
+  }) =>
+      purchaseRepo.updatePurchase(
+        purchase: purchase,
+        items: items,
+        chequeNumber: chequeNumber,
+        bankName: bankName,
+        chequeDueDate: chequeDueDate,
+      );
   Future<bool> updatePurchaseStatus(int purchaseId, String newStatus) =>
       purchaseRepo.updatePurchaseStatus(purchaseId, newStatus);
   Future<bool> deletePurchase(int purchaseId) =>

@@ -1732,4 +1732,6 @@ const Map<String, String> i18nExtraUr = {
   '● LIVE LEDGER AUDIT': '● لائیو کھاتہ آڈٹ',
   'Expirable Product (Track Expiry Date)':
       'ایکسپائر ہونے والی پروڈکٹ (ایکسپائری ٹریک کریں)',
+  'Edit Purchase': 'خریداری میں ترمیم کریں',
+  'Update Purchase Invoice': 'خریداری کا بل اپ ڈیٹ کریں',
 };

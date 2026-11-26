@@ -1755,4 +1755,6 @@ const Map<String, String> i18nExtraEs = {
   '● LIVE LEDGER AUDIT': '● En vivo Libro mayor Auditoría',
   'Expirable Product (Track Expiry Date)':
       'Producto perecedero (Rastrear fecha de vencimiento)',
+  'Edit Purchase': 'Editar compra',
+  'Update Purchase Invoice': 'Actualizar factura de compra',
 };

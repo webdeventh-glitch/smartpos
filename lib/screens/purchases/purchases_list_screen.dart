@@ -1010,7 +1010,38 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                               .currentUser
                                                               ?.hasPermission(
                                                                   'purchase.edit') ??
-                                                          true)
+                                                          true) ...[
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                            Icons.edit_rounded,
+                                                            size: 19,
+                                                            color: Color(
+                                                                0xFF004EEB),
+                                                          ),
+                                                          tooltip:
+                                                              PosLocalization.tr(
+                                                                  'Edit Purchase'),
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    context)
+                                                                .push(
+                                                              MaterialPageRoute(
+                                                                builder: (_) =>
+                                                                    Scaffold(
+                                                                  body:
+                                                                      AddPurchaseScreen(
+                                                                    settings: widget
+                                                                        .settings,
+                                                                    purchaseToEdit:
+                                                                        p,
+                                                                    onPurchaseSaved:
+                                                                        _load,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            );
+                                                          },
+                                                        ),
                                                         IconButton(
                                                           icon: const Icon(
                                                             Icons
@@ -1026,6 +1057,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                               _openUpdateStatusDialog(
                                                                   p),
                                                         ),
+                                                      ],
                                                       IconButton(
                                                         icon: Icon(
                                                           Icons.print_outlined,

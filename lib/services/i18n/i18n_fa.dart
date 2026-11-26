@@ -1733,4 +1733,6 @@ const Map<String, String> i18nExtraFa = {
   '● LIVE LEDGER AUDIT': '● زنده دفتر کل حسابرسی',
   'Expirable Product (Track Expiry Date)':
       'محصول دارای انقضا (ردیابی تاریخ انقضا)',
+  'Edit Purchase': 'ویرایش خرید',
+  'Update Purchase Invoice': 'به‌روزرسانی فاکتور خرید',
 };

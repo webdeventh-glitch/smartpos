@@ -5,6 +5,8 @@ import 'base_repository.dart';
 abstract class IPurchaseRepository {
   Future<int> createPurchase(
       {required Purchase purchase, required List<Map<String, dynamic>> items});
+  Future<bool> updatePurchase(
+      {required Purchase purchase, required List<Map<String, dynamic>> items});
   Future<List<Purchase>> getPurchases();
   Future<PagedResult<Purchase>> getPurchasesPaged({
     String? status,
@@ -111,6 +113,7 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
   }
 
   @override
+  @override
   Future<int> createPurchase({
     required Purchase purchase,
     required List<Map<String, dynamic>> items,
@@ -125,197 +128,15 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
       }
       final purchaseId = await txn.insert('purchases', purchaseMap);
 
-      final isReceived = purchase.status == 'received';
-
-      for (var item in items) {
-        final productId = item['product_id'] as int?;
-        final variationId = item['variation_id'] as int?;
-        final qty = (item['quantity'] as num).toDouble();
-        final bonusQty = (item['bonus_quantity'] as num?)?.toDouble() ?? 0.0;
-        final unitMult = (item['unit_multiplier'] as num?)?.toDouble() ?? 1.0;
-        final stockDelta = (qty + bonusQty) * (unitMult > 0 ? unitMult : 1.0);
-        final unitCost = (item['purchase_price'] as num?)?.toDouble() ??
-            (item['unit_cost'] as num?)?.toDouble();
-        final sellingPrice = (item['selling_price'] as num?)?.toDouble();
-        final batchNo =
-            (item['batch_number'] ?? item['lot_number'])?.toString().trim();
-        final mfgDate = item['manufacturing_date']?.toString().trim();
-        final expDate =
-            (item['expiry_date'] ?? item['exp_date'])?.toString().trim();
-
-        if (productId != null) {
-          if (isReceived) {
-            if (variationId != null) {
-              if (unitCost != null &&
-                  sellingPrice != null &&
-                  sellingPrice > 0) {
-                await txn.rawUpdate(
-                  'UPDATE variations SET purchase_price = ?, selling_price = ? WHERE id = ?',
-                  [unitCost, sellingPrice, variationId],
-                );
-              } else if (unitCost != null) {
-                await txn.rawUpdate(
-                  'UPDATE variations SET purchase_price = ? WHERE id = ?',
-                  [unitCost, variationId],
-                );
-              }
-            } else {
-              if (unitCost != null &&
-                  sellingPrice != null &&
-                  sellingPrice > 0) {
-                await txn.rawUpdate(
-                  'UPDATE products SET purchase_price = ?, selling_price = ? WHERE id = ?',
-                  [unitCost, sellingPrice, productId],
-                );
-              } else if (unitCost != null) {
-                await txn.rawUpdate(
-                  'UPDATE products SET purchase_price = ? WHERE id = ?',
-                  [unitCost, productId],
-                );
-              }
-            }
-            await adjustProductAndVariationStock(
-              txn,
-              productId: productId,
-              variationId: variationId,
-              delta: stockDelta,
-            );
-
-            // If expiry date or batch is provided, update product metadata
-            if (expDate != null && expDate.isNotEmpty) {
-              await txn.rawUpdate(
-                'UPDATE products SET expiry_date = ?, batch_number = COALESCE(NULLIF(batch_number, \'\'), ?) WHERE id = ?',
-                [expDate, batchNo ?? '', productId],
-              );
-            } else if (batchNo != null && batchNo.isNotEmpty) {
-              await txn.rawUpdate(
-                'UPDATE products SET batch_number = ? WHERE id = ?',
-                [batchNo, productId],
-              );
-            }
-          }
-
-          // Automatically record into product_serials_batches table for stock tracking & expiry alerts
-          final serialsList = (item['serials'] as List?)?.cast<String>() ?? [];
-          final startSerial = item['start_serial'] as String? ?? '';
-          final endSerial = item['end_serial'] as String? ?? '';
-          final warrantyMonths =
-              (item['warranty_months'] as num?)?.toInt() ?? 0;
-
-          if (serialsList.isNotEmpty) {
-            final prodRow = await txn.query('products',
-                where: 'id = ?', whereArgs: [productId], limit: 1);
-            final prodName = prodRow.isNotEmpty
-                ? (prodRow.first['name'] as String? ?? 'Product')
-                : (item['product_name'] ?? 'Product');
-            final prodSku = prodRow.isNotEmpty
-                ? (prodRow.first['sku'] as String? ?? '')
-                : (item['sku'] ?? '');
-
-            for (final sn in serialsList) {
-              final cleanSn = sn.trim();
-              if (cleanSn.isEmpty) continue;
-              await txn.insert('product_serials_batches', {
-                'product_id': productId,
-                'product_name': prodName,
-                'sku': prodSku,
-                'serial_number_1': cleanSn,
-                'batch_number': batchNo ?? '',
-                'manufacturing_date': mfgDate ?? '',
-                'expiry_date': expDate ?? '',
-                'warranty_months': warrantyMonths,
-                'status': isReceived ? 'in_stock' : purchase.status,
-                'purchase_id': purchaseId,
-                'location_id': purchase.locationId,
-                'purchase_price': unitCost ?? 0.0,
-                'selling_price': sellingPrice ?? 0.0,
-                'notes': (startSerial.isNotEmpty && endSerial.isNotEmpty)
-                    ? 'Lot: $batchNo ($startSerial - $endSerial)'
-                    : 'Recorded via Purchase ${purchase.refNo}',
-                'created_at': DateTime.now().toIso8601String(),
-              });
-            }
-          } else if (batchNo != null && batchNo.isNotEmpty) {
-            final prodRow = await txn.query('products',
-                where: 'id = ?', whereArgs: [productId], limit: 1);
-            final prodName = prodRow.isNotEmpty
-                ? (prodRow.first['name'] as String? ?? 'Product')
-                : (item['product_name'] ?? 'Product');
-            final prodSku = prodRow.isNotEmpty
-                ? (prodRow.first['sku'] as String? ?? '')
-                : (item['sku'] ?? '');
-
-            await txn.insert('product_serials_batches', {
-              'product_id': productId,
-              'product_name': prodName,
-              'sku': prodSku,
-              'batch_number': batchNo,
-              'manufacturing_date': mfgDate ?? '',
-              'expiry_date': expDate ?? '',
-              'warranty_months': warrantyMonths,
-              'status': isReceived ? 'in_stock' : purchase.status,
-              'purchase_id': purchaseId,
-              'location_id': purchase.locationId,
-              'purchase_price': unitCost ?? 0.0,
-              'selling_price': sellingPrice ?? 0.0,
-              'notes': (startSerial.isNotEmpty && endSerial.isNotEmpty)
-                  ? 'Lot Range: $startSerial - $endSerial'
-                  : 'Recorded via Purchase ${purchase.refNo}',
-              'created_at': DateTime.now().toIso8601String(),
-            });
-          }
-        }
-      }
-
-      // Update supplier khata balance if goods are received and due amount remains
-      if (isReceived && purchase.supplierId != null && purchase.dueAmount > 0) {
-        await txn.rawUpdate(
-          'UPDATE contacts SET balance = balance + ? WHERE id = ?',
-          [purchase.dueAmount, purchase.supplierId],
-        );
-      }
-
-      // If supplier was paid, debit the payment account or cash register and log payment_transaction
-      if (purchase.paidAmount > 0) {
-        if (purchase.paymentAccountId != null) {
-          await txn.rawUpdate(
-            'UPDATE payment_accounts SET current_balance = current_balance - ? WHERE id = ?',
-            [purchase.paidAmount, purchase.paymentAccountId],
-          );
-        } else if (purchase.paymentMethod.toLowerCase() == 'cash') {
-          await txn.rawUpdate(
-            'UPDATE cash_registers SET total_sales_cash = total_sales_cash - ? WHERE status = \'open\'',
-            [purchase.paidAmount],
-          );
-        }
-
-        final nowStr = DateTime.now().toIso8601String();
-        final isCheque = purchase.paymentMethod.toLowerCase() == 'cheque';
-        await txn.insert('payment_transactions', {
-          'transaction_type': 'purchase',
-          'parent_id': purchaseId,
-          'contact_id': purchase.supplierId,
-          'contact_name': purchase.supplierName,
-          'payment_method': purchase.paymentMethod,
-          'amount': purchase.paidAmount,
-          'account_id': purchase.paymentAccountId,
-          'account_name': purchase.paymentMethod.toLowerCase() == 'cash'
-              ? 'Cash Register'
-              : 'Main Bank Account',
-          'transaction_date':
-              purchase.purchaseDate.isNotEmpty ? purchase.purchaseDate : nowStr,
-          'ref_no': purchase.refNo,
-          'note': purchase.paymentNote.isNotEmpty
-              ? purchase.paymentNote
-              : 'Payment for Purchase ${purchase.refNo}',
-          'created_by': 'System',
-          'created_at': nowStr,
-          'cheque_number': isCheque ? chequeNumber : '',
-          'bank_name': isCheque ? bankName : '',
-          'cheque_due_date': isCheque ? chequeDueDate : '',
-          'cheque_status': isCheque ? 'pending' : '',
-        });
-      }
+      await _applyPurchaseEffects(
+        txn,
+        purchaseId: purchaseId,
+        purchase: purchase,
+        items: items,
+        chequeNumber: chequeNumber,
+        bankName: bankName,
+        chequeDueDate: chequeDueDate,
+      );
 
       // Queue for live MySQL sync
       await txn.insert('sync_queue', {
@@ -346,6 +167,338 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
       },
     );
     return purchaseId;
+  }
+
+  /// Atomically updates an existing purchase: reverses its prior stock/balance/payment
+  /// effects inside the transaction, writes the updated purchase row, and applies
+  /// the new item quantities, costs, supplier balance, and payment effects.
+  @override
+  Future<bool> updatePurchase({
+    required Purchase purchase,
+    required List<Map<String, dynamic>> items,
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
+  }) async {
+    final purchaseId = purchase.id;
+    if (purchaseId == null) return false;
+
+    final updated = await db.transaction((txn) async {
+      final rows = await txn.query('purchases',
+          where: 'id = ?', whereArgs: [purchaseId], limit: 1);
+      if (rows.isEmpty) return false;
+
+      final oldPurchase = Purchase.fromMap(rows.first);
+      final wasReceived = oldPurchase.status == 'received';
+
+      // 1. Reverse prior stock if previously received
+      if (wasReceived) {
+        for (final item in oldPurchase.getItems()) {
+          final productId = item['product_id'] as int?;
+          final variationId = item['variation_id'] as int?;
+          final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
+          final bonusQty = (item['bonus_quantity'] as num?)?.toDouble() ?? 0.0;
+          final unitMult = (item['unit_multiplier'] as num?)?.toDouble() ?? 1.0;
+          final stockDelta = (qty + bonusQty) * (unitMult > 0 ? unitMult : 1.0);
+          if (productId != null) {
+            await adjustProductAndVariationStock(
+              txn,
+              productId: productId,
+              variationId: variationId,
+              delta: -stockDelta,
+              clampAtZero: true,
+            );
+          }
+        }
+      }
+
+      // 2. Remove old batch/serial entries for this purchase
+      await txn.delete('product_serials_batches',
+          where: 'purchase_id = ?', whereArgs: [purchaseId]);
+
+      // 3. Reverse prior supplier balance if previously received
+      if (wasReceived &&
+          oldPurchase.supplierId != null &&
+          oldPurchase.dueAmount > 0) {
+        await txn.rawUpdate(
+          'UPDATE contacts SET balance = MAX(0, balance - ?) WHERE id = ?',
+          [oldPurchase.dueAmount, oldPurchase.supplierId],
+        );
+      }
+
+      // 4. Reverse prior payment account / cash register & payment_transactions
+      if (oldPurchase.paidAmount > 0) {
+        if (oldPurchase.paymentAccountId != null) {
+          await txn.rawUpdate(
+            'UPDATE payment_accounts SET current_balance = current_balance + ? WHERE id = ?',
+            [oldPurchase.paidAmount, oldPurchase.paymentAccountId],
+          );
+        } else if (oldPurchase.paymentMethod.toLowerCase() == 'cash') {
+          await txn.rawUpdate(
+            'UPDATE cash_registers SET total_sales_cash = total_sales_cash + ? WHERE status = \'open\'',
+            [oldPurchase.paidAmount],
+          );
+        }
+        await txn.delete('payment_transactions',
+            where: 'transaction_type = ? AND parent_id = ?',
+            whereArgs: ['purchase', purchaseId]);
+      }
+
+      // 5. Update the purchases record
+      final purchaseMap = purchase.toMap()..['id'] = purchaseId;
+      if (purchase.itemsJson.isEmpty || purchase.itemsJson == '[]') {
+        purchaseMap['items_json'] = jsonEncode(items);
+      }
+      await txn.update('purchases', purchaseMap,
+          where: 'id = ?', whereArgs: [purchaseId]);
+
+      // 6. Apply new stock, batch/serial, supplier balance, and payment effects
+      await _applyPurchaseEffects(
+        txn,
+        purchaseId: purchaseId,
+        purchase: purchase,
+        items: items,
+        chequeNumber: chequeNumber,
+        bankName: bankName,
+        chequeDueDate: chequeDueDate,
+      );
+
+      // 7. Queue for live MySQL sync
+      await txn.insert('sync_queue', {
+        'entity_type': 'purchase',
+        'entity_id': purchaseId.toString(),
+        'action': 'update',
+        'payload_json': jsonEncode({
+          'purchase': purchaseMap,
+          'items': items,
+        }),
+        'status': 'pending',
+        'retry_count': 0,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      await recordActivity(
+        action: 'updated',
+        entityType: 'purchase',
+        entityId: purchaseId,
+        oldValues: {
+          'ref_no': oldPurchase.refNo,
+          'total_amount': oldPurchase.totalAmount,
+          'status': oldPurchase.status,
+        },
+        newValues: {
+          'ref_no': purchase.refNo,
+          'supplier_name': purchase.supplierName,
+          'total_amount': purchase.totalAmount,
+          'status': purchase.status,
+        },
+        txn: txn,
+      );
+
+      return true;
+    });
+
+    if (updated) {
+      dbService.triggerAsyncMySqlSync();
+    }
+    return updated;
+  }
+
+  Future<void> _applyPurchaseEffects(
+    dynamic txn, {
+    required int purchaseId,
+    required Purchase purchase,
+    required List<Map<String, dynamic>> items,
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
+  }) async {
+    final isReceived = purchase.status == 'received';
+
+    for (var item in items) {
+      final productId = item['product_id'] as int?;
+      final variationId = item['variation_id'] as int?;
+      final qty = (item['quantity'] as num).toDouble();
+      final bonusQty = (item['bonus_quantity'] as num?)?.toDouble() ?? 0.0;
+      final unitMult = (item['unit_multiplier'] as num?)?.toDouble() ?? 1.0;
+      final stockDelta = (qty + bonusQty) * (unitMult > 0 ? unitMult : 1.0);
+      final unitCost = (item['purchase_price'] as num?)?.toDouble() ??
+          (item['unit_cost'] as num?)?.toDouble();
+      final sellingPrice = (item['selling_price'] as num?)?.toDouble();
+      final batchNo =
+          (item['batch_number'] ?? item['lot_number'])?.toString().trim();
+      final mfgDate = item['manufacturing_date']?.toString().trim();
+      final expDate =
+          (item['expiry_date'] ?? item['exp_date'])?.toString().trim();
+
+      if (productId != null) {
+        if (isReceived) {
+          if (variationId != null) {
+            if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+              await txn.rawUpdate(
+                'UPDATE variations SET purchase_price = ?, selling_price = ? WHERE id = ?',
+                [unitCost, sellingPrice, variationId],
+              );
+            } else if (unitCost != null) {
+              await txn.rawUpdate(
+                'UPDATE variations SET purchase_price = ? WHERE id = ?',
+                [unitCost, variationId],
+              );
+            }
+          } else {
+            if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+              await txn.rawUpdate(
+                'UPDATE products SET purchase_price = ?, selling_price = ? WHERE id = ?',
+                [unitCost, sellingPrice, productId],
+              );
+            } else if (unitCost != null) {
+              await txn.rawUpdate(
+                'UPDATE products SET purchase_price = ? WHERE id = ?',
+                [unitCost, productId],
+              );
+            }
+          }
+          await adjustProductAndVariationStock(
+            txn,
+            productId: productId,
+            variationId: variationId,
+            delta: stockDelta,
+          );
+
+          // If expiry date or batch is provided, update product metadata
+          if (expDate != null && expDate.isNotEmpty) {
+            await txn.rawUpdate(
+              'UPDATE products SET expiry_date = ?, batch_number = COALESCE(NULLIF(batch_number, \'\'), ?) WHERE id = ?',
+              [expDate, batchNo ?? '', productId],
+            );
+          } else if (batchNo != null && batchNo.isNotEmpty) {
+            await txn.rawUpdate(
+              'UPDATE products SET batch_number = ? WHERE id = ?',
+              [batchNo, productId],
+            );
+          }
+        }
+
+        // Automatically record into product_serials_batches table for stock tracking & expiry alerts
+        final serialsList = (item['serials'] as List?)?.cast<String>() ?? [];
+        final startSerial = item['start_serial'] as String? ?? '';
+        final endSerial = item['end_serial'] as String? ?? '';
+        final warrantyMonths = (item['warranty_months'] as num?)?.toInt() ?? 0;
+
+        if (serialsList.isNotEmpty) {
+          final prodRow = await txn.query('products',
+              where: 'id = ?', whereArgs: [productId], limit: 1);
+          final prodName = prodRow.isNotEmpty
+              ? (prodRow.first['name'] as String? ?? 'Product')
+              : (item['product_name'] ?? 'Product');
+          final prodSku = prodRow.isNotEmpty
+              ? (prodRow.first['sku'] as String? ?? '')
+              : (item['sku'] ?? '');
+
+          for (final sn in serialsList) {
+            final cleanSn = sn.trim();
+            if (cleanSn.isEmpty) continue;
+            await txn.insert('product_serials_batches', {
+              'product_id': productId,
+              'product_name': prodName,
+              'sku': prodSku,
+              'serial_number_1': cleanSn,
+              'batch_number': batchNo ?? '',
+              'manufacturing_date': mfgDate ?? '',
+              'expiry_date': expDate ?? '',
+              'warranty_months': warrantyMonths,
+              'status': isReceived ? 'in_stock' : purchase.status,
+              'purchase_id': purchaseId,
+              'location_id': purchase.locationId,
+              'purchase_price': unitCost ?? 0.0,
+              'selling_price': sellingPrice ?? 0.0,
+              'notes': (startSerial.isNotEmpty && endSerial.isNotEmpty)
+                  ? 'Lot: $batchNo ($startSerial - $endSerial)'
+                  : 'Recorded via Purchase ${purchase.refNo}',
+              'created_at': DateTime.now().toIso8601String(),
+            });
+          }
+        } else if (batchNo != null && batchNo.isNotEmpty) {
+          final prodRow = await txn.query('products',
+              where: 'id = ?', whereArgs: [productId], limit: 1);
+          final prodName = prodRow.isNotEmpty
+              ? (prodRow.first['name'] as String? ?? 'Product')
+              : (item['product_name'] ?? 'Product');
+          final prodSku = prodRow.isNotEmpty
+              ? (prodRow.first['sku'] as String? ?? '')
+              : (item['sku'] ?? '');
+
+          await txn.insert('product_serials_batches', {
+            'product_id': productId,
+            'product_name': prodName,
+            'sku': prodSku,
+            'batch_number': batchNo,
+            'manufacturing_date': mfgDate ?? '',
+            'expiry_date': expDate ?? '',
+            'warranty_months': warrantyMonths,
+            'status': isReceived ? 'in_stock' : purchase.status,
+            'purchase_id': purchaseId,
+            'location_id': purchase.locationId,
+            'purchase_price': unitCost ?? 0.0,
+            'selling_price': sellingPrice ?? 0.0,
+            'notes': (startSerial.isNotEmpty && endSerial.isNotEmpty)
+                ? 'Lot Range: $startSerial - $endSerial'
+                : 'Recorded via Purchase ${purchase.refNo}',
+            'created_at': DateTime.now().toIso8601String(),
+          });
+        }
+      }
+    }
+
+    // Update supplier khata balance if goods are received and due amount remains
+    if (isReceived && purchase.supplierId != null && purchase.dueAmount > 0) {
+      await txn.rawUpdate(
+        'UPDATE contacts SET balance = balance + ? WHERE id = ?',
+        [purchase.dueAmount, purchase.supplierId],
+      );
+    }
+
+    // If supplier was paid, debit the payment account or cash register and log payment_transaction
+    if (purchase.paidAmount > 0) {
+      if (purchase.paymentAccountId != null) {
+        await txn.rawUpdate(
+          'UPDATE payment_accounts SET current_balance = current_balance - ? WHERE id = ?',
+          [purchase.paidAmount, purchase.paymentAccountId],
+        );
+      } else if (purchase.paymentMethod.toLowerCase() == 'cash') {
+        await txn.rawUpdate(
+          'UPDATE cash_registers SET total_sales_cash = total_sales_cash - ? WHERE status = \'open\'',
+          [purchase.paidAmount],
+        );
+      }
+
+      final nowStr = DateTime.now().toIso8601String();
+      final isCheque = purchase.paymentMethod.toLowerCase() == 'cheque';
+      await txn.insert('payment_transactions', {
+        'transaction_type': 'purchase',
+        'parent_id': purchaseId,
+        'contact_id': purchase.supplierId,
+        'contact_name': purchase.supplierName,
+        'payment_method': purchase.paymentMethod,
+        'amount': purchase.paidAmount,
+        'account_id': purchase.paymentAccountId,
+        'account_name': purchase.paymentMethod.toLowerCase() == 'cash'
+            ? 'Cash Register'
+            : 'Main Bank Account',
+        'transaction_date':
+            purchase.purchaseDate.isNotEmpty ? purchase.purchaseDate : nowStr,
+        'ref_no': purchase.refNo,
+        'note': purchase.paymentNote.isNotEmpty
+            ? purchase.paymentNote
+            : 'Payment for Purchase ${purchase.refNo}',
+        'created_by': 'System',
+        'created_at': nowStr,
+        'cheque_number': isCheque ? chequeNumber : '',
+        'bank_name': isCheque ? bankName : '',
+        'cheque_due_date': isCheque ? chequeDueDate : '',
+        'cheque_status': isCheque ? 'pending' : '',
+      });
+    }
   }
 
   /// Update purchase status (e.g. 'ordered' -> 'received', 'pending' -> 'received', or revert)

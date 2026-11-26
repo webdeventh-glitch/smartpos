@@ -15,12 +15,14 @@ class AddPurchaseScreen extends StatefulWidget {
   final BusinessSettings settings;
   final VoidCallback onPurchaseSaved;
   final VoidCallback? onBackToList;
+  final Purchase? purchaseToEdit;
 
   const AddPurchaseScreen({
     super.key,
     required this.settings,
     required this.onPurchaseSaved,
     this.onBackToList,
+    this.purchaseToEdit,
   });
 
   @override
@@ -195,6 +197,116 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
             (a) => a.accountType.toLowerCase() == 'cash',
             orElse: () => accounts.first,
           );
+        }
+
+        final editP = widget.purchaseToEdit;
+        if (editP != null) {
+          _refNoCtrl.text = editP.refNo;
+          _purchaseDateTime =
+              DateTime.tryParse(editP.purchaseDate.replaceFirst(' ', 'T')) ??
+                  DateTime.tryParse(editP.createdAt.replaceFirst(' ', 'T')) ??
+                  DateTime.now();
+          _status = editP.status.toLowerCase();
+          if (editP.supplierId != null) {
+            _selectedSupplier =
+                sups.where((s) => s.id == editP.supplierId).firstOrNull ??
+                    _selectedSupplier;
+          }
+          _selectedLocation =
+              locs.where((l) => l.id == editP.locationId).firstOrNull ??
+                  _selectedLocation;
+          if (editP.paymentAccountId != null) {
+            _selectedPaymentAccount = accounts
+                    .where((a) => a.id == editP.paymentAccountId)
+                    .firstOrNull ??
+                _selectedPaymentAccount;
+          }
+          _payTermNumberCtrl.text = editP.payTermNumber?.toString() ?? '';
+          _payTermType =
+              editP.payTermType.isNotEmpty ? editP.payTermType : 'days';
+          _documentCtrl.text = editP.documentPath;
+          _discountType = editP.discountType;
+          _taxRate = editP.taxRate;
+          _shippingChargesCtrl.text = editP.shippingCharges > 0
+              ? editP.shippingCharges.toStringAsFixed(2)
+              : '0';
+          _shippingDetailsCtrl.text = editP.shippingDetails;
+          _additionalExpensesCtrl.text = editP.additionalExpenses > 0
+              ? editP.additionalExpenses.toStringAsFixed(2)
+              : '0';
+          _notesCtrl.text = editP.note;
+          _paymentMethod = editP.paymentMethod;
+          _paymentNoteCtrl.text = editP.paymentNote;
+
+          _lineItems.clear();
+          double goodsSum = 0.0;
+          for (final raw in editP.getItems()) {
+            final pid = raw['product_id'] as int?;
+            final matchedProd = pid != null
+                ? prods.where((p) => p.id == pid).firstOrNull
+                : null;
+            final netCost = (raw['purchase_price'] as num?)?.toDouble() ??
+                (raw['unit_cost'] as num?)?.toDouble() ??
+                0.0;
+            final unitCostBeforeDisc =
+                (raw['unit_cost_before_discount'] as num?)?.toDouble() ??
+                    netCost;
+            final discPct =
+                (raw['discount_percent'] as num?)?.toDouble() ?? 0.0;
+            final sellPrice = (raw['selling_price'] as num?)?.toDouble() ??
+                matchedProd?.sellingPrice ??
+                (netCost * 1.25);
+            final margin = (raw['profit_margin'] as num?)?.toDouble() ??
+                (netCost > 0
+                    ? (((sellPrice - netCost) / netCost) * 100)
+                    : 25.0);
+            final qty = (raw['quantity'] as num?)?.toDouble() ?? 1.0;
+            final bonusQty = (raw['bonus_quantity'] as num?)?.toDouble() ?? 0.0;
+            final prod = matchedProd ??
+                Product(
+                  id: pid,
+                  name: raw['product_name']?.toString() ?? 'Product',
+                  sku: raw['sku']?.toString() ?? '',
+                  barcode: raw['sku']?.toString() ?? '',
+                  categoryName: 'General',
+                  purchasePrice: netCost,
+                  sellingPrice: sellPrice,
+                  stockQuantity: 0.0,
+                );
+            final line = _PurchaseLineItem(
+              product: prod,
+              quantity: qty,
+              bonusQty: bonusQty,
+              unitCostBeforeDiscount: unitCostBeforeDisc,
+              discountPercent: discPct,
+              profitMarginPercent: margin,
+              sellingPrice: sellPrice,
+              batchNumber:
+                  (raw['batch_number'] ?? raw['lot_number'])?.toString() ?? '',
+              expDate:
+                  (raw['expiry_date'] ?? raw['exp_date'])?.toString() ?? '',
+            );
+            line.mfgDate = raw['manufacturing_date']?.toString() ?? '';
+            line.serials =
+                (raw['serials'] as List?)?.map((e) => e.toString()).toList() ??
+                    [];
+            line.startSerial = raw['start_serial']?.toString() ?? '';
+            line.endSerial = raw['end_serial']?.toString() ?? '';
+            line.warrantyMonths =
+                (raw['warranty_months'] as num?)?.toInt() ?? 144;
+            goodsSum += line.lineTotal;
+            _lineItems.add(line);
+          }
+
+          if (_discountType == 'percentage' && goodsSum > 0) {
+            final pct = (editP.discountAmount / goodsSum) * 100;
+            _discountAmountCtrl.text = pct.toStringAsFixed(2);
+          } else if (editP.discountAmount > 0) {
+            _discountAmountCtrl.text = editP.discountAmount.toStringAsFixed(2);
+          } else {
+            _discountAmountCtrl.text = '0';
+          }
+          _paidAmountCtrl.text = editP.paidAmount.toStringAsFixed(2);
         }
         _loading = false;
       });
@@ -834,7 +946,10 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
           ? _refNoCtrl.text.trim()
           : await db.generateNextPurchaseRef();
 
+      final isEdit =
+          widget.purchaseToEdit != null && widget.purchaseToEdit!.id != null;
       final purchase = Purchase(
+        id: widget.purchaseToEdit?.id,
         refNo: ref,
         supplierId: _selectedSupplier!.id,
         supplierName: _selectedSupplier!.name,
@@ -844,7 +959,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         paidAmount: paid,
         status: _status,
         paymentStatus: paymentStatus,
-        createdAt: dateStr,
+        createdAt: isEdit ? widget.purchaseToEdit!.createdAt : dateStr,
         purchaseDate: dateStr,
         note: _notesCtrl.text.trim(),
         itemsJson: jsonEncode(itemsPayload),
@@ -861,10 +976,18 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         payTermNumber: int.tryParse(_payTermNumberCtrl.text.trim()),
         payTermType: _payTermType,
         documentPath: _documentCtrl.text.trim(),
+        isPurchaseOrder: widget.purchaseToEdit?.isPurchaseOrder ?? false,
+        convertedFromPoId: widget.purchaseToEdit?.convertedFromPoId,
       );
 
-      final purchaseId =
-          await db.createPurchase(purchase: purchase, items: itemsPayload);
+      late final int purchaseId;
+      if (isEdit) {
+        await db.updatePurchase(purchase: purchase, items: itemsPayload);
+        purchaseId = purchase.id!;
+      } else {
+        purchaseId =
+            await db.createPurchase(purchase: purchase, items: itemsPayload);
+      }
 
       widget.onPurchaseSaved();
 
@@ -1022,7 +1145,10 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 Row(
                                   children: [
                                     Text(
-                                      'Add Purchase',
+                                      PosLocalization.tr(
+                                          widget.purchaseToEdit != null
+                                              ? 'Edit Purchase'
+                                              : 'Add Purchase'),
                                       style: TextStyle(
                                         fontSize: 22,
                                         fontWeight: FontWeight.w900,
@@ -2653,8 +2779,11 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.check_circle_rounded, size: 18),
-                      label: const Text('Save Purchase Invoice',
-                          style: TextStyle(
+                      label: Text(
+                          PosLocalization.tr(widget.purchaseToEdit != null
+                              ? 'Update Purchase Invoice'
+                              : 'Save Purchase Invoice'),
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 14)),
                       onPressed: _isSaving
                           ? null
