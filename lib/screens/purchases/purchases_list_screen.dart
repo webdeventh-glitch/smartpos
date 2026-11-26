@@ -11,6 +11,7 @@ import '../../widgets/pay_due_dialog.dart';
 import 'add_purchase_screen.dart';
 import 'purchase_receipt_dialog.dart';
 import '../../services/localization_service.dart';
+import '../../utils/currency_formatter.dart';
 
 class PurchasesListScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -446,12 +447,13 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
               builder: (context, constraints) {
                 final c1 = _miniCard(
                     'Total Purchases',
-                    '$currency${totalPurchases.toStringAsFixed(2)}',
+                    CurrencyFormatter.exact(totalPurchases,
+                        currency: '$currency '),
                     const Color(0xFF4F46E5),
                     isDark: isDark);
                 final c2 = _miniCard(
                     'Total Payables Due',
-                    '$currency${totalDue.toStringAsFixed(2)}',
+                    CurrencyFormatter.exact(totalDue, currency: '$currency '),
                     const Color(0xFFEF4444),
                     isDark: isDark);
                 final c3 = _miniCard('Purchase Orders',
@@ -930,7 +932,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                 _td(StatusPill(
                                                     status: p.paymentStatus)),
                                                 _td(Text(
-                                                  '$currency${p.totalAmount.toStringAsFixed(2)}',
+                                                  CurrencyFormatter.exact(
+                                                      p.totalAmount,
+                                                      currency: '$currency '),
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w900,
                                                     color: isDark
@@ -940,7 +944,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                   ),
                                                 )),
                                                 _td(Text(
-                                                  '$currency${p.paidAmount.toStringAsFixed(2)}',
+                                                  CurrencyFormatter.exact(
+                                                      p.paidAmount,
+                                                      currency: '$currency '),
                                                   style: const TextStyle(
                                                       color: Color(0xFF10B981),
                                                       fontWeight:
@@ -948,7 +954,10 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                 )),
                                                 _td(Text(
                                                   p.dueAmount > 0
-                                                      ? '$currency${p.dueAmount.toStringAsFixed(2)}'
+                                                      ? CurrencyFormatter.exact(
+                                                          p.dueAmount,
+                                                          currency:
+                                                              '$currency ')
                                                       : '-',
                                                   style: TextStyle(
                                                     color: p.dueAmount > 0

@@ -8,6 +8,7 @@ import '../services/database_service.dart';
 import '../services/localization_service.dart';
 import '../services/theme_service.dart';
 import '../services/cloud_sync_service.dart';
+import '../utils/currency_formatter.dart';
 import 'calculator_dialog.dart';
 import 'ai_assistant_chat_dialog.dart';
 import 'about_developer_dialog.dart';
@@ -798,8 +799,9 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                       ? PosLocalization.trParams(
                                           'Cash: {amount}',
                                           {
-                                            'amount':
-                                                '$currency${inHand.toStringAsFixed(2)}'
+                                            'amount': CurrencyFormatter.exact(
+                                                inHand,
+                                                currency: '$currency ')
                                           },
                                           settings: widget.settings,
                                         )

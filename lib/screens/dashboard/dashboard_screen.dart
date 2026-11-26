@@ -562,12 +562,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFE0F2FE),
                       title: PosLocalization.tr('Total Sales',
                           settings: widget.settings),
-                      subtitle: totalSales.abs() >= 1e5
-                          ? CurrencyFormatter.exact(totalSales,
-                              currency: '$currency ')
+                      subtitle: totalSales.abs() >= 1000
+                          ? CurrencyFormatter.inActiveWords(totalSales,
+                              settings: widget.settings)
                           : PosLocalization.tr('Total Sales Revenue',
                               settings: widget.settings),
-                      value: CurrencyFormatter.compact(totalSales,
+                      value: CurrencyFormatter.exact(totalSales,
                           currency: '$currency '),
                       onTap: () => widget.onNavigateToRoute(AppRoute.salesList),
                     ),
@@ -579,11 +579,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFDCFCE7),
                       title:
                           PosLocalization.tr('Net', settings: widget.settings),
-                      subtitle: netProfit.abs() >= 1e5
-                          ? CurrencyFormatter.exact(netProfit,
-                              currency: '$currency ')
+                      subtitle: netProfit.abs() >= 1000
+                          ? CurrencyFormatter.inActiveWords(netProfit,
+                              settings: widget.settings)
                           : null,
-                      value: CurrencyFormatter.compact(netProfit,
+                      value: CurrencyFormatter.exact(netProfit,
                           currency: '$currency '),
                       showInfo: true,
                       tooltip:
@@ -604,11 +604,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEF3C7),
                       title: PosLocalization.tr('Invoice due',
                           settings: widget.settings),
-                      subtitle: invoiceDue.abs() >= 1e5
-                          ? CurrencyFormatter.exact(invoiceDue,
-                              currency: '$currency ')
+                      subtitle: invoiceDue.abs() >= 1000
+                          ? CurrencyFormatter.inActiveWords(invoiceDue,
+                              settings: widget.settings)
                           : null,
-                      value: CurrencyFormatter.compact(invoiceDue,
+                      value: CurrencyFormatter.exact(invoiceDue,
                           currency: '$currency '),
                       onTap: () => widget.onNavigateToRoute(AppRoute.customers),
                     ),
@@ -620,11 +620,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEE2E2),
                       title: PosLocalization.tr('Total Sell Return',
                           settings: widget.settings),
-                      subtitle: totalSellReturn.abs() >= 1e5
-                          ? CurrencyFormatter.exact(totalSellReturn,
-                              currency: '$currency ')
+                      subtitle: totalSellReturn.abs() >= 1000
+                          ? CurrencyFormatter.inActiveWords(totalSellReturn,
+                              settings: widget.settings)
                           : null,
-                      value: CurrencyFormatter.compact(totalSellReturn,
+                      value: CurrencyFormatter.exact(totalSellReturn,
                           currency: '$currency '),
                       showInfo: true,
                       tooltip: 'Total customer product sales returns',
@@ -639,12 +639,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFE0F7FA),
                       title: PosLocalization.tr('Total purchase',
                           settings: widget.settings),
-                      subtitle: totalPurchases.abs() >= 1e5
-                          ? CurrencyFormatter.exact(totalPurchases,
-                              currency: '$currency ')
+                      subtitle: totalPurchases.abs() >= 1000
+                          ? CurrencyFormatter.inActiveWords(totalPurchases,
+                              settings: widget.settings)
                           : PosLocalization.tr('Total Purchases',
                               settings: widget.settings),
-                      value: CurrencyFormatter.compact(totalPurchases,
+                      value: CurrencyFormatter.exact(totalPurchases,
                           currency: '$currency '),
                       onTap: () =>
                           widget.onNavigateToRoute(AppRoute.purchasesList),
@@ -657,11 +657,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEF3C7),
                       title: PosLocalization.tr('Purchase due',
                           settings: widget.settings),
-                      subtitle: purchaseDue.abs() >= 1e5
-                          ? CurrencyFormatter.exact(purchaseDue,
-                              currency: '$currency ')
+                      subtitle: purchaseDue.abs() >= 1000
+                          ? CurrencyFormatter.inActiveWords(purchaseDue,
+                              settings: widget.settings)
                           : null,
-                      value: CurrencyFormatter.compact(purchaseDue,
+                      value: CurrencyFormatter.exact(purchaseDue,
                           currency: '$currency '),
                       onTap: () => widget.onNavigateToRoute(AppRoute.suppliers),
                     ),
@@ -673,11 +673,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEE2E2),
                       title: PosLocalization.tr('Total Purchase Return',
                           settings: widget.settings),
-                      subtitle: totalPurchaseReturn.abs() >= 1e5
-                          ? CurrencyFormatter.exact(totalPurchaseReturn,
-                              currency: '$currency ')
+                      subtitle: totalPurchaseReturn.abs() >= 1000
+                          ? CurrencyFormatter.inActiveWords(totalPurchaseReturn,
+                              settings: widget.settings)
                           : null,
-                      value: CurrencyFormatter.compact(totalPurchaseReturn,
+                      value: CurrencyFormatter.exact(totalPurchaseReturn,
                           currency: '$currency '),
                       showInfo: true,
                       tooltip: 'Total supplier purchase returns',
@@ -692,11 +692,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEE2E2),
                       title: PosLocalization.tr('Expense',
                           settings: widget.settings),
-                      subtitle: totalExpenses.abs() >= 1e5
-                          ? CurrencyFormatter.exact(totalExpenses,
-                              currency: '$currency ')
+                      subtitle: totalExpenses.abs() >= 1000
+                          ? CurrencyFormatter.inActiveWords(totalExpenses,
+                              settings: widget.settings)
                           : null,
-                      value: CurrencyFormatter.compact(totalExpenses,
+                      value: CurrencyFormatter.exact(totalExpenses,
                           currency: '$currency '),
                       onTap: () => widget.onNavigateToRoute(AppRoute.expenses),
                     ),

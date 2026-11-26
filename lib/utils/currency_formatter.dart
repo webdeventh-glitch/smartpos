@@ -1,7 +1,10 @@
 import 'package:intl/intl.dart';
+import '../models/business_settings.dart';
+import '../services/localization_service.dart';
+import 'amount_in_words.dart';
 
 /// Utility for formatting currency and large numeric values with comma separators
-/// and human-readable Lakh / Million / Billion suffixes.
+/// and human-readable localized words (no Lakh/Million abbreviations).
 class CurrencyFormatter {
   static final NumberFormat _commaDecimalFmt =
       NumberFormat('#,##0.00', 'en_US');
@@ -19,35 +22,29 @@ class CurrencyFormatter {
     return _commaIntFmt.format(value);
   }
 
-  /// Formats large amounts into Lakh, Million, or Billion for quick reading:
-  /// - >= 1,000,000,000 -> Billion (e.g. `Rs 1.25 Billion`)
-  /// - >= 1,000,000     -> Million (e.g. `Rs 1.10 Million`)
-  /// - >= 100,000       -> Lakh    (e.g. `Rs 5.50 Lakh`)
-  /// - <  100,000       -> Comma-formatted exact (e.g. `Rs 45,500.00`)
+  /// Formats amounts with clear comma separators (e.g. `Rs 5,610,000.00`)
+  /// instead of abbreviated Lakh/Million labels.
   static String compact(double amount, {String currency = ''}) {
-    final sign = amount < 0 ? '-' : '';
-    final abs = amount.abs();
-    if (abs >= 1e9) {
-      return '$sign$currency${(abs / 1e9).toStringAsFixed(2)} Billion';
-    }
-    if (abs >= 1e6) {
-      return '$sign$currency${(abs / 1e6).toStringAsFixed(2)} Million';
-    }
-    if (abs >= 1e5) {
-      return '$sign$currency${(abs / 1e5).toStringAsFixed(2)} Lakh';
-    }
-    return '$sign$currency${_commaDecimalFmt.format(abs)}';
+    return exact(amount, currency: currency);
   }
 
-  /// Formats as exact with compact scale in parentheses for detailed report rows
-  /// (e.g. `Rs 1,100,000.00 (1.10 Million)`), or just exact if under 1 Lakh.
+  /// Formats as exact comma-separated currency.
   static String withCompactHint(double amount, {String currency = ''}) {
-    final abs = amount.abs();
-    final exactStr = exact(amount, currency: currency);
-    if (abs >= 1e5) {
-      final compactOnly = compact(amount, currency: '').replaceFirst('-', '');
-      return '$exactStr ($compactOnly)';
-    }
-    return exactStr;
+    return exact(amount, currency: currency);
+  }
+
+  /// Converts [amount] into words in [languageCode] (e.g. `Ten Thousand` or `دس ہزار`).
+  static String inWords(double amount, {String languageCode = 'en'}) {
+    return AmountInWords.convert(amount, languageCode: languageCode);
+  }
+
+  /// Converts [amount] into words using the secondary language when enabled,
+  /// otherwise the primary language.
+  static String inActiveWords(double amount, {BusinessSettings? settings}) {
+    final active = settings ?? PosLocalization.currentSettings;
+    final lang = (active != null && active.hasEffectiveSecondaryLanguage)
+        ? active.secondaryLanguage
+        : (active?.activePrimaryLanguage ?? 'en');
+    return AmountInWords.convert(amount, languageCode: lang);
   }
 }
