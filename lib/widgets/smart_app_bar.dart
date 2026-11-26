@@ -386,7 +386,7 @@ class _SmartAppBarState extends State<SmartAppBar> {
               // Brand Logo Badge + Business Name
               ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: isNarrow ? 240 : (isCompact ? 305 : 380),
+                  maxWidth: isNarrow ? 190 : (isCompact ? 220 : 260),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -499,12 +499,13 @@ class _SmartAppBarState extends State<SmartAppBar> {
               ),
               const SizedBox(width: 12),
 
-              // Right-Aligned Action Strip (scroll-safe on compact widths)
+              // Right-Aligned Action Strip (scales cleanly without clipping Branch pill)
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

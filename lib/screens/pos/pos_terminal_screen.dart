@@ -8549,7 +8549,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               ),
                               icon: const Icon(Icons.add, size: 14),
                               label: Text(
-                                  PosLocalization.tr('+ Add Expense',
+                                  PosLocalization.tr('Add Expense',
                                       settings: widget.settings),
                                   style: const TextStyle(
                                       fontSize: 12,
