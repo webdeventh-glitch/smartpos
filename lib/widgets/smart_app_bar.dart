@@ -477,54 +477,6 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: widget.settings.isMySql
-                                      ? (isDark
-                                          ? const Color(0xFF0369A1)
-                                              .withValues(alpha: 0.3)
-                                          : const Color(0xFFE0F2FE))
-                                      : (isDark
-                                          ? const Color(0xFF334155)
-                                          : const Color(0xFFF1F5F9)),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: widget.settings.isMySql
-                                        ? const Color(0xFF0284C7)
-                                        : const Color(0xFF94A3B8),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      widget.settings.isMySql
-                                          ? Icons.dns_rounded
-                                          : Icons.sd_storage_rounded,
-                                      size: 10,
-                                      color: widget.settings.isMySql
-                                          ? const Color(0xFF0284C7)
-                                          : const Color(0xFF64748B),
-                                    ),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      widget.settings.isMySql
-                                          ? 'MySQL: ${widget.settings.dbName}'
-                                          : 'SQLite',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: widget.settings.isMySql
-                                            ? const Color(0xFF0284C7)
-                                            : const Color(0xFF64748B),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                             ],
                           ),
                           Text(
