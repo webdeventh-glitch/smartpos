@@ -11,6 +11,7 @@ import '../../widgets/data_table_pagination_bar.dart';
 import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import '../pos/receipt_dialog.dart';
+import 'sell_details_dialog.dart';
 import '../../services/print_service.dart';
 import '../../services/localization_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
@@ -397,124 +398,14 @@ class _SalesListScreenState extends State<SalesListScreen> {
   }
 
   Future<void> _showSaleDetailsDialog(Sale s) async {
-    final db = await DatabaseService.initialize();
-    final items = s.id != null ? await db.getSaleItems(s.id!) : <SaleItem>[];
     if (!mounted) return;
-    final currency = widget.settings.currencySymbol;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: Row(
-          children: [
-            const Icon(Icons.receipt_long_rounded, color: Color(0xFF004EEB)),
-            const SizedBox(width: 8),
-            Expanded(
-                child: Text('Invoice #${s.invoiceNo} • ${s.customerName}',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold))),
-          ],
-        ),
-        content: SizedBox(
-          width: 520,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                    'Date: ${s.createdAt} • Method: ${s.paymentMethod.toUpperCase()} • Status: ${s.paymentStatus.toUpperCase()}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                if (s.note.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text('Note: ${s.note}',
-                      style: const TextStyle(
-                          fontSize: 12, fontStyle: FontStyle.italic)),
-                ],
-                const Divider(height: 20),
-                if (items.isEmpty)
-                  const Text('No line items found for this transaction.',
-                      style: TextStyle(color: Colors.grey))
-                else
-                  ...items.map((it) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${it.productName}${(it.variationName ?? '').isNotEmpty ? ' (${it.variationName})' : ''}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600, fontSize: 13),
-                              ),
-                            ),
-                            Text(
-                                '${it.quantity} x $currency${it.unitPrice.toStringAsFixed(2)}  ',
-                                style: const TextStyle(
-                                    fontSize: 12, color: Colors.grey)),
-                            Text('$currency${it.subtotal.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 13)),
-                          ],
-                        ),
-                      )),
-                const Divider(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                        'Subtotal: $currency${s.subtotal.toStringAsFixed(2)} • Discount: $currency${s.discount.toStringAsFixed(2)} • Tax: $currency${s.taxAmount.toStringAsFixed(2)}',
-                        style: const TextStyle(fontSize: 12)),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Total: $currency${s.totalAmount.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w900)),
-                    Text(
-                        'Paid: $currency${s.paidAmount.toStringAsFixed(2)} • Due: $currency${s.dueAmount.toStringAsFixed(2)}',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: s.dueAmount > 0
-                                ? const Color(0xFFEF4444)
-                                : const Color(0xFF059669))),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
-          if (s.customerName.toLowerCase().contains('walk-in') ||
-              s.customerName.toLowerCase().contains('walk in') ||
-              s.customerName.toLowerCase().contains('walkin') ||
-              s.customerId == null ||
-              s.customerId == 1)
-            OutlinedButton.icon(
-              icon: const Icon(Icons.swap_horiz_rounded,
-                  size: 16, color: Color(0xFF0D9488)),
-              label: const Text('Transfer to Khata',
-                  style: TextStyle(
-                      color: Color(0xFF0D9488), fontWeight: FontWeight.bold)),
-              onPressed: () {
-                Navigator.pop(ctx);
-                _showTransferSaleDialog(s);
-              },
-            ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.print_rounded, size: 16),
-            label: const Text('Print Receipt'),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _printReceipt(s);
-            },
-          ),
-        ],
+      builder: (_) => SellDetailsDialog(
+        sale: s,
+        settings: widget.settings,
+        onPrintReceipt: () => _printReceipt(s),
+        onTransferToKhata: () => _showTransferSaleDialog(s),
       ),
     );
   }
