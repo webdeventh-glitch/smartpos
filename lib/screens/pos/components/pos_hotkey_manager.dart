@@ -65,8 +65,15 @@ class PosHotkeyManager {
         }
       },
       const SingleActivator(LogicalKeyboardKey.escape): onEscape,
-      const SingleActivator(LogicalKeyboardKey.slash, shift: true):
-          onShowShortcuts,
+      const SingleActivator(LogicalKeyboardKey.slash, shift: true): () {
+        if (!isEditingText) onShowShortcuts();
+      },
+      const SingleActivator(LogicalKeyboardKey.question, shift: true): () {
+        if (!isEditingText) onShowShortcuts();
+      },
+      const SingleActivator(LogicalKeyboardKey.question): () {
+        if (!isEditingText) onShowShortcuts();
+      },
     };
 
     for (final spec in KeyboardShortcutsService.actions) {

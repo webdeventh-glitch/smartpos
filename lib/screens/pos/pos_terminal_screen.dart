@@ -230,6 +230,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    HardwareKeyboard.instance.removeHandler(_handlePosGlobalKey);
+    HardwareKeyboard.instance.addHandler(_handlePosGlobalKey);
+  }
+
+  @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handlePosGlobalKey);
     LanRealtimeService.instance.wsConnected
