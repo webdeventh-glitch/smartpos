@@ -8865,22 +8865,24 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                       .circular(
                                                                           6),
                                                               child: Padding(
-                                                                padding: const EdgeInsets
-                                                                    .symmetric(
-                                                                    horizontal:
-                                                                        10),
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .only(
+                                                                        left: 8,
+                                                                        right:
+                                                                            2),
                                                                 child: Row(
                                                                   children: [
                                                                     const Icon(
                                                                         Icons
                                                                             .person_outline_rounded,
                                                                         size:
-                                                                            18,
+                                                                            17,
                                                                         color: Color(
                                                                             0xFF4F46E5)),
                                                                     const SizedBox(
                                                                         width:
-                                                                            8),
+                                                                            5),
                                                                     Expanded(
                                                                       child:
                                                                           Text(
@@ -8936,15 +8938,12 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                     ],
                                                                     const SizedBox(
                                                                         width:
-                                                                            6),
-                                                                    const SizedBox(
-                                                                        width:
-                                                                            4),
+                                                                            2),
                                                                     Icon(
                                                                         Icons
                                                                             .arrow_drop_down,
                                                                         size:
-                                                                            18,
+                                                                            16,
                                                                         color:
                                                                             textSecondary),
                                                                   ],
@@ -9442,7 +9441,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                               const SizedBox(width: 5),
                                               Text(
                                                 PosLocalization.tr(
-                                                    '+ Custom Item',
+                                                    'Custom Item',
                                                     settings: widget.settings),
                                                 style: TextStyle(
                                                   fontSize: 11,
