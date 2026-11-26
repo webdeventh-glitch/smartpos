@@ -8,7 +8,7 @@ import 'number_to_words_service.dart';
 import 'localization_service.dart';
 
 class PrintService {
-  /// Opens Windows print dialog via an optimized, print-ready HTML page
+  /// Opens the native Windows Print Dialog directly without launching a browser tab.
   static Future<bool> openPrintWindow({
     required String htmlContent,
     required String title,
@@ -18,20 +18,38 @@ class PrintService {
       final cleanTitle = title.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
       final tempFile = File(
           '${tempDir.path}\\smartpos_${cleanTitle}_${DateTime.now().millisecondsSinceEpoch}.html');
-      await tempFile.writeAsString(htmlContent);
+      final preparedHtml = _ensureIeEdgeMeta(htmlContent);
+      await tempFile.writeAsString(preparedHtml);
 
       if (Platform.isWindows) {
+        final systemRoot = Platform.environment['SystemRoot'] ?? r'C:\Windows';
+        final mshtmlPath = '$systemRoot\\System32\\mshtml.dll';
+        if (File(mshtmlPath).existsSync()) {
+          await Process.start(
+            'rundll32.exe',
+            ['mshtml.dll,PrintHTML', tempFile.path],
+            mode: ProcessStartMode.detached,
+          );
+          return true;
+        }
         await Process.run('cmd.exe', ['/c', 'start', '', tempFile.path]);
         return true;
       } else {
-        // Fallback for other platforms
         await Process.run('open', [tempFile.path]);
         return true;
       }
     } catch (e) {
-      debugPrint('[PrintService] Error opening print window: $e');
+      debugPrint('[PrintService] Error opening print dialog: $e');
       return false;
     }
+  }
+
+  static String _ensureIeEdgeMeta(String html) {
+    if (html.contains('X-UA-Compatible')) return html;
+    return html.replaceFirst(
+      RegExp(r'<head>', caseSensitive: false),
+      '<head><meta http-equiv="X-UA-Compatible" content="IE=edge">',
+    );
   }
 
   /// Copies receipt or document text to clipboard
