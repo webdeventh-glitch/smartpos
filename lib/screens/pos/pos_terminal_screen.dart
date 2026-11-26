@@ -7747,43 +7747,49 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF312E81)
-                                : const Color(0xFFEEF2FF),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(Icons.keyboard_rounded,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
                               color: isDark
-                                  ? const Color(0xFFA5B4FC)
-                                  : const Color(0xFF4F46E5),
-                              size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'POS Terminal Shortcuts [F1 / ?]',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 17,
-                                  color: textPrimary),
+                                  ? const Color(0xFF312E81)
+                                  : const Color(0xFFEEF2FF),
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            Text(
-                              isCustomizing
-                                  ? 'Reassign F-keys for cashier operations and save'
-                                  : 'Quick keyboard hotkeys for rapid cashier operation',
-                              style:
-                                  TextStyle(fontSize: 12, color: textSecondary),
+                            child: Icon(Icons.keyboard_rounded,
+                                color: isDark
+                                    ? const Color(0xFFA5B4FC)
+                                    : const Color(0xFF4F46E5),
+                                size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'POS Terminal Shortcuts [F1 / ?]',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 17,
+                                      color: textPrimary),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  isCustomizing
+                                      ? 'Reassign F-keys for cashier operations and save'
+                                      : 'Quick keyboard hotkeys for rapid cashier operation',
+                                  style: TextStyle(
+                                      fontSize: 12, color: textSecondary),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
