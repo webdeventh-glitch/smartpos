@@ -4432,6 +4432,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
   }
 
+  // ignore: unused_element
   void _showPromotionsDialog() {
     final currentUser = AuthService.currentUser;
     if (currentUser != null && !currentUser.isSuperAdmin) {
@@ -5364,6 +5365,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     );
   }
 
+  // ignore: unused_element
   Future<void> _openSolarBundleDialog() async {
     final db = await _dbFuture;
     final prods = (await db.getProductsPaged(
@@ -8219,51 +8221,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             style: TextStyle(
                                 fontSize: 11, fontWeight: FontWeight.bold)),
                         onPressed: _showNarcoticRegisterDialog,
-                      ),
-                    ],
-
-                    // Advanced Promotions / Happy Hour Button
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            PromotionsService.instance.isHappyHourActive()
-                                ? const Color(0xFFF59E0B)
-                                : const Color(0xFF6366F1),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                      ),
-                      icon: Icon(
-                        PromotionsService.instance.isHappyHourActive()
-                            ? Icons.local_fire_department_rounded
-                            : Icons.campaign_rounded,
-                        size: 14,
-                      ),
-                      label: Text(
-                        PromotionsService.instance.isHappyHourActive()
-                            ? 'Happy Hour (${PromotionsService.instance.happyHourDiscountPercent.toInt()}% OFF)'
-                            : 'Promos & BOGO',
-                        style: const TextStyle(
-                            fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                      onPressed: _showPromotionsDialog,
-                    ),
-
-                    if (widget.settings.isSolarHardwareEnabled) ...[
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF59E0B),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                        ),
-                        icon: const Icon(Icons.wb_sunny_rounded, size: 14),
-                        label: const Text('Solar BOM',
-                            style: TextStyle(
-                                fontSize: 11, fontWeight: FontWeight.bold)),
-                        onPressed: _openSolarBundleDialog,
                       ),
                     ],
 
