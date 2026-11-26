@@ -12,7 +12,6 @@ import '../../services/regional_data_service.dart';
 import '../../widgets/barcode_type_badge.dart';
 import '../../widgets/product_thumbnail.dart';
 import '../../widgets/searchable_select_dialog.dart';
-import '../../widgets/searchable_unit_picker.dart';
 
 class AddProductScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -271,107 +270,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         _isLoading = false;
       });
     }
-  }
-
-  Future<void> _openSearchUnitDialog() async {
-    final picked = await UnitSearchDialog.show(
-      context,
-      units: _dbUnits,
-      currentUnit: _selectedUnit,
-      onAddNewUnit: _showQuickAddUnitDialog,
-    );
-    if (picked != null && picked.isNotEmpty) {
-      setState(() {
-        _selectedUnit = picked;
-        if (!_units.contains(picked)) {
-          _units.add(picked);
-        }
-      });
-    }
-  }
-
-  Future<void> _openSearchBrandDialog() async {
-    final picked = await SearchableSelectDialog.show<Brand>(
-      context,
-      title: PosLocalization.tr('Select Brand', settings: widget.settings),
-      searchHint: 'Type brand name (e.g. Canadian Solar, Inverex)...',
-      items: _brands,
-      selectedItem: _selectedBrand,
-      labelBuilder: (b) => b.name,
-      subtitleBuilder: (b) =>
-          (b.description != null && b.description!.isNotEmpty)
-              ? b.description!
-              : 'Brand ID: #${b.id ?? "-"}',
-      onAddNew: _quickAddBrand,
-      addNewLabel: '+ Add Brand',
-      allowClear: true,
-      clearLabel: 'None / Clear Brand',
-    );
-    setState(() {
-      _selectedBrand = picked;
-      if (_nameCtrl.text.trim().isEmpty &&
-          picked != null &&
-          picked.name != 'Standard') {
-        _nameCtrl.text = picked.name;
-      }
-    });
-  }
-
-  Future<void> _openSearchCategoryDialog() async {
-    final picked = await SearchableSelectDialog.show<Category>(
-      context,
-      title: PosLocalization.tr('Select Category', settings: widget.settings),
-      searchHint: 'Type category name or code (e.g. Solar, Panels)...',
-      items: _categories,
-      selectedItem: _selectedCategory,
-      labelBuilder: (c) => c.name,
-      subtitleBuilder: (c) =>
-          c.code.isNotEmpty ? 'Short Code: ${c.code}' : (c.description ?? ''),
-      trailingBuilder: (c) => c.code.isNotEmpty
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                c.code,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF4F46E5),
-                ),
-              ),
-            )
-          : const SizedBox.shrink(),
-      onAddNew: _quickAddCategory,
-      addNewLabel: '+ Add Category',
-      allowClear: true,
-      clearLabel: 'None / Clear Category',
-    );
-    setState(() => _selectedCategory = picked);
-    _autoGenerateSku();
-  }
-
-  Future<void> _openSearchSubCategoryDialog() async {
-    final picked = await SearchableSelectDialog.show<String>(
-      context,
-      title:
-          PosLocalization.tr('Select Sub category', settings: widget.settings),
-      searchHint: 'Search or type sub category...',
-      items: _subCategories,
-      selectedItem: _selectedSubCategory,
-      labelBuilder: (s) => s,
-      allowClear: true,
-      clearLabel: 'None / Clear Sub category',
-      onCustomAdd: (val) {
-        if (!_subCategories.contains(val)) {
-          _subCategories.add(val);
-        }
-        return val;
-      },
-    );
-    setState(() => _selectedSubCategory = picked);
   }
 
   void _showQuickAddUnitDialog() {
@@ -1869,16 +1767,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               // Unit with [+] button
                               Expanded(
                                 flex: 4,
-                                child: SearchSelectField(
-                                  label: 'Unit',
+                                child: SearchableDropdownField<String>(
+                                  label: PosLocalization.tr('Unit',
+                                      settings: widget.settings),
                                   isRequired: true,
-                                  valueText: _selectedUnit.isNotEmpty
+                                  selectedItem: _selectedUnit.isNotEmpty
                                       ? _selectedUnit
                                       : null,
+                                  items: _units,
+                                  labelBuilder: (u) => u,
                                   placeholder: PosLocalization.tr('Select Unit',
                                       settings: widget.settings),
+                                  searchHint: 'Search unit (e.g. Pc, Box)...',
                                   prefixIcon: Icons.straighten_rounded,
-                                  onTap: _openSearchUnitDialog,
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() => _selectedUnit = val);
+                                    }
+                                  },
                                   onAdd: _showQuickAddUnitDialog,
                                 ),
                               ),
@@ -1887,14 +1793,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               // Brand with [+] button
                               Expanded(
                                 flex: 4,
-                                child: SearchSelectField(
-                                  label: 'Brand',
-                                  valueText: _selectedBrand?.name,
+                                child: SearchableDropdownField<Brand>(
+                                  label: PosLocalization.tr('Brand',
+                                      settings: widget.settings),
+                                  selectedItem: _selectedBrand,
+                                  items: _brands,
+                                  labelBuilder: (b) => b.name,
+                                  subtitleBuilder: (b) => b.description,
                                   placeholder: PosLocalization.tr(
                                       'Select Brand',
                                       settings: widget.settings),
+                                  searchHint: 'Search brand...',
                                   prefixIcon: Icons.branding_watermark_outlined,
-                                  onTap: _openSearchBrandDialog,
+                                  allowClear: true,
+                                  clearLabel: 'None / Clear Brand',
+                                  onChanged: (val) =>
+                                      setState(() => _selectedBrand = val),
                                   onAdd: _quickAddBrand,
                                 ),
                               ),
@@ -1903,15 +1817,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               // Category with [+] button
                               Expanded(
                                 flex: 4,
-                                child: SearchSelectField(
-                                  label: 'Category',
+                                child: SearchableDropdownField<Category>(
+                                  label: PosLocalization.tr('Category',
+                                      settings: widget.settings),
                                   isRequired: true,
-                                  valueText: _selectedCategory?.name,
+                                  selectedItem: _selectedCategory,
+                                  items: _categories
+                                      .where((c) => c.parentId == null)
+                                      .toList(),
+                                  labelBuilder: (c) => c.name,
+                                  subtitleBuilder: (c) =>
+                                      c.code.isNotEmpty ? c.code : null,
                                   placeholder: PosLocalization.tr(
                                       'Select Category',
                                       settings: widget.settings),
+                                  searchHint: 'Search category...',
                                   prefixIcon: Icons.category_outlined,
-                                  onTap: _openSearchCategoryDialog,
+                                  allowClear: true,
+                                  clearLabel: 'None / Clear Category',
+                                  onChanged: (val) {
+                                    setState(() => _selectedCategory = val);
+                                    _autoGenerateSku();
+                                  },
                                   onAdd: _quickAddCategory,
                                 ),
                               ),
@@ -1920,38 +1847,67 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         } else {
                           return Column(
                             children: [
-                              SearchSelectField(
-                                label: 'Unit',
+                              SearchableDropdownField<String>(
+                                label: PosLocalization.tr('Unit',
+                                    settings: widget.settings),
                                 isRequired: true,
-                                valueText: _selectedUnit.isNotEmpty
+                                selectedItem: _selectedUnit.isNotEmpty
                                     ? _selectedUnit
                                     : null,
+                                items: _units,
+                                labelBuilder: (u) => u,
                                 placeholder: PosLocalization.tr('Select Unit',
                                     settings: widget.settings),
+                                searchHint: 'Search unit...',
                                 prefixIcon: Icons.straighten_rounded,
-                                onTap: _openSearchUnitDialog,
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() => _selectedUnit = val);
+                                  }
+                                },
                                 onAdd: _showQuickAddUnitDialog,
                               ),
                               const SizedBox(height: 16),
-                              SearchSelectField(
-                                label: 'Brand',
-                                valueText: _selectedBrand?.name,
+                              SearchableDropdownField<Brand>(
+                                label: PosLocalization.tr('Brand',
+                                    settings: widget.settings),
+                                selectedItem: _selectedBrand,
+                                items: _brands,
+                                labelBuilder: (b) => b.name,
+                                subtitleBuilder: (b) => b.description,
                                 placeholder: PosLocalization.tr('Select Brand',
                                     settings: widget.settings),
+                                searchHint: 'Search brand...',
                                 prefixIcon: Icons.branding_watermark_outlined,
-                                onTap: _openSearchBrandDialog,
+                                allowClear: true,
+                                clearLabel: 'None / Clear Brand',
+                                onChanged: (val) =>
+                                    setState(() => _selectedBrand = val),
                                 onAdd: _quickAddBrand,
                               ),
                               const SizedBox(height: 16),
-                              SearchSelectField(
-                                label: 'Category',
+                              SearchableDropdownField<Category>(
+                                label: PosLocalization.tr('Category',
+                                    settings: widget.settings),
                                 isRequired: true,
-                                valueText: _selectedCategory?.name,
+                                selectedItem: _selectedCategory,
+                                items: _categories
+                                    .where((c) => c.parentId == null)
+                                    .toList(),
+                                labelBuilder: (c) => c.name,
+                                subtitleBuilder: (c) =>
+                                    c.code.isNotEmpty ? c.code : null,
                                 placeholder: PosLocalization.tr(
                                     'Select Category',
                                     settings: widget.settings),
+                                searchHint: 'Search category...',
                                 prefixIcon: Icons.category_outlined,
-                                onTap: _openSearchCategoryDialog,
+                                allowClear: true,
+                                clearLabel: 'None / Clear Category',
+                                onChanged: (val) {
+                                  setState(() => _selectedCategory = val);
+                                  _autoGenerateSku();
+                                },
                                 onAdd: _quickAddCategory,
                               ),
                             ],
@@ -1963,21 +1919,38 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       // ROW 3: Sub Category | Business Locations | Warranty
                       LayoutBuilder(builder: (context, constraints) {
                         final isWide = constraints.maxWidth > 800;
+                        final dbSubs = _categories
+                            .where((c) =>
+                                c.parentId != null &&
+                                (_selectedCategory == null ||
+                                    c.parentId == _selectedCategory!.id))
+                            .map((c) => c.name);
+                        final subOptions = <String>{
+                          ...dbSubs,
+                          ..._subCategories,
+                        }.toList();
                         if (isWide) {
                           return Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Sub category with Search Select
+                              // Sub category with Searchable Dropdown
                               Expanded(
                                 flex: 4,
-                                child: SearchSelectField(
-                                  label: 'Sub category',
-                                  valueText: _selectedSubCategory,
+                                child: SearchableDropdownField<String>(
+                                  label: PosLocalization.tr('Sub category',
+                                      settings: widget.settings),
+                                  selectedItem: _selectedSubCategory,
+                                  items: subOptions,
+                                  labelBuilder: (s) => s,
                                   placeholder: PosLocalization.tr(
                                       'Select Sub category',
                                       settings: widget.settings),
+                                  searchHint: 'Search sub category...',
                                   prefixIcon: Icons.alt_route_rounded,
-                                  onTap: _openSearchSubCategoryDialog,
+                                  allowClear: true,
+                                  clearLabel: 'None / Clear Sub category',
+                                  onChanged: (val) => setState(
+                                      () => _selectedSubCategory = val),
                                 ),
                               ),
                               const SizedBox(width: 20),
@@ -2041,33 +2014,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               // Warranty
                               Expanded(
                                 flex: 4,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildFieldLabel('Warranty',
-                                        hasInfo: true,
-                                        info: 'Product warranty terms'),
-                                    DropdownButtonFormField<Warranty>(
-                                      initialValue: _selectedWarranty,
-                                      hint: const Text('No Warranty',
-                                          style: TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF94A3B8))),
-                                      decoration: _inputDecor('Please Select'),
-                                      items: _warranties
-                                          .map((w) => DropdownMenuItem(
-                                                value: w,
-                                                child: Text(w.name,
-                                                    style: const TextStyle(
-                                                        fontSize: 13),
-                                                    overflow:
-                                                        TextOverflow.ellipsis),
-                                              ))
-                                          .toList(),
-                                      onChanged: (val) => setState(
-                                          () => _selectedWarranty = val),
-                                    ),
-                                  ],
+                                child: SearchableDropdownField<Warranty>(
+                                  label: PosLocalization.tr('Warranty',
+                                      settings: widget.settings),
+                                  selectedItem: _selectedWarranty,
+                                  items: _warranties,
+                                  labelBuilder: (w) => w.name,
+                                  placeholder: PosLocalization.tr('No Warranty',
+                                      settings: widget.settings),
+                                  searchHint: 'Search warranty...',
+                                  prefixIcon: Icons.verified_user_outlined,
+                                  allowClear: true,
+                                  clearLabel: 'No Warranty',
+                                  onChanged: (val) =>
+                                      setState(() => _selectedWarranty = val),
                                 ),
                               ),
                             ],
@@ -2076,41 +2036,37 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SearchSelectField(
-                                label: 'Sub category',
-                                valueText: _selectedSubCategory,
+                              SearchableDropdownField<String>(
+                                label: PosLocalization.tr('Sub category',
+                                    settings: widget.settings),
+                                selectedItem: _selectedSubCategory,
+                                items: subOptions,
+                                labelBuilder: (s) => s,
                                 placeholder: PosLocalization.tr(
                                     'Select Sub category',
                                     settings: widget.settings),
+                                searchHint: 'Search sub category...',
                                 prefixIcon: Icons.alt_route_rounded,
-                                onTap: _openSearchSubCategoryDialog,
+                                allowClear: true,
+                                clearLabel: 'None / Clear Sub category',
+                                onChanged: (val) =>
+                                    setState(() => _selectedSubCategory = val),
                               ),
                               const SizedBox(height: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel('Warranty'),
-                                  DropdownButtonFormField<Warranty>(
-                                    initialValue: _selectedWarranty,
-                                    hint: const Text('No Warranty',
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: Color(0xFF94A3B8))),
-                                    decoration: _inputDecor('Please Select'),
-                                    items: _warranties
-                                        .map((w) => DropdownMenuItem(
-                                              value: w,
-                                              child: Text(w.name,
-                                                  style: const TextStyle(
-                                                      fontSize: 13),
-                                                  overflow:
-                                                      TextOverflow.ellipsis),
-                                            ))
-                                        .toList(),
-                                    onChanged: (val) =>
-                                        setState(() => _selectedWarranty = val),
-                                  ),
-                                ],
+                              SearchableDropdownField<Warranty>(
+                                label: PosLocalization.tr('Warranty',
+                                    settings: widget.settings),
+                                selectedItem: _selectedWarranty,
+                                items: _warranties,
+                                labelBuilder: (w) => w.name,
+                                placeholder: PosLocalization.tr('No Warranty',
+                                    settings: widget.settings),
+                                searchHint: 'Search warranty...',
+                                prefixIcon: Icons.verified_user_outlined,
+                                allowClear: true,
+                                clearLabel: 'No Warranty',
+                                onChanged: (val) =>
+                                    setState(() => _selectedWarranty = val),
                               ),
                             ],
                           );
