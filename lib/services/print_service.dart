@@ -1164,9 +1164,9 @@ class PrintService {
     <!-- Header -->
     <div class="biz-header">
       <div class="biz-title">${_escape(settings.businessName.toUpperCase())}</div>
-      <div class="biz-sub">${_escape(settings.invoiceHeading.toUpperCase())} &bull; ${_escape(settings.branchName.toUpperCase())}</div>
+      <div class="biz-sub">${_escape((!settings.showTaxBreakdownOnReceipt && settings.invoiceHeading.trim().toLowerCase() == 'tax invoice') ? 'INVOICE' : settings.invoiceHeading.toUpperCase())} &bull; ${_escape(settings.branchName.toUpperCase())}</div>
       <div class="biz-meta">${_escape(settings.address)}</div>
-      ${settings.phone.isNotEmpty ? '<div class="biz-cell">CELL NO: ${_escape(settings.phone)}${settings.taxNumber.isNotEmpty ? ' &bull; NTN/GST: ${_escape(settings.taxNumber)}' : ''}</div>' : ''}
+      ${settings.phone.isNotEmpty ? '<div class="biz-cell">CELL NO: ${_escape(settings.phone)}${settings.showTaxBreakdownOnReceipt && settings.taxNumber.isNotEmpty ? ' &bull; NTN/GST: ${_escape(settings.taxNumber)}' : ''}</div>' : ''}
     </div>
 
     <!-- Boxed Party and Invoice Info -->
@@ -1193,7 +1193,7 @@ class PrintService {
           ${showExpiry ? '<th style="width: 11%;">EXP-DATE</th>' : ''}
           <th style="width: 7%;">QTY</th>
           <th style="width: 7%;">BONUS</th>
-          <th style="width: 10%; text-align: right;">RATE+GST</th>
+          <th style="width: 10%; text-align: right;">${settings.showTaxBreakdownOnReceipt ? 'RATE+GST' : 'RATE'}</th>
           <th style="width: 10%; text-align: right;">PACK VALUE</th>
           <th style="width: 8%; text-align: right;">PACK DISC</th>
           <th style="width: 10%; text-align: right; padding-right: 6px;">NET TOTAL</th>
@@ -1207,7 +1207,7 @@ class PrintService {
     <!-- Subtotals Row -->
     <div class="subtotals-bar">
       <div>
-        ${sale.taxAmount > 0 ? (sale.taxBreakdownMap.isNotEmpty ? 'Tax Breakdown: ${sale.taxBreakdownMap.entries.map((e) => '${_escape(e.key)} ($cur${e.value.toStringAsFixed(2)})').join(' + ')} = <b>$cur${sale.taxAmount.toStringAsFixed(2)}</b>' : (settings.isPharmacy ? 'Advance Tax Under Section(236H)= 0.50% &nbsp;&nbsp;&nbsp; $cur${sale.taxAmount.toStringAsFixed(2)}' : 'Tax Amount: $cur${sale.taxAmount.toStringAsFixed(2)}')) : 'Tax: Exempt (0.00%)'}
+        ${(settings.showTaxBreakdownOnReceipt || sale.taxAmount > 0) ? (sale.taxAmount > 0 ? (sale.taxBreakdownMap.isNotEmpty ? 'Tax Breakdown: ${sale.taxBreakdownMap.entries.map((e) => '${_escape(e.key)} ($cur${e.value.toStringAsFixed(2)})').join(' + ')} = <b>$cur${sale.taxAmount.toStringAsFixed(2)}</b>' : (settings.isPharmacy ? 'Advance Tax Under Section(236H)= 0.50% &nbsp;&nbsp;&nbsp; $cur${sale.taxAmount.toStringAsFixed(2)}' : 'Tax Amount: $cur${sale.taxAmount.toStringAsFixed(2)}')) : 'Tax: Exempt (0.00%)') : ''}
       </div>
       <div>
         TOTAL : <span style="font-size: 13px; font-weight: 900;">$cur${sale.totalAmount.toStringAsFixed(2)}</span>

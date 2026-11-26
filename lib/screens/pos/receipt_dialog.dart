@@ -1090,7 +1090,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                 _th('EXP-DATE'),
                 _th('QTY'),
                 _th('BONUS'),
-                _th('RATE+GST'),
+                _th(widget.settings.showTaxBreakdownOnReceipt
+                    ? 'RATE+GST'
+                    : 'RATE'),
                 _th('PACK VALUE'),
                 _th('PACK DISC'),
                 _th('NET TOTAL'),
@@ -1149,17 +1151,20 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  widget.sale.taxAmount > 0
-                      ? (widget.sale.taxBreakdownMap.isNotEmpty
-                          ? 'Taxes (${widget.sale.taxBreakdownMap.entries.map((e) => '${e.key}: $currency${e.value.toStringAsFixed(2)}').join(' + ')}) = $currency${widget.sale.taxAmount.toStringAsFixed(2)}'
-                          : (widget.settings.isPharmacy
-                              ? 'Advance Tax Under Section(236H)= 0.50%    $currency${widget.sale.taxAmount.toStringAsFixed(2)}'
-                              : 'Tax Amount: $currency${widget.sale.taxAmount.toStringAsFixed(2)}'))
-                      : 'Tax: Exempt (0.00%)',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11),
-                ),
+                child: (widget.settings.showTaxBreakdownOnReceipt ||
+                        widget.sale.taxAmount > 0)
+                    ? Text(
+                        widget.sale.taxAmount > 0
+                            ? (widget.sale.taxBreakdownMap.isNotEmpty
+                                ? 'Taxes (${widget.sale.taxBreakdownMap.entries.map((e) => '${e.key}: $currency${e.value.toStringAsFixed(2)}').join(' + ')}) = $currency${widget.sale.taxAmount.toStringAsFixed(2)}'
+                                : (widget.settings.isPharmacy
+                                    ? 'Advance Tax Under Section(236H)= 0.50%    $currency${widget.sale.taxAmount.toStringAsFixed(2)}'
+                                    : 'Tax Amount: $currency${widget.sale.taxAmount.toStringAsFixed(2)}'))
+                            : 'Tax: Exempt (0.00%)',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 11),
+                      )
+                    : const SizedBox.shrink(),
               ),
               const SizedBox(width: 12),
               Row(
