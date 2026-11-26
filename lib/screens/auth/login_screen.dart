@@ -1098,7 +1098,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _buildSideBanner(isDark),
-                            _buildLoginForm(isDark),
+                            Expanded(child: _buildLoginForm(isDark)),
                           ],
                         ),
                       )
