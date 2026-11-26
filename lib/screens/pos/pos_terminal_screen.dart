@@ -6769,7 +6769,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           child: CompositedTransformFollower(
             link: _productDropdownLink,
             showWhenUnlinked: false,
-            offset: const Offset(0, 40),
+            offset: const Offset(0, 48),
             child: TapRegion(
               groupId: _productDropdownTapGroup,
               onTapOutside: (_) => _closeProductDropdown(),
@@ -9343,8 +9343,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                 ),
                               ),
 
-                              // Inline Barcode Search Bar when right Product Panel is hidden (Superstore Mode)
-                              if (!_showProductPanel && !isTabletCompact)
+                              // Prominent Full-Width Product Search & Barcode Bar
+                              if (!isTabletCompact)
                                 Container(
                                   padding:
                                       const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -10566,22 +10566,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Row 1: Dedicated Product Search & Barcode Scanner
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                      bottom: BorderSide(color: borderColor)),
-                                ),
-                                child: _buildBarcodeSearchRow(
-                                  isDark: isDark,
-                                  inputBg: inputBg,
-                                  inputBorder: inputBorder,
-                                  textPrimary: textPrimary,
-                                  textSecondary: textSecondary,
-                                ),
-                              ),
-
                               // Row 2: Filter Pills & View Layout Switcher (Directly above products)
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -11859,11 +11843,23 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
               link: _productDropdownLink,
               child: Container(
                 key: _productBoxKey,
-                height: 36,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: inputBg,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: inputBorder),
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF8FAFF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF4F46E5).withValues(alpha: 0.7),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4F46E5).withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: TextField(
                   controller: _searchController,
@@ -11880,17 +11876,24 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       _showOrUpdateProductDropdown();
                     }
                   },
-                  style: TextStyle(fontSize: 12.5, color: textPrimary),
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    color: textPrimary,
+                  ),
                   decoration: InputDecoration(
                     hintText: PosLocalization.tr(
                         'Scan barcode / search item / 2*SKU [Esc]',
                         settings: widget.settings),
-                    hintStyle: TextStyle(fontSize: 11.5, color: textSecondary),
-                    prefixIcon: Icon(Icons.qr_code_scanner_rounded,
-                        size: 17, color: textSecondary),
+                    hintStyle: TextStyle(
+                      fontSize: 13,
+                      color: textSecondary,
+                    ),
+                    prefixIcon: const Icon(Icons.search_rounded,
+                        size: 20, color: Color(0xFF4F46E5)),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, size: 15),
+                            icon: const Icon(Icons.clear, size: 16),
                             onPressed: () {
                               _searchController.clear();
                               _closeProductDropdown();
@@ -11902,7 +11905,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 9),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 11),
                     isDense: true,
                   ),
                 ),
@@ -11910,38 +11913,38 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             ),
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
         Tooltip(
           message: 'Fast Price & Stock Checker',
           child: InkWell(
             onTap: _openPriceCheckerDialog,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             child: Container(
-              width: 36,
-              height: 36,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: const Color(0xFF0D9488),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.qr_code_2_rounded,
-                  color: Colors.white, size: 19),
+                  color: Colors.white, size: 21),
             ),
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
         Tooltip(
           message: 'Add Custom Item [F11]',
           child: InkWell(
             onTap: _openCustomProductDialog,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             child: Container(
-              width: 36,
-              height: 36,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: const Color(0xFF4F46E5),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.add, color: Colors.white, size: 19),
+              child: const Icon(Icons.add, color: Colors.white, size: 21),
             ),
           ),
         ),
