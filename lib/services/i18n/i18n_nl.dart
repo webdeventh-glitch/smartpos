@@ -1760,4 +1760,6 @@ const Map<String, String> i18nExtraNl = {
   'Update Purchase Invoice': 'Inkoopfactuur bijwerken',
   'View Payments': 'Betalingen bekijken',
   'Pay / View Payments': 'Betalen / Betalingen bekijken',
+  'Add or edit opening stock': 'Beginvoorraad toevoegen of bewerken',
+  'Product stock history': 'Productvoorraadgeschiedenis',
 };

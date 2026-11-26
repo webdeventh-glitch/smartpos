@@ -1737,4 +1737,6 @@ const Map<String, String> i18nExtraFa = {
   'Update Purchase Invoice': 'به‌روزرسانی فاکتور خرید',
   'View Payments': 'مشاهده پرداخت‌ها',
   'Pay / View Payments': 'پرداخت / مشاهده پرداخت‌ها',
+  'Add or edit opening stock': 'افزودن یا ویرایش موجودی اولیه',
+  'Product stock history': 'تاریخچه موجودی محصول',
 };

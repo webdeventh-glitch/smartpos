@@ -1974,7 +1974,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 16, vertical: 12),
                                           child: Text(
-                                            '$currency${p.sellingPrice.toStringAsFixed(2)}',
+                                            CurrencyFormatter.exact(
+                                                p.sellingPrice,
+                                                currency: '$currency '),
                                             style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w800,
@@ -2103,167 +2105,14 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                           ),
                                         ),
 
-                                        // Action Buttons
+                                        // Action Buttons (UltimatePOS Actions Dropdown)
                                         Padding(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 8),
-                                          child: Wrap(
-                                            alignment: WrapAlignment.end,
-                                            spacing: 2,
-                                            runSpacing: 2,
-                                            children: [
-                                              IconButton(
-                                                padding:
-                                                    const EdgeInsets.all(4),
-                                                constraints:
-                                                    const BoxConstraints(
-                                                        minWidth: 28,
-                                                        minHeight: 28),
-                                                tooltip: 'View Specs',
-                                                icon: Icon(
-                                                    Icons.visibility_outlined,
-                                                    size: 17,
-                                                    color: isDark
-                                                        ? const Color(
-                                                            0xFF94A3B8)
-                                                        : const Color(
-                                                            0xFF475569)),
-                                                onPressed: () =>
-                                                    _viewProductDetails(p),
-                                              ),
-                                              if (_canPrintLabels)
-                                                IconButton(
-                                                  padding:
-                                                      const EdgeInsets.all(4),
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                          minWidth: 28,
-                                                          minHeight: 28),
-                                                  tooltip:
-                                                      'Print Barcode Label',
-                                                  icon: Icon(
-                                                      Icons.qr_code_2_rounded,
-                                                      size: 17,
-                                                      color: isDark
-                                                          ? const Color(
-                                                              0xFF818CF8)
-                                                          : const Color(
-                                                              0xFF4F46E5)),
-                                                  onPressed: () {
-                                                    if (widget
-                                                            .onNavigateToPrintLabels !=
-                                                        null) {
-                                                      widget.onNavigateToPrintLabels!(
-                                                          p);
-                                                    } else {
-                                                      Navigator.push(
-                                                        context,
-                                                        MaterialPageRoute(
-                                                          builder: (_) =>
-                                                              PrintLabelsScreen(
-                                                                  settings: widget
-                                                                      .settings,
-                                                                  initialProduct:
-                                                                      p),
-                                                        ),
-                                                      );
-                                                    }
-                                                  },
-                                                ),
-                                              if (_canEditProduct)
-                                                IconButton(
-                                                  padding:
-                                                      const EdgeInsets.all(4),
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                          minWidth: 28,
-                                                          minHeight: 28),
-                                                  tooltip: 'Edit Product',
-                                                  icon: Icon(
-                                                      Icons.edit_outlined,
-                                                      size: 17,
-                                                      color: isDark
-                                                          ? const Color(
-                                                              0xFF818CF8)
-                                                          : const Color(
-                                                              0xFF4F46E5)),
-                                                  onPressed: () =>
-                                                      _openAddProduct(p),
-                                                ),
-                                              if (_canDeleteProduct)
-                                                IconButton(
-                                                  padding:
-                                                      const EdgeInsets.all(4),
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                          minWidth: 28,
-                                                          minHeight: 28),
-                                                  tooltip: 'Delete Product',
-                                                  icon: Icon(
-                                                      Icons
-                                                          .delete_outline_rounded,
-                                                      size: 17,
-                                                      color: isDark
-                                                          ? const Color(
-                                                              0xFFF87171)
-                                                          : const Color(
-                                                              0xFFDC2626)),
-                                                  onPressed: () => _delete(p),
-                                                ),
-                                              PopupMenuButton<String>(
-                                                tooltip: 'More Actions',
-                                                padding: EdgeInsets.zero,
-                                                icon: Icon(
-                                                  Icons.more_vert_rounded,
-                                                  size: 18,
-                                                  color: isDark
-                                                      ? const Color(0xFF94A3B8)
-                                                      : const Color(0xFF475569),
-                                                ),
-                                                onSelected: (val) {
-                                                  if (val == 'history') {
-                                                    _openStockHistoryDialog(p);
-                                                  } else if (val ==
-                                                      'duplicate') {
-                                                    _duplicateProduct(p);
-                                                  }
-                                                },
-                                                itemBuilder: (_) => [
-                                                  const PopupMenuItem(
-                                                    value: 'history',
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(
-                                                            Icons
-                                                                .history_rounded,
-                                                            size: 16,
-                                                            color: Color(
-                                                                0xFF0284C7)),
-                                                        SizedBox(width: 8),
-                                                        Text('Stock History'),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  if (_canCreateProduct)
-                                                    const PopupMenuItem(
-                                                      value: 'duplicate',
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(
-                                                              Icons
-                                                                  .copy_rounded,
-                                                              size: 16,
-                                                              color: Color(
-                                                                  0xFF4F46E5)),
-                                                          SizedBox(width: 8),
-                                                          Text(
-                                                              'Duplicate Product'),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                            ],
+                                              horizontal: 8, vertical: 8),
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: _buildProductActionsMenu(
+                                                p, isDark),
                                           ),
                                         ),
                                       ],
@@ -2397,6 +2246,143 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
         ),
       ),
+    );
+  }
+
+  Widget _buildProductActionsMenu(Product p, bool isDark) {
+    return PopupMenuButton<String>(
+      tooltip: PosLocalization.tr('Actions'),
+      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      onSelected: (action) {
+        switch (action) {
+          case 'labels':
+            if (widget.onNavigateToPrintLabels != null) {
+              widget.onNavigateToPrintLabels!(p);
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PrintLabelsScreen(
+                    settings: widget.settings,
+                    initialProduct: p,
+                  ),
+                ),
+              );
+            }
+            break;
+          case 'view':
+            _viewProductDetails(p);
+            break;
+          case 'edit':
+            _openAddProduct(p);
+            break;
+          case 'delete':
+            _delete(p);
+            break;
+          case 'opening_stock':
+            _openQuickStockIn(p);
+            break;
+          case 'history':
+            _openStockHistoryDialog(p);
+            break;
+          case 'duplicate':
+            _duplicateProduct(p);
+            break;
+        }
+      },
+      itemBuilder: (_) => [
+        if (_canPrintLabels)
+          PopupMenuItem(
+            value: 'labels',
+            child: _productMenuRow(
+                Icons.qr_code_2_rounded, PosLocalization.tr('Labels'), isDark),
+          ),
+        PopupMenuItem(
+          value: 'view',
+          child: _productMenuRow(
+              Icons.visibility_outlined, PosLocalization.tr('View'), isDark),
+        ),
+        if (_canEditProduct)
+          PopupMenuItem(
+            value: 'edit',
+            child: _productMenuRow(
+                Icons.edit_outlined, PosLocalization.tr('Edit'), isDark),
+          ),
+        if (_canDeleteProduct)
+          PopupMenuItem(
+            value: 'delete',
+            child: _productMenuRow(Icons.delete_outline_rounded,
+                PosLocalization.tr('Delete'), isDark,
+                color: const Color(0xFFEF4444)),
+          ),
+        const PopupMenuDivider(),
+        if (_canQuickStockIn)
+          PopupMenuItem(
+            value: 'opening_stock',
+            child: _productMenuRow(Icons.storage_rounded,
+                PosLocalization.tr('Add or edit opening stock'), isDark),
+          ),
+        PopupMenuItem(
+          value: 'history',
+          child: _productMenuRow(Icons.history_rounded,
+              PosLocalization.tr('Product stock history'), isDark),
+        ),
+        if (_canCreateProduct)
+          PopupMenuItem(
+            value: 'duplicate',
+            child: _productMenuRow(Icons.copy_rounded,
+                PosLocalization.tr('Duplicate Product'), isDark),
+          ),
+      ],
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerRight,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0F9FF),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: const Color(0xFF0284C7).withValues(alpha: 0.65),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                PosLocalization.tr('Actions'),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0284C7),
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(
+                Icons.arrow_drop_down_rounded,
+                size: 16,
+                color: Color(0xFF0284C7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _productMenuRow(IconData icon, String label, bool isDark,
+      {Color? color}) {
+    final c = color ?? (isDark ? Colors.white70 : const Color(0xFF334155));
+    return Row(
+      children: [
+        Icon(icon, size: 17, color: c),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: c),
+        ),
+      ],
     );
   }
 }

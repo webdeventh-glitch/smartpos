@@ -1736,4 +1736,6 @@ const Map<String, String> i18nExtraUr = {
   'Update Purchase Invoice': 'خریداری کا بل اپ ڈیٹ کریں',
   'View Payments': 'ادائیگیاں دیکھیں',
   'Pay / View Payments': 'ادائیگی کریں / دیکھیں',
+  'Add or edit opening stock': 'ابتدائی اسٹاک شامل یا ترمیم کریں',
+  'Product stock history': 'پروڈکٹ اسٹاک ہسٹری',
 };

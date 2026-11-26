@@ -1759,4 +1759,6 @@ const Map<String, String> i18nExtraEs = {
   'Update Purchase Invoice': 'Actualizar factura de compra',
   'View Payments': 'Ver pagos',
   'Pay / View Payments': 'Pagar / Ver pagos',
+  'Add or edit opening stock': 'Agregar o editar stock inicial',
+  'Product stock history': 'Historial de stock del producto',
 };

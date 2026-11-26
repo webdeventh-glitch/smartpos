@@ -1736,4 +1736,6 @@ const Map<String, String> i18nExtraAr = {
   'Update Purchase Invoice': 'تحديث فاتورة الشراء',
   'View Payments': 'عرض المدفوعات',
   'Pay / View Payments': 'دفع / عرض المدفوعات',
+  'Add or edit opening stock': 'إضافة أو تعديل الرصيد الافتتاحي',
+  'Product stock history': 'سجل مخزون المنتج',
 };

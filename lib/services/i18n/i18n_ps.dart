@@ -1732,4 +1732,6 @@ const Map<String, String> i18nExtraPs = {
   'Update Purchase Invoice': 'د پېرودنې بیل تازه کول',
   'View Payments': 'تادیات وګورئ',
   'Pay / View Payments': 'تادیه / تادیات وګورئ',
+  'Add or edit opening stock': 'ابتدايي سټاک اضافه یا سم کړئ',
+  'Product stock history': 'د محصول د سټاک تاریخچه',
 };
