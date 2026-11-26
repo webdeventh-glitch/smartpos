@@ -214,7 +214,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Customer: ${quotation.customerName}  â€¢  Total: $cur${quotation.totalAmount.toStringAsFixed(2)}',
+                  'Customer: ${quotation.customerName}  •  Total: $cur${quotation.totalAmount.toStringAsFixed(2)}',
                   style: const TextStyle(
                       fontSize: 13, fontWeight: FontWeight.w600),
                 ),
@@ -717,7 +717,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                               ? FontWeight.bold
                                               : FontWeight.normal)),
                                   subtitle: Text(
-                                    'Phone: ${cust.phone.isNotEmpty ? cust.phone : 'N/A'} â€¢ Khata: $currency${cust.balance.toStringAsFixed(2)}',
+                                    'Phone: ${cust.phone.isNotEmpty ? cust.phone : 'N/A'} • Khata: $currency${cust.balance.toStringAsFixed(2)}',
                                     style: const TextStyle(fontSize: 11),
                                   ),
                                   trailing: isSel
@@ -983,7 +983,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
           pdfGenerator: (_) => PdfExportService.generateReportPdf(
             title: 'Sales List Report (${_activeTab.toUpperCase()})',
             subtitle:
-                '${widget.settings.businessName} â€¢ ${_sales.length} invoices',
+                '${widget.settings.businessName} • ${_sales.length} invoices',
             headers: headers,
             rows: rows,
             settings: widget.settings,
@@ -1000,7 +1000,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
 
     final bytes = await PdfExportService.generateReportPdf(
       title: 'Sales List Report (${_activeTab.toUpperCase()})',
-      subtitle: '${widget.settings.businessName} â€¢ ${_sales.length} invoices',
+      subtitle: '${widget.settings.businessName} • ${_sales.length} invoices',
       headers: headers,
       rows: rows,
       settings: widget.settings,
@@ -1656,22 +1656,20 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                         width: 1.2)),
                                               ),
                                               children: [
-                                                _th('Date â‡…', isDark),
-                                                _th('Invoice No. â‡…', isDark),
-                                                _th('Customer name â‡…',
-                                                    isDark),
+                                                _th('Date ⇅', isDark),
+                                                _th('Invoice No. ⇅', isDark),
+                                                _th('Customer name ⇅', isDark),
                                                 if (_showContactCol)
-                                                  _th('Contact Number â‡…',
+                                                  _th('Contact Number ⇅',
                                                       isDark),
                                                 if (_showLocationCol)
-                                                  _th('Location â‡…', isDark),
-                                                _th('Payment Status â‡…',
-                                                    isDark),
+                                                  _th('Location ⇅', isDark),
+                                                _th('Payment Status ⇅', isDark),
                                                 if (_showMethodCol)
                                                   _th('Payment Method', isDark),
-                                                _th('Total amount â‡…', isDark),
+                                                _th('Total amount ⇅', isDark),
                                                 if (_showPaidCol)
-                                                  _th('Total paid â‡…', isDark),
+                                                  _th('Total paid ⇅', isDark),
                                                 if (_showDueCol)
                                                   _th('Sell Due', isDark),
                                                 _th('Actions', isDark),
@@ -1727,7 +1725,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                     _td(Text(
                                                       _customerPhonesById[
                                                               s.customerId] ??
-                                                          'â€”',
+                                                          '—',
                                                       style: const TextStyle(
                                                           fontSize: 12,
                                                           color: Color(
