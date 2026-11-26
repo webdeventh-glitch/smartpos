@@ -11847,6 +11847,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           )
                         : null,
                     border: InputBorder.none,
+                    filled: false,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 11),
