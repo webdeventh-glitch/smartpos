@@ -6997,6 +6997,12 @@ class _SettingsScreenState extends State<SettingsScreen>
 
             // Tab 6: Software Update & Backup Center
             _buildSoftwareUpdateAndBackupTab(isDark, primaryColor),
+
+            // Tab 7: Bill Customization & Universal Printing Setup
+            _buildBillCustomizationTab(isDark, primaryColor),
+
+            // Tab 8: AI Business Advisor (BYO Gemini / OpenAI)
+            _buildAiSettingsTab(isDark, primaryColor),
           ],
         ),
       ),
@@ -7956,12 +7962,6 @@ class _SettingsScreenState extends State<SettingsScreen>
               ),
             ],
           ),
-
-          // Tab 7: Bill Customization & Universal Printing Setup
-          _buildBillCustomizationTab(isDark, primaryColor),
-
-          // Tab 8: AI Business Advisor (BYO Gemini / OpenAI)
-          _buildAiSettingsTab(isDark, primaryColor),
         ],
       ),
     );
