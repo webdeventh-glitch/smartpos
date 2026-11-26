@@ -52,9 +52,12 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
   }
 
   String _numberToWords(double amount) {
+    final lang = widget.settings.hasEffectiveSecondaryLanguage
+        ? widget.settings.secondaryLanguage
+        : widget.settings.activePrimaryLanguage;
     return NumberToWordsService.convert(
       amount,
-      language: widget.settings.totalInWordsLanguage,
+      language: lang,
       currencySymbol: widget.settings.currencySymbol,
       currencyCode: widget.settings.currencyCode,
     );
@@ -1089,9 +1092,16 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
               return TableRow(
                 children: [
                   _td(it.displayName, align: TextAlign.left, isBold: true),
-                  _td(it.batchNumber ?? '02260'),
-                  _td(it.expiryDate ?? '12-2028',
-                      color: const Color(0xFFD97706)),
+                  _td((it.batchNumber?.isNotEmpty == true)
+                      ? it.batchNumber!
+                      : '-'),
+                  _td(
+                      (it.expiryDate?.isNotEmpty == true)
+                          ? it.expiryDate!
+                          : '-',
+                      color: (it.expiryDate?.isNotEmpty == true)
+                          ? const Color(0xFFD97706)
+                          : null),
                   _td('${it.quantity.toInt()}'),
                   _td(
                       it.bonusQuantity > 0

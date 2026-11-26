@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
@@ -190,6 +191,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     _shortcutBindings =
         KeyboardShortcutsService.resolveBindings(_shortcutsJson);
     _dbFuture = DatabaseService.initialize();
+    HardwareKeyboard.instance.addHandler(_handlePosGlobalKey);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(settingsProvider.notifier).setSettings(widget.settings);
@@ -225,6 +227,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handlePosGlobalKey);
     LanRealtimeService.instance.wsConnected
         .removeListener(_onLanConnectionStateChanged);
     _lanEventSub?.cancel();
@@ -7249,6 +7252,29 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   bool get _isEditingText =>
       FocusManager.instance.primaryFocus?.context?.widget is EditableText;
 
+  bool _handlePosGlobalKey(KeyEvent event) {
+    if (event is! KeyDownEvent || !mounted) return false;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return false;
+
+    // Ctrl+F -> focus Product Search
+    if (event.logicalKey == LogicalKeyboardKey.keyF &&
+        HardwareKeyboard.instance.isControlPressed) {
+      _closeCustomerDropdown();
+      _searchFocusNode.requestFocus();
+      return true;
+    }
+
+    final bindings = _buildDynamicShortcuts();
+    for (final entry in bindings.entries) {
+      if (entry.key.accepts(event, HardwareKeyboard.instance)) {
+        entry.value();
+        return true;
+      }
+    }
+    return false;
+  }
+
   Map<ShortcutActivator, VoidCallback> _buildDynamicShortcuts() {
     return PosHotkeyManager.buildShortcuts(
       onToggleProductPanel: _toggleProductPanelVisibility,
@@ -7263,7 +7289,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           ref.read(cartProvider.notifier).decrementQuantity(_cart.length - 1),
       onRemoveLastItem: () =>
           ref.read(cartProvider.notifier).removeAt(_cart.length - 1),
-      onEscape: () => _searchFocusNode.requestFocus(),
+      onEscape: () {
+        _closeCustomerDropdown();
+        _closeProductDropdown();
+        _searchFocusNode.requestFocus();
+      },
       onShowShortcuts: _showShortcutsDialog,
       isCartNotEmpty: _cart.isNotEmpty,
       isEditingText: _isEditingText,
@@ -9015,20 +9045,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                           ),
                                                         ),
                                                       ),
-                                                    if (widget.settings
-                                                            .promptWalkinCustomerName &&
-                                                        (_selectedCustomer ==
-                                                                null ||
-                                                            _selectedCustomer!
-                                                                .name
-                                                                .toLowerCase()
-                                                                .contains(
-                                                                    'walk-in') ||
-                                                            _selectedCustomer!
-                                                                .name
-                                                                .toLowerCase()
-                                                                .contains(
-                                                                    'walk in')))
+                                                    if (_selectedCustomer ==
+                                                            null ||
+                                                        _selectedCustomer!.name
+                                                            .toLowerCase()
+                                                            .contains(
+                                                                'walk-in') ||
+                                                        _selectedCustomer!.name
+                                                            .toLowerCase()
+                                                            .contains(
+                                                                'walk in'))
                                                       Padding(
                                                         padding:
                                                             const EdgeInsets
