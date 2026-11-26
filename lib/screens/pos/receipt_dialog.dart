@@ -17,6 +17,8 @@ class ReceiptDialog extends StatefulWidget {
   final double tenderedAmount;
   final double changeReturn;
   final double? customerPreviousBalance;
+  final String? customCustomerPhone;
+  final String? customCustomerAddress;
 
   const ReceiptDialog({
     super.key,
@@ -25,6 +27,8 @@ class ReceiptDialog extends StatefulWidget {
     required this.tenderedAmount,
     required this.changeReturn,
     this.customerPreviousBalance,
+    this.customCustomerPhone,
+    this.customCustomerAddress,
   });
 
   @override
@@ -1016,12 +1020,18 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         widget.sale.customerId != null
                             ? '${widget.sale.customerId}'
                             : 'WALK-IN'),
-                    _a4MetaField('PARTY NAME:', widget.sale.customerName),
+                    _a4MetaField(
+                        'PARTY NAME:',
+                        (widget.customCustomerPhone?.isNotEmpty == true)
+                            ? '${widget.sale.customerName} (${widget.customCustomerPhone})'
+                            : widget.sale.customerName),
                     _a4MetaField(
                         'ADDRESS:',
-                        widget.sale.customerId != null
-                            ? 'Registered Client'
-                            : 'Counter Sale / Walk-in'),
+                        (widget.customCustomerAddress?.isNotEmpty == true)
+                            ? widget.customCustomerAddress!
+                            : (widget.sale.customerId != null
+                                ? 'Registered Client'
+                                : 'Counter Sale / Walk-in')),
                   ],
                 ),
               ),

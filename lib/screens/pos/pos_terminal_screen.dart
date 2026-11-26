@@ -133,6 +133,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final TextEditingController _customWalkInNameCtrl = TextEditingController();
+  final TextEditingController _customWalkInPhoneCtrl = TextEditingController();
+  final TextEditingController _customWalkInAddressCtrl =
+      TextEditingController();
   final ScrollController _catalogScrollController = ScrollController();
 
   // Searchable Dropdown Overlays (Customer & Product)
@@ -237,6 +240,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _customWalkInNameCtrl.dispose();
+    _customWalkInPhoneCtrl.dispose();
+    _customWalkInAddressCtrl.dispose();
     _closeCustomerDropdown();
     _closeProductDropdown();
     super.dispose();
@@ -5789,7 +5794,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             change: (saleStatus == 'quotation') ? 0.0 : changeReturn,
           );
         }
+        final walkInPhone = _customWalkInPhoneCtrl.text.trim();
+        final walkInAddress = _customWalkInAddressCtrl.text.trim();
         _customWalkInNameCtrl.clear();
+        _customWalkInPhoneCtrl.clear();
+        _customWalkInAddressCtrl.clear();
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -5799,6 +5808,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             tenderedAmount: (saleStatus == 'quotation') ? 0.0 : tendered,
             changeReturn: (saleStatus == 'quotation') ? 0.0 : changeReturn,
             customerPreviousBalance: prevBalance,
+            customCustomerPhone: walkInPhone.isNotEmpty ? walkInPhone : null,
+            customCustomerAddress:
+                walkInAddress.isNotEmpty ? walkInAddress : null,
           ),
         );
       }
@@ -7124,10 +7136,25 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       _selectCustomer(walkIn);
     }
     _customWalkInNameCtrl.clear();
+    _customWalkInPhoneCtrl.clear();
+    _customWalkInAddressCtrl.clear();
   }
 
   void _showPromptWalkInNameDialog({VoidCallback? onApplied}) {
     final textCtrl = TextEditingController(text: _customWalkInNameCtrl.text);
+    final phoneCtrl = TextEditingController(text: _customWalkInPhoneCtrl.text);
+    final addressCtrl =
+        TextEditingController(text: _customWalkInAddressCtrl.text);
+    void applyFields(BuildContext ctx) {
+      setState(() {
+        _customWalkInNameCtrl.text = textCtrl.text.trim();
+        _customWalkInPhoneCtrl.text = phoneCtrl.text.trim();
+        _customWalkInAddressCtrl.text = addressCtrl.text.trim();
+      });
+      Navigator.pop(ctx);
+      onApplied?.call();
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -7136,45 +7163,69 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             Icon(Icons.badge_outlined, color: Color(0xFF4F46E5)),
             SizedBox(width: 8),
             Text(
-              'Customer Name on Bill / Invoice',
+              'Walk-in Customer Details on Bill',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter customer name to print on receipt/bill without registering a permanent khata account.',
-              style: TextStyle(fontSize: 13, color: Colors.grey),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: textCtrl,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Customer Name on Bill',
-                hintText: 'e.g. Haji Aslam, Ahmed Solar, etc.',
-                prefixIcon: Icon(Icons.person),
-                border: OutlineInputBorder(),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Optionally enter customer name, phone, or address to print on receipt/bill without registering a khata account.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
-              onSubmitted: (_) {
-                setState(() {
-                  _customWalkInNameCtrl.text = textCtrl.text.trim();
-                });
-                Navigator.pop(ctx);
-                onApplied?.call();
-              },
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: textCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Customer Name (Optional)',
+                  hintText: 'e.g. Haji Aslam, Ahmed Solar, etc.',
+                  prefixIcon: Icon(Icons.person),
+                  border: OutlineInputBorder(),
+                ),
+                onSubmitted: (_) => applyFields(ctx),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number (Optional)',
+                  hintText: 'e.g. 0300-1234567',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                onSubmitted: (_) => applyFields(ctx),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: addressCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Address (Optional)',
+                  hintText: 'e.g. Gulberg III, Lahore',
+                  prefixIcon: Icon(Icons.location_on_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                onSubmitted: (_) => applyFields(ctx),
+              ),
+            ],
+          ),
         ),
         actions: [
-          if (_customWalkInNameCtrl.text.isNotEmpty)
+          if (_customWalkInNameCtrl.text.isNotEmpty ||
+              _customWalkInPhoneCtrl.text.isNotEmpty ||
+              _customWalkInAddressCtrl.text.isNotEmpty)
             TextButton(
               onPressed: () {
                 setState(() {
                   _customWalkInNameCtrl.clear();
+                  _customWalkInPhoneCtrl.clear();
+                  _customWalkInAddressCtrl.clear();
                 });
                 Navigator.pop(ctx);
               },
@@ -7189,13 +7240,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
               backgroundColor: const Color(0xFF4F46E5),
               foregroundColor: Colors.white,
             ),
-            onPressed: () {
-              setState(() {
-                _customWalkInNameCtrl.text = textCtrl.text.trim();
-              });
-              Navigator.pop(ctx);
-              onApplied?.call();
-            },
+            onPressed: () => applyFields(ctx),
             child: const Text('Apply'),
           ),
         ],
