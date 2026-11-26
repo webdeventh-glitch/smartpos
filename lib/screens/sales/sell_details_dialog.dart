@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
@@ -694,7 +695,9 @@ class _SellDetailsDialogState extends State<SellDetailsDialog> {
                                   ..._activities.map(
                                     (a) => TableRow(
                                       children: [
-                                        _tdText(a.createdAt, textPrimary),
+                                        _tdText(
+                                            _formatActivityDate(a.createdAt),
+                                            textPrimary),
                                         _tdText(a.action.toUpperCase(),
                                             textPrimary),
                                         _tdText(
@@ -703,9 +706,8 @@ class _SellDetailsDialogState extends State<SellDetailsDialog> {
                                                 : 'System',
                                             textPrimary),
                                         _tdText(
-                                            a.newValues.isNotEmpty
-                                                ? a.newValues
-                                                : '--',
+                                            _formatActivityNote(
+                                                a.newValues, cur),
                                             textSecondary),
                                       ],
                                     ),
@@ -902,5 +904,77 @@ class _SellDetailsDialogState extends State<SellDetailsDialog> {
         ],
       ),
     );
+  }
+
+  String _formatActivityDate(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return '--';
+    final dt = DateTime.tryParse(trimmed);
+    if (dt == null) return trimmed;
+    final y = dt.year.toString().padLeft(4, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    final ss = dt.second.toString().padLeft(2, '0');
+    return '$y-$m-$d $hh:$mm:$ss';
+  }
+
+  String _formatActivityNote(String raw, String cur) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return '--';
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        final decoded = jsonDecode(trimmed);
+        if (decoded is Map) {
+          final parts = <String>[];
+          for (final entry in decoded.entries) {
+            final key = entry.key.toString();
+            final val = entry.value;
+            if (val == null || val.toString().trim().isEmpty) continue;
+            switch (key) {
+              case 'invoice_no':
+                parts.add('Invoice: $val');
+                break;
+              case 'customer_name':
+                parts.add('Customer: $val');
+                break;
+              case 'total_amount':
+                final numVal =
+                    val is num ? val.toDouble() : double.tryParse('$val');
+                parts.add(numVal != null
+                    ? 'Total: ${CurrencyFormatter.exact(numVal, currency: cur)}'
+                    : 'Total: $val');
+                break;
+              case 'paid_amount':
+                final numVal =
+                    val is num ? val.toDouble() : double.tryParse('$val');
+                parts.add(numVal != null
+                    ? 'Paid: ${CurrencyFormatter.exact(numVal, currency: cur)}'
+                    : 'Paid: $val');
+                break;
+              case 'sale_status':
+              case 'status':
+                parts.add('Status: ${val.toString().toUpperCase()}');
+                break;
+              case 'payment_status':
+                parts.add('Payment: ${val.toString().toUpperCase()}');
+                break;
+              default:
+                final label = key
+                    .split('_')
+                    .where((w) => w.isNotEmpty)
+                    .map((w) => w[0].toUpperCase() + w.substring(1))
+                    .join(' ');
+                parts.add('$label: $val');
+            }
+          }
+          if (parts.isNotEmpty) return parts.join(' • ');
+        }
+      } catch (_) {
+        // Fall back to raw text when not valid JSON.
+      }
+    }
+    return trimmed;
   }
 }
