@@ -2074,70 +2074,116 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       }),
                       const SizedBox(height: 20),
 
-                      // ROW 4: Manage Stock Checkbox | Alert Quantity
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                      // ROW 4: Manage Stock, Featured, Expirable Checkboxes | Alert Quantity
+                      Wrap(
+                        spacing: 24,
+                        runSpacing: 12,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Checkbox(
-                            value: _manageStock,
-                            activeColor: const Color(0xFF0284C7),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4)),
-                            onChanged: (val) =>
-                                setState(() => _manageStock = val ?? true),
-                          ),
-                          InkWell(
-                            onTap: () =>
-                                setState(() => _manageStock = !_manageStock),
-                            child: const Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Checkbox(
+                                value: _manageStock,
+                                activeColor: const Color(0xFF0284C7),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4)),
+                                onChanged: (val) =>
+                                    setState(() => _manageStock = val ?? true),
+                              ),
+                              InkWell(
+                                onTap: () => setState(
+                                    () => _manageStock = !_manageStock),
+                                child: const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'Manage Stock?',
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF1E293B)),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'Manage Stock?',
+                                          style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF1E293B)),
+                                        ),
+                                        SizedBox(width: 4),
+                                        Icon(Icons.info,
+                                            size: 14, color: Color(0xFF06B6D4)),
+                                      ],
                                     ),
-                                    SizedBox(width: 4),
-                                    Icon(Icons.info,
-                                        size: 14, color: Color(0xFF06B6D4)),
+                                    Text(
+                                      'Enable stock management at product level',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontStyle: FontStyle.italic,
+                                          color: Color(0xFF64748B)),
+                                    ),
                                   ],
                                 ),
-                                Text(
-                                  'Enable stock management at product level',
+                              ),
+                            ],
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Checkbox(
+                                value: _isFeatured,
+                                activeColor: const Color(0xFF4F46E5),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4)),
+                                onChanged: (val) =>
+                                    setState(() => _isFeatured = val ?? false),
+                              ),
+                              InkWell(
+                                onTap: () =>
+                                    setState(() => _isFeatured = !_isFeatured),
+                                child: const Text(
+                                  'Featured Product (POS)',
                                   style: TextStyle(
-                                      fontSize: 12,
-                                      fontStyle: FontStyle.italic,
-                                      color: Color(0xFF64748B)),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1E293B)),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 24),
-                          Checkbox(
-                            value: _isFeatured,
-                            activeColor: const Color(0xFF4F46E5),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4)),
-                            onChanged: (val) =>
-                                setState(() => _isFeatured = val ?? false),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Checkbox(
+                                value: _isExpirable,
+                                activeColor: const Color(0xFFDC2626),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4)),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _isExpirable = val ?? false;
+                                    if (!_isExpirable) _expiryCtrl.clear();
+                                  });
+                                },
+                              ),
+                              InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _isExpirable = !_isExpirable;
+                                    if (!_isExpirable) _expiryCtrl.clear();
+                                  });
+                                },
+                                child: Text(
+                                  PosLocalization.tr(
+                                      'Expirable Product (Track Expiry Date)',
+                                      settings: widget.settings),
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: _isExpirable
+                                          ? const Color(0xFFB91C1C)
+                                          : const Color(0xFF1E293B)),
+                                ),
+                              ),
+                            ],
                           ),
-                          InkWell(
-                            onTap: () =>
-                                setState(() => _isFeatured = !_isFeatured),
-                            child: const Text(
-                              'Featured Product (POS)',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1E293B)),
-                            ),
-                          ),
-                          const SizedBox(width: 40),
-                          if (_manageStock) ...[
+                          if (_manageStock)
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -2155,13 +2201,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 ),
                               ],
                             ),
-                          ],
                         ],
                       ),
                       const SizedBox(height: 20),
 
                       // Industry & Pharmacy Specific Card: Batch No, Expiry Date, Bonus Qty, Pack Size (Conditional)
-                      if (widget.settings.isBatchExpiryEnabled ||
+                      if (_isExpirable ||
+                          widget.settings.isBatchExpiryEnabled ||
                           widget.settings.isPharmacy) ...[
                         const SizedBox(height: 20),
                         Container(
@@ -2223,66 +2269,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     ),
                                   ],
                                 ],
-                              ),
-                              const SizedBox(height: 10),
-                              InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    _isExpirable = !_isExpirable;
-                                    if (!_isExpirable) _expiryCtrl.clear();
-                                  });
-                                },
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: _isExpirable
-                                        ? const Color(0xFFFEF2F2)
-                                        : Colors.white,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: _isExpirable
-                                          ? const Color(0xFFFCA5A5)
-                                          : const Color(0xFFE2E8F0),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: Checkbox(
-                                          value: _isExpirable,
-                                          onChanged: (v) {
-                                            setState(() {
-                                              _isExpirable = v ?? false;
-                                              if (!_isExpirable) {
-                                                _expiryCtrl.clear();
-                                              }
-                                            });
-                                          },
-                                          materialTapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        PosLocalization.tr(
-                                            'Expirable Product (Track Expiry Date)',
-                                            settings: widget.settings),
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: _isExpirable
-                                              ? const Color(0xFFB91C1C)
-                                              : const Color(0xFF475569),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               ),
                               const SizedBox(height: 14),
                               LayoutBuilder(builder: (context, constraints) {
