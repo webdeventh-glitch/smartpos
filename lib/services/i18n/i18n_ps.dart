@@ -1730,4 +1730,6 @@ const Map<String, String> i18nExtraPs = {
       'د ختمېدو وړ محصول (د پای نېټه تعقیب کړئ)',
   'Edit Purchase': 'پېرودنه سمول',
   'Update Purchase Invoice': 'د پېرودنې بیل تازه کول',
+  'View Payments': 'تادیات وګورئ',
+  'Pay / View Payments': 'تادیه / تادیات وګورئ',
 };

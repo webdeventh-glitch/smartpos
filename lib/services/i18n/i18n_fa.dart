@@ -1735,4 +1735,6 @@ const Map<String, String> i18nExtraFa = {
       'محصول دارای انقضا (ردیابی تاریخ انقضا)',
   'Edit Purchase': 'ویرایش خرید',
   'Update Purchase Invoice': 'به‌روزرسانی فاکتور خرید',
+  'View Payments': 'مشاهده پرداخت‌ها',
+  'Pay / View Payments': 'پرداخت / مشاهده پرداخت‌ها',
 };

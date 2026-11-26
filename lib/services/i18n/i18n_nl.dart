@@ -1758,4 +1758,6 @@ const Map<String, String> i18nExtraNl = {
       'Houdbaarheidsproduct (Vervaldatum bijhouden)',
   'Edit Purchase': 'Inkoop bewerken',
   'Update Purchase Invoice': 'Inkoopfactuur bijwerken',
+  'View Payments': 'Betalingen bekijken',
+  'Pay / View Payments': 'Betalen / Betalingen bekijken',
 };

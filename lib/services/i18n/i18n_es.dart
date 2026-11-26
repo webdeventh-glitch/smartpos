@@ -1757,4 +1757,6 @@ const Map<String, String> i18nExtraEs = {
       'Producto perecedero (Rastrear fecha de vencimiento)',
   'Edit Purchase': 'Editar compra',
   'Update Purchase Invoice': 'Actualizar factura de compra',
+  'View Payments': 'Ver pagos',
+  'Pay / View Payments': 'Pagar / Ver pagos',
 };

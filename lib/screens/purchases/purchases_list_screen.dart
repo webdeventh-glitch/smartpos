@@ -10,6 +10,8 @@ import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import 'add_purchase_screen.dart';
 import 'purchase_receipt_dialog.dart';
+import '../products/print_labels_screen.dart';
+import '../returns/purchase_return_screen.dart';
 import '../../services/localization_service.dart';
 import '../../utils/currency_formatter.dart';
 
@@ -783,15 +785,15 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                           1: FlexColumnWidth(1.6), // DATE
                                           2: FlexColumnWidth(1.8), // LOCATION
                                           3: FlexColumnWidth(2.0), // SUPPLIER
-                                          4: FlexColumnWidth(1.2), // STATUS
-                                          5: FlexColumnWidth(1.2), // PAYMENT
+                                          4: FlexColumnWidth(1.5), // STATUS
+                                          5: FlexColumnWidth(1.1), // PAYMENT
                                           6: FlexColumnWidth(
                                               1.4), // TOTAL AMOUNT
                                           7: FlexColumnWidth(
                                               1.4), // PAID AMOUNT
                                           8: FlexColumnWidth(
-                                              1.3), // BALANCE DUE
-                                          9: FlexColumnWidth(1.2), // ACTIONS
+                                              1.2), // BALANCE DUE
+                                          9: FlexColumnWidth(1.25), // ACTIONS
                                         },
                                         defaultVerticalAlignment:
                                             TableCellVerticalAlignment.middle,
@@ -906,25 +908,31 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                     child: Tooltip(
                                                       message:
                                                           'Click to update status (${p.status.toUpperCase()})',
-                                                      child: Row(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        children: [
-                                                          StatusPill(
-                                                              status: p.status),
-                                                          const SizedBox(
-                                                              width: 4),
-                                                          Icon(
-                                                            Icons
-                                                                .arrow_drop_down_rounded,
-                                                            size: 16,
-                                                            color: isDark
-                                                                ? const Color(
-                                                                    0xFF94A3B8)
-                                                                : const Color(
-                                                                    0xFF64748B),
-                                                          ),
-                                                        ],
+                                                      child: FittedBox(
+                                                        fit: BoxFit.scaleDown,
+                                                        alignment: Alignment
+                                                            .centerLeft,
+                                                        child: Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            StatusPill(
+                                                                status:
+                                                                    p.status),
+                                                            const SizedBox(
+                                                                width: 4),
+                                                            Icon(
+                                                              Icons
+                                                                  .arrow_drop_down_rounded,
+                                                              size: 16,
+                                                              color: isDark
+                                                                  ? const Color(
+                                                                      0xFF94A3B8)
+                                                                  : const Color(
+                                                                      0xFF64748B),
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
@@ -971,148 +979,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                   ),
                                                 )),
                                                 _td(
-                                                  Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      if (p.dueAmount > 0)
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .payments_outlined,
-                                                            size: 18,
-                                                            color: Color(
-                                                                0xFF059669),
-                                                          ),
-                                                          tooltip:
-                                                              PosLocalization.tr(
-                                                                  'Pay Supplier Due'),
-                                                          onPressed: () {
-                                                            showDialog(
-                                                              context: context,
-                                                              builder: (_) =>
-                                                                  PayDueDialog(
-                                                                settings: widget
-                                                                    .settings,
-                                                                type: DuePaymentType
-                                                                    .purchase,
-                                                                entityId: p.id!,
-                                                                reference: p
-                                                                    .referenceNo,
-                                                                contactName: p
-                                                                    .supplierName,
-                                                                contactId: p
-                                                                    .supplierId,
-                                                                totalAmount: p
-                                                                    .totalAmount,
-                                                                paidAmount: p
-                                                                    .paidAmount,
-                                                                dueAmount:
-                                                                    p.dueAmount,
-                                                                onPaymentSuccess:
-                                                                    _load,
-                                                              ),
-                                                            );
-                                                          },
-                                                        ),
-                                                      if (AuthService
-                                                              .currentUser
-                                                              ?.hasPermission(
-                                                                  'purchase.edit') ??
-                                                          true) ...[
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons.edit_rounded,
-                                                            size: 19,
-                                                            color: Color(
-                                                                0xFF004EEB),
-                                                          ),
-                                                          tooltip:
-                                                              PosLocalization.tr(
-                                                                  'Edit Purchase'),
-                                                          onPressed: () {
-                                                            Navigator.of(
-                                                                    context)
-                                                                .push(
-                                                              MaterialPageRoute(
-                                                                builder: (_) =>
-                                                                    Scaffold(
-                                                                  body:
-                                                                      AddPurchaseScreen(
-                                                                    settings: widget
-                                                                        .settings,
-                                                                    purchaseToEdit:
-                                                                        p,
-                                                                    onPurchaseSaved:
-                                                                        _load,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            );
-                                                          },
-                                                        ),
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .edit_note_rounded,
-                                                            size: 20,
-                                                            color: Color(
-                                                                0xFF4F46E5),
-                                                          ),
-                                                          tooltip:
-                                                              PosLocalization.tr(
-                                                                  'Update Status (Received / Pending / Ordered)'),
-                                                          onPressed: () =>
-                                                              _openUpdateStatusDialog(
-                                                                  p),
-                                                        ),
-                                                      ],
-                                                      IconButton(
-                                                        icon: Icon(
-                                                          Icons.print_outlined,
-                                                          size: 18,
-                                                          color: isDark
-                                                              ? const Color(
-                                                                  0xFF60A5FA)
-                                                              : const Color(
-                                                                  0xFF004EEB),
-                                                        ),
-                                                        tooltip: PosLocalization.tr(
-                                                            'Print Purchase Receipt'),
-                                                        onPressed: () {
-                                                          showDialog(
-                                                            context: context,
-                                                            builder: (_) =>
-                                                                PurchaseReceiptDialog(
-                                                              purchase: p,
-                                                              settings: widget
-                                                                  .settings,
-                                                            ),
-                                                          );
-                                                        },
-                                                      ),
-                                                      if (AuthService
-                                                              .currentUser
-                                                              ?.hasPermission(
-                                                                  'purchase.delete') ??
-                                                          true)
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .delete_outline_rounded,
-                                                            size: 18,
-                                                            color: Color(
-                                                                0xFFEF4444),
-                                                          ),
-                                                          tooltip:
-                                                              PosLocalization.tr(
-                                                                  'Delete & Reverse Stock'),
-                                                          onPressed: () =>
-                                                              _deletePurchase(
-                                                                  p),
-                                                        ),
-                                                    ],
-                                                  ),
+                                                  _buildActionsMenu(
+                                                      p, isDark, currency),
                                                 ),
                                               ],
                                             );
@@ -1271,6 +1139,232 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildActionsMenu(Purchase p, bool isDark, String currency) {
+    final canEdit =
+        AuthService.currentUser?.hasPermission('purchase.edit') ?? true;
+    final canDelete =
+        AuthService.currentUser?.hasPermission('purchase.delete') ?? true;
+
+    return PopupMenuButton<String>(
+      tooltip: PosLocalization.tr('Actions'),
+      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      onSelected: (action) {
+        switch (action) {
+          case 'view':
+          case 'print':
+            showDialog(
+              context: context,
+              builder: (_) => PurchaseReceiptDialog(
+                purchase: p,
+                settings: widget.settings,
+              ),
+            );
+            break;
+          case 'edit':
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => Scaffold(
+                  body: AddPurchaseScreen(
+                    settings: widget.settings,
+                    purchaseToEdit: p,
+                    onPurchaseSaved: _load,
+                  ),
+                ),
+              ),
+            );
+            break;
+          case 'delete':
+            _deletePurchase(p);
+            break;
+          case 'labels':
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => Scaffold(
+                  appBar: AppBar(
+                    title: Text(PosLocalization.tr('Print Barcode Labels')),
+                  ),
+                  body: PrintLabelsScreen(settings: widget.settings),
+                ),
+              ),
+            );
+            break;
+          case 'payments':
+            _openPaymentsDialog(p, currency, isDark);
+            break;
+          case 'return':
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => Scaffold(
+                  appBar: AppBar(
+                    title: Text(PosLocalization.tr('Purchase Return')),
+                  ),
+                  body: PurchaseReturnScreen(settings: widget.settings),
+                ),
+              ),
+            );
+            break;
+          case 'status':
+            _openUpdateStatusDialog(p);
+            break;
+        }
+      },
+      itemBuilder: (ctx) => [
+        PopupMenuItem(
+          value: 'view',
+          child: _menuItemRow(
+              Icons.visibility_outlined, PosLocalization.tr('View'), isDark),
+        ),
+        PopupMenuItem(
+          value: 'print',
+          child: _menuItemRow(
+              Icons.print_outlined, PosLocalization.tr('Print'), isDark),
+        ),
+        if (canEdit)
+          PopupMenuItem(
+            value: 'edit',
+            child: _menuItemRow(
+                Icons.edit_outlined, PosLocalization.tr('Edit'), isDark),
+          ),
+        if (canDelete)
+          PopupMenuItem(
+            value: 'delete',
+            child: _menuItemRow(Icons.delete_outline_rounded,
+                PosLocalization.tr('Delete'), isDark,
+                color: const Color(0xFFEF4444)),
+          ),
+        PopupMenuItem(
+          value: 'labels',
+          child: _menuItemRow(
+              Icons.qr_code_2_rounded, PosLocalization.tr('Labels'), isDark),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'payments',
+          child: _menuItemRow(
+            Icons.payments_outlined,
+            p.dueAmount > 0
+                ? PosLocalization.tr('Pay / View Payments')
+                : PosLocalization.tr('View Payments'),
+            isDark,
+            color: p.dueAmount > 0 ? const Color(0xFF059669) : null,
+          ),
+        ),
+        PopupMenuItem(
+          value: 'return',
+          child: _menuItemRow(Icons.assignment_return_outlined,
+              PosLocalization.tr('Purchase Return'), isDark),
+        ),
+        if (canEdit)
+          PopupMenuItem(
+            value: 'status',
+            child: _menuItemRow(Icons.edit_note_rounded,
+                PosLocalization.tr('Update Status'), isDark),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0F9FF),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: const Color(0xFF0284C7).withValues(alpha: 0.65),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              PosLocalization.tr('Actions'),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0284C7),
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(
+              Icons.arrow_drop_down_rounded,
+              size: 16,
+              color: Color(0xFF0284C7),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _menuItemRow(IconData icon, String label, bool isDark,
+      {Color? color}) {
+    final c = color ?? (isDark ? Colors.white70 : const Color(0xFF334155));
+    return Row(
+      children: [
+        Icon(icon, size: 17, color: c),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: c),
+        ),
+      ],
+    );
+  }
+
+  void _openPaymentsDialog(Purchase p, String currency, bool isDark) {
+    if (p.dueAmount > 0 && p.id != null) {
+      showDialog(
+        context: context,
+        builder: (_) => PayDueDialog(
+          settings: widget.settings,
+          type: DuePaymentType.purchase,
+          entityId: p.id!,
+          reference: p.referenceNo,
+          contactName: p.supplierName,
+          contactId: p.supplierId,
+          totalAmount: p.totalAmount,
+          paidAmount: p.paidAmount,
+          dueAmount: p.dueAmount,
+          onPaymentSuccess: _load,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('${PosLocalization.tr('View Payments')} • ${p.refNo}',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${PosLocalization.tr('Supplier')}: ${p.supplierName}'),
+            const SizedBox(height: 6),
+            Text(
+                '${PosLocalization.tr('Total Amount')}: ${CurrencyFormatter.exact(p.totalAmount, currency: '$currency ')}'),
+            Text(
+                '${PosLocalization.tr('Paid Amount')}: ${CurrencyFormatter.exact(p.paidAmount, currency: '$currency ')}'),
+            Text(
+                '${PosLocalization.tr('Balance Due')}: ${CurrencyFormatter.exact(p.dueAmount, currency: '$currency ')}'),
+            const SizedBox(height: 6),
+            Text(
+                '${PosLocalization.tr('Payment Method')}: ${p.paymentMethod.toUpperCase()}'),
+            if (p.paymentNote.isNotEmpty)
+              Text('${PosLocalization.tr('Note')}: ${p.paymentNote}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(PosLocalization.tr('Close')),
+          ),
+        ],
       ),
     );
   }

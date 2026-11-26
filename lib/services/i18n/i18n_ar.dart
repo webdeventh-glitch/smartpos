@@ -1734,4 +1734,6 @@ const Map<String, String> i18nExtraAr = {
       'منتج قابل للانتهاء (تتبع تاريخ الانتهاء)',
   'Edit Purchase': 'تعديل الشراء',
   'Update Purchase Invoice': 'تحديث فاتورة الشراء',
+  'View Payments': 'عرض المدفوعات',
+  'Pay / View Payments': 'دفع / عرض المدفوعات',
 };
