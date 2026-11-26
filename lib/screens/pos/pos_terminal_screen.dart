@@ -6921,7 +6921,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       return;
     }
 
-    final width = box.size.width;
+    final rawWidth = box.size.width;
+    final width = rawWidth < 320.0 ? 320.0 : rawWidth;
     String searchQuery = '';
 
     _customerDropdownOverlay = OverlayEntry(
@@ -8807,559 +8808,553 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                       ),
                                     Row(
                                       children: [
-                                        // Customer Selector with Live Search (F3) - Expanded
                                         Expanded(
-                                          child: TapRegion(
-                                            groupId: _customerDropdownTapGroup,
-                                            child: CompositedTransformTarget(
-                                              link: _customerDropdownLink,
-                                              child: Container(
-                                                key: _customerBoxKey,
-                                                height: 38,
-                                                decoration: BoxDecoration(
-                                                  color: inputBg,
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                  border: Border.all(
-                                                      color: inputBorder),
-                                                ),
-                                                child: Row(
-                                                  children: [
-                                                    Expanded(
-                                                      child: InkWell(
-                                                        onTap:
-                                                            _openCustomerSearchModal,
+                                          flex: 1,
+                                          child: Row(
+                                            children: [
+                                              // Customer Selector with Live Search (F3) - Expanded
+                                              Expanded(
+                                                child: TapRegion(
+                                                  groupId:
+                                                      _customerDropdownTapGroup,
+                                                  child:
+                                                      CompositedTransformTarget(
+                                                    link: _customerDropdownLink,
+                                                    child: Container(
+                                                      key: _customerBoxKey,
+                                                      height: 40,
+                                                      decoration: BoxDecoration(
+                                                        color: inputBg,
                                                         borderRadius:
                                                             BorderRadius
                                                                 .circular(6),
-                                                        child: Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                                  horizontal:
-                                                                      10),
-                                                          child: Row(
-                                                            children: [
-                                                              const Icon(
-                                                                  Icons
-                                                                      .person_outline_rounded,
-                                                                  size: 18,
-                                                                  color: Color(
-                                                                      0xFF4F46E5)),
-                                                              const SizedBox(
-                                                                  width: 8),
-                                                              Expanded(
-                                                                child: Text(
-                                                                  (_selectedCustomer == null ||
-                                                                              _selectedCustomer!.name.toLowerCase().contains(
-                                                                                  'walk-in') ||
-                                                                              _selectedCustomer!.name.toLowerCase().contains(
-                                                                                  'walk in')) &&
-                                                                          _customWalkInNameCtrl
-                                                                              .text
-                                                                              .trim()
-                                                                              .isNotEmpty
-                                                                      ? 'Walk-in: ${_customWalkInNameCtrl.text.trim()}'
-                                                                      : PosLocalization
-                                                                          .tr(
-                                                                          _selectedCustomer?.name ??
-                                                                              'General Walk-in Shopper',
-                                                                          settings:
-                                                                              widget.settings,
-                                                                        ),
-                                                                  style: TextStyle(
-                                                                      fontSize:
-                                                                          13,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .bold,
-                                                                      color:
-                                                                          textPrimary),
-                                                                  overflow:
-                                                                      TextOverflow
-                                                                          .ellipsis,
-                                                                ),
-                                                              ),
-                                                              if (ref
-                                                                      .watch(
-                                                                          cartProvider)
-                                                                      .activeCustomerGroup !=
-                                                                  null) ...[
-                                                                const SizedBox(
-                                                                    width: 6),
-                                                                Builder(
-                                                                  builder: (_) {
-                                                                    final grp = ref
-                                                                        .watch(
-                                                                            cartProvider)
-                                                                        .activeCustomerGroup!;
-                                                                    final pctTag = grp.amount ==
-                                                                            0
-                                                                        ? ''
-                                                                        : (grp.amount <
-                                                                                0
-                                                                            ? ' ${grp.amount.toStringAsFixed(0)}%'
-                                                                            : ' +${grp.amount.toStringAsFixed(0)}%');
-                                                                    return Container(
-                                                                      padding: const EdgeInsets
-                                                                          .symmetric(
-                                                                          horizontal:
-                                                                              6,
-                                                                          vertical:
-                                                                              2),
-                                                                      decoration:
-                                                                          BoxDecoration(
-                                                                        color: const Color(
-                                                                            0xFF4F46E5),
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(4),
-                                                                      ),
-                                                                      child:
-                                                                          Text(
-                                                                        '${grp.name}$pctTag',
-                                                                        style: const TextStyle(
-                                                                            fontSize:
-                                                                                10,
-                                                                            fontWeight:
-                                                                                FontWeight.bold,
-                                                                            color: Colors.white),
-                                                                      ),
-                                                                    );
-                                                                  },
-                                                                ),
-                                                              ],
-                                                              const SizedBox(
-                                                                  width: 6),
-                                                              // Dedicated "Search (F3)" badge button
-                                                              Container(
+                                                        border: Border.all(
+                                                            color: inputBorder),
+                                                      ),
+                                                      child: Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: InkWell(
+                                                              onTap:
+                                                                  _openCustomerSearchModal,
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          6),
+                                                              child: Padding(
                                                                 padding: const EdgeInsets
                                                                     .symmetric(
                                                                     horizontal:
-                                                                        8,
-                                                                    vertical:
-                                                                        3),
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  color: isDark
-                                                                      ? const Color(
-                                                                          0xFF312E81)
-                                                                      : const Color(
-                                                                          0xFFEEF2FF),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              4),
-                                                                  border: Border.all(
-                                                                      color: isDark
-                                                                          ? const Color(
-                                                                              0xFF4338CA)
-                                                                          : const Color(
-                                                                              0xFFC7D2FE)),
-                                                                ),
+                                                                        10),
                                                                 child: Row(
-                                                                  mainAxisSize:
-                                                                      MainAxisSize
-                                                                          .min,
                                                                   children: [
-                                                                    Icon(
+                                                                    const Icon(
                                                                         Icons
-                                                                            .search,
+                                                                            .person_outline_rounded,
                                                                         size:
-                                                                            12,
+                                                                            18,
+                                                                        color: Color(
+                                                                            0xFF4F46E5)),
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            8),
+                                                                    Expanded(
+                                                                      child:
+                                                                          Text(
+                                                                        (_selectedCustomer == null || _selectedCustomer!.name.toLowerCase().contains('walk-in') || _selectedCustomer!.name.toLowerCase().contains('walk in')) &&
+                                                                                _customWalkInNameCtrl.text.trim().isNotEmpty
+                                                                            ? 'Walk-in: ${_customWalkInNameCtrl.text.trim()}'
+                                                                            : PosLocalization.tr(
+                                                                                _selectedCustomer?.name ?? 'General Walk-in Shopper',
+                                                                                settings: widget.settings,
+                                                                              ),
+                                                                        style: TextStyle(
+                                                                            fontSize:
+                                                                                13,
+                                                                            fontWeight:
+                                                                                FontWeight.bold,
+                                                                            color: textPrimary),
+                                                                        overflow:
+                                                                            TextOverflow.ellipsis,
+                                                                      ),
+                                                                    ),
+                                                                    if (ref
+                                                                            .watch(cartProvider)
+                                                                            .activeCustomerGroup !=
+                                                                        null) ...[
+                                                                      const SizedBox(
+                                                                          width:
+                                                                              6),
+                                                                      Builder(
+                                                                        builder:
+                                                                            (_) {
+                                                                          final grp = ref
+                                                                              .watch(cartProvider)
+                                                                              .activeCustomerGroup!;
+                                                                          final pctTag = grp.amount == 0
+                                                                              ? ''
+                                                                              : (grp.amount < 0 ? ' ${grp.amount.toStringAsFixed(0)}%' : ' +${grp.amount.toStringAsFixed(0)}%');
+                                                                          return Container(
+                                                                            padding:
+                                                                                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                                            decoration:
+                                                                                BoxDecoration(
+                                                                              color: const Color(0xFF4F46E5),
+                                                                              borderRadius: BorderRadius.circular(4),
+                                                                            ),
+                                                                            child:
+                                                                                Text(
+                                                                              '${grp.name}$pctTag',
+                                                                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                                                            ),
+                                                                          );
+                                                                        },
+                                                                      ),
+                                                                    ],
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            6),
+                                                                    // Dedicated "Search (F3)" badge button
+                                                                    Container(
+                                                                      padding: const EdgeInsets
+                                                                          .symmetric(
+                                                                          horizontal:
+                                                                              8,
+                                                                          vertical:
+                                                                              3),
+                                                                      decoration:
+                                                                          BoxDecoration(
                                                                         color: isDark
-                                                                            ? const Color(0xFFA5B4FC)
-                                                                            : const Color(0xFF4F46E5)),
+                                                                            ? const Color(0xFF312E81)
+                                                                            : const Color(0xFFEEF2FF),
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(4),
+                                                                        border: Border.all(
+                                                                            color: isDark
+                                                                                ? const Color(0xFF4338CA)
+                                                                                : const Color(0xFFC7D2FE)),
+                                                                      ),
+                                                                      child:
+                                                                          Row(
+                                                                        mainAxisSize:
+                                                                            MainAxisSize.min,
+                                                                        children: [
+                                                                          Icon(
+                                                                              Icons.search,
+                                                                              size: 12,
+                                                                              color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
+                                                                          const SizedBox(
+                                                                              width: 4),
+                                                                          Text(
+                                                                            PosLocalization.tr('Search (F3)',
+                                                                                settings: widget.settings),
+                                                                            style: TextStyle(
+                                                                                fontSize: 10.5,
+                                                                                fontWeight: FontWeight.bold,
+                                                                                color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                    ),
                                                                     const SizedBox(
                                                                         width:
                                                                             4),
-                                                                    Text(
-                                                                      PosLocalization.tr(
-                                                                          'Search (F3)',
-                                                                          settings:
-                                                                              widget.settings),
-                                                                      style: TextStyle(
-                                                                          fontSize:
-                                                                              10.5,
-                                                                          fontWeight: FontWeight
-                                                                              .bold,
-                                                                          color: isDark
-                                                                              ? const Color(0xFFA5B4FC)
-                                                                              : const Color(0xFF4F46E5)),
-                                                                    ),
+                                                                    Icon(
+                                                                        Icons
+                                                                            .arrow_drop_down,
+                                                                        size:
+                                                                            18,
+                                                                        color:
+                                                                            textSecondary),
                                                                   ],
                                                                 ),
                                                               ),
-                                                              const SizedBox(
-                                                                  width: 4),
-                                                              Icon(
-                                                                  Icons
-                                                                      .arrow_drop_down,
-                                                                  size: 18,
-                                                                  color:
-                                                                      textSecondary),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    if (_selectedCustomer !=
-                                                            null &&
-                                                        !_selectedCustomer!.name
-                                                            .toLowerCase()
-                                                            .contains(
-                                                                'walk-in'))
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .only(right: 6),
-                                                        child: Tooltip(
-                                                          message:
-                                                              'Reset to Walk-in Customer',
-                                                          child: InkWell(
-                                                            onTap:
-                                                                _resetToWalkInCustomer,
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        12),
-                                                            child: Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(2),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: isDark
-                                                                    ? const Color(
-                                                                        0xFF450A0A)
-                                                                    : const Color(
-                                                                        0xFFFEE2E2),
-                                                                shape: BoxShape
-                                                                    .circle,
-                                                              ),
-                                                              child: const Icon(
-                                                                  Icons.close,
-                                                                  size: 13,
-                                                                  color: Color(
-                                                                      0xFFDC2626)),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ),
-                                                    if (_selectedCustomer ==
-                                                            null ||
-                                                        _selectedCustomer!.name
-                                                            .toLowerCase()
-                                                            .contains(
-                                                                'walk-in') ||
-                                                        _selectedCustomer!.name
-                                                            .toLowerCase()
-                                                            .contains(
-                                                                'walk in'))
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .only(right: 6),
-                                                        child: Tooltip(
-                                                          message: _customWalkInNameCtrl
-                                                                  .text
-                                                                  .trim()
-                                                                  .isEmpty
-                                                              ? 'Add Customer Name to Bill'
-                                                              : 'Change Customer Name on Bill (${_customWalkInNameCtrl.text.trim()})',
-                                                          child: InkWell(
-                                                            onTap:
-                                                                _showPromptWalkInNameDialog,
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        6),
-                                                            child: Container(
+                                                          if (_selectedCustomer !=
+                                                                  null &&
+                                                              !_selectedCustomer!
+                                                                  .name
+                                                                  .toLowerCase()
+                                                                  .contains(
+                                                                      'walk-in'))
+                                                            Padding(
                                                               padding:
                                                                   const EdgeInsets
-                                                                      .symmetric(
-                                                                      horizontal:
-                                                                          6,
-                                                                      vertical:
-                                                                          4),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: _customWalkInNameCtrl
-                                                                        .text
-                                                                        .trim()
-                                                                        .isNotEmpty
-                                                                    ? const Color(0xFF10B981)
-                                                                        .withValues(
-                                                                            alpha:
-                                                                                0.15)
-                                                                    : (isDark
-                                                                        ? const Color(
-                                                                            0xFF334155)
-                                                                        : const Color(
-                                                                            0xFFE2E8F0)),
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            6),
-                                                                border:
-                                                                    Border.all(
-                                                                  color: _customWalkInNameCtrl
-                                                                          .text
-                                                                          .trim()
-                                                                          .isNotEmpty
-                                                                      ? const Color(
-                                                                          0xFF10B981)
-                                                                      : borderColor,
+                                                                      .only(
+                                                                      right: 6),
+                                                              child: Tooltip(
+                                                                message:
+                                                                    'Reset to Walk-in Customer',
+                                                                child: InkWell(
+                                                                  onTap:
+                                                                      _resetToWalkInCustomer,
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              12),
+                                                                  child:
+                                                                      Container(
+                                                                    padding:
+                                                                        const EdgeInsets
+                                                                            .all(
+                                                                            2),
+                                                                    decoration:
+                                                                        BoxDecoration(
+                                                                      color: isDark
+                                                                          ? const Color(
+                                                                              0xFF450A0A)
+                                                                          : const Color(
+                                                                              0xFFFEE2E2),
+                                                                      shape: BoxShape
+                                                                          .circle,
+                                                                    ),
+                                                                    child: const Icon(
+                                                                        Icons
+                                                                            .close,
+                                                                        size:
+                                                                            13,
+                                                                        color: Color(
+                                                                            0xFFDC2626)),
+                                                                  ),
                                                                 ),
                                                               ),
-                                                              child: Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
-                                                                children: [
-                                                                  Icon(
-                                                                    _customWalkInNameCtrl
-                                                                            .text
-                                                                            .trim()
-                                                                            .isNotEmpty
-                                                                        ? Icons
-                                                                            .badge
-                                                                        : Icons
-                                                                            .badge_outlined,
-                                                                    size: 13,
-                                                                    color: _customWalkInNameCtrl
-                                                                            .text
-                                                                            .trim()
-                                                                            .isNotEmpty
-                                                                        ? const Color(
-                                                                            0xFF10B981)
-                                                                        : textSecondary,
-                                                                  ),
-                                                                  const SizedBox(
-                                                                      width: 4),
-                                                                  Text(
-                                                                    _customWalkInNameCtrl
-                                                                            .text
-                                                                            .trim()
-                                                                            .isNotEmpty
-                                                                        ? _customWalkInNameCtrl
-                                                                            .text
-                                                                            .trim()
-                                                                        : '+ Bill Name',
-                                                                    style:
-                                                                        TextStyle(
-                                                                      fontSize:
-                                                                          10.5,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .bold,
+                                                            ),
+                                                          if (_selectedCustomer ==
+                                                                  null ||
+                                                              _selectedCustomer!
+                                                                  .name
+                                                                  .toLowerCase()
+                                                                  .contains(
+                                                                      'walk-in') ||
+                                                              _selectedCustomer!
+                                                                  .name
+                                                                  .toLowerCase()
+                                                                  .contains(
+                                                                      'walk in'))
+                                                            Padding(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .only(
+                                                                      right: 6),
+                                                              child: Tooltip(
+                                                                message: _customWalkInNameCtrl
+                                                                        .text
+                                                                        .trim()
+                                                                        .isEmpty
+                                                                    ? 'Add Customer Name to Bill'
+                                                                    : 'Change Customer Name on Bill (${_customWalkInNameCtrl.text.trim()})',
+                                                                child: InkWell(
+                                                                  onTap:
+                                                                      _showPromptWalkInNameDialog,
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              6),
+                                                                  child:
+                                                                      Container(
+                                                                    padding: const EdgeInsets
+                                                                        .symmetric(
+                                                                        horizontal:
+                                                                            6,
+                                                                        vertical:
+                                                                            4),
+                                                                    decoration:
+                                                                        BoxDecoration(
                                                                       color: _customWalkInNameCtrl
                                                                               .text
                                                                               .trim()
                                                                               .isNotEmpty
-                                                                          ? const Color(
-                                                                              0xFF10B981)
-                                                                          : textSecondary,
+                                                                          ? const Color(0xFF10B981).withValues(
+                                                                              alpha:
+                                                                                  0.15)
+                                                                          : (isDark
+                                                                              ? const Color(0xFF334155)
+                                                                              : const Color(0xFFE2E8F0)),
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                              6),
+                                                                      border:
+                                                                          Border
+                                                                              .all(
+                                                                        color: _customWalkInNameCtrl.text.trim().isNotEmpty
+                                                                            ? const Color(0xFF10B981)
+                                                                            : borderColor,
+                                                                      ),
+                                                                    ),
+                                                                    child: Row(
+                                                                      mainAxisSize:
+                                                                          MainAxisSize
+                                                                              .min,
+                                                                      children: [
+                                                                        Icon(
+                                                                          _customWalkInNameCtrl.text.trim().isNotEmpty
+                                                                              ? Icons.badge
+                                                                              : Icons.badge_outlined,
+                                                                          size:
+                                                                              13,
+                                                                          color: _customWalkInNameCtrl.text.trim().isNotEmpty
+                                                                              ? const Color(0xFF10B981)
+                                                                              : textSecondary,
+                                                                        ),
+                                                                        const SizedBox(
+                                                                            width:
+                                                                                4),
+                                                                        Text(
+                                                                          _customWalkInNameCtrl.text.trim().isNotEmpty
+                                                                              ? _customWalkInNameCtrl.text.trim()
+                                                                              : '+ Bill Name',
+                                                                          style:
+                                                                              TextStyle(
+                                                                            fontSize:
+                                                                                10.5,
+                                                                            fontWeight:
+                                                                                FontWeight.bold,
+                                                                            color: _customWalkInNameCtrl.text.trim().isNotEmpty
+                                                                                ? const Color(0xFF10B981)
+                                                                                : textSecondary,
+                                                                          ),
+                                                                        ),
+                                                                      ],
                                                                     ),
                                                                   ),
-                                                                ],
+                                                                ),
                                                               ),
                                                             ),
-                                                          ),
-                                                        ),
+                                                        ],
                                                       ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-
-                                        // [ + ] Quick Add Customer blue button
-                                        Tooltip(
-                                          message: 'Add New Customer (F6)',
-                                          child: InkWell(
-                                            onTap: _openQuickCustomerModal,
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            child: Container(
-                                              width: 38,
-                                              height: 38,
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFF4F46E5),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: const Icon(
-                                                  Icons.person_add_rounded,
-                                                  color: Colors.white,
-                                                  size: 18),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-
-                                        // Customer Balance Due & Loyalty Badges
-                                        if (_selectedCustomer != null &&
-                                            !_selectedCustomer!.name
-                                                .toLowerCase()
-                                                .contains('walk-in')) ...[
-                                          if (_selectedCustomer!.balance != 0)
-                                            Container(
-                                              height: 38,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    _selectedCustomer!.balance >
-                                                            0
-                                                        ? (isDark
-                                                            ? const Color(
-                                                                0xFF451A03)
-                                                            : const Color(
-                                                                0xFFFEF3C7))
-                                                        : (isDark
-                                                            ? const Color(
-                                                                0xFF052E16)
-                                                            : const Color(
-                                                                0xFFDCFCE7)),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                                border: Border.all(
-                                                  color: _selectedCustomer!
-                                                              .balance >
-                                                          0
-                                                      ? (isDark
-                                                          ? const Color(
-                                                              0xFF78350F)
-                                                          : const Color(
-                                                              0xFFFDE68A))
-                                                      : (isDark
-                                                          ? const Color(
-                                                              0xFF065F46)
-                                                          : const Color(
-                                                              0xFFA7F3D0)),
-                                                ),
-                                              ),
-                                              alignment: Alignment.center,
-                                              child: Text(
-                                                'Due: ${widget.settings.currencySymbol}${_selectedCustomer!.balance.toStringAsFixed(0)}',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: _selectedCustomer!
-                                                              .balance >
-                                                          0
-                                                      ? (isDark
-                                                          ? const Color(
-                                                              0xFFFCD34D)
-                                                          : const Color(
-                                                              0xFFD97706))
-                                                      : (isDark
-                                                          ? const Color(
-                                                              0xFF6EE7B7)
-                                                          : const Color(
-                                                              0xFF16A34A)),
-                                                ),
-                                              ),
-                                            ),
-                                          if (_selectedCustomer!.loyaltyPoints >
-                                              0)
-                                            Container(
-                                              height: 38,
-                                              margin: const EdgeInsets.only(
-                                                  left: 6),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8),
-                                              decoration: BoxDecoration(
-                                                color: isDark
-                                                    ? const Color(0xFF451A03)
-                                                    : const Color(0xFFFFFBEB),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                                border: Border.all(
-                                                    color: isDark
-                                                        ? const Color(
-                                                            0xFF78350F)
-                                                        : const Color(
-                                                            0xFFFDE68A)),
-                                              ),
-                                              alignment: Alignment.center,
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(
-                                                      Icons.stars_rounded,
-                                                      color: Color(0xFFD97706),
-                                                      size: 14),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '${_selectedCustomer!.loyaltyPoints.toInt()} pts',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: isDark
-                                                          ? const Color(
-                                                              0xFFFDE68A)
-                                                          : const Color(
-                                                              0xFF92400E),
                                                     ),
                                                   ),
-                                                ],
+                                                ),
                                               ),
-                                            ),
-                                        ] else ...[
-                                          Tooltip(
-                                            message:
-                                                'Customer Outstanding Due & Ledger',
-                                            child: InkWell(
-                                              onTap: () {
-                                                if (_selectedCustomer != null) {
-                                                  final due = _selectedCustomer!
-                                                      .balance;
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                        'Customer: ${_selectedCustomer!.name} | Outstanding Due: ${widget.settings.currencySymbol} ${due.toStringAsFixed(2)}',
-                                                      ),
-                                                      backgroundColor: due > 0
-                                                          ? const Color(
-                                                              0xFFD97706)
-                                                          : const Color(
-                                                              0xFF16A34A),
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                              child: Container(
-                                                width: 38,
-                                                height: 38,
-                                                decoration: BoxDecoration(
-                                                  color: isDark
-                                                      ? const Color(0xFF312E81)
-                                                      : const Color(0xFFEEF2FF),
+                                              const SizedBox(width: 6),
+
+                                              // [ + ] Quick Add Customer blue button
+                                              Tooltip(
+                                                message:
+                                                    'Add New Customer (F6)',
+                                                child: InkWell(
+                                                  onTap:
+                                                      _openQuickCustomerModal,
                                                   borderRadius:
                                                       BorderRadius.circular(6),
-                                                  border: Border.all(
+                                                  child: Container(
+                                                    width: 38,
+                                                    height: 38,
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFF4F46E5),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6),
+                                                    ),
+                                                    child: const Icon(
+                                                        Icons
+                                                            .person_add_rounded,
+                                                        color: Colors.white,
+                                                        size: 18),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+
+                                              // Customer Balance Due & Loyalty Badges
+                                              if (_selectedCustomer != null &&
+                                                  !_selectedCustomer!.name
+                                                      .toLowerCase()
+                                                      .contains('walk-in')) ...[
+                                                if (_selectedCustomer!
+                                                        .balance !=
+                                                    0)
+                                                  Container(
+                                                    height: 38,
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 8),
+                                                    decoration: BoxDecoration(
+                                                      color: _selectedCustomer!
+                                                                  .balance >
+                                                              0
+                                                          ? (isDark
+                                                              ? const Color(
+                                                                  0xFF451A03)
+                                                              : const Color(
+                                                                  0xFFFEF3C7))
+                                                          : (isDark
+                                                              ? const Color(
+                                                                  0xFF052E16)
+                                                              : const Color(
+                                                                  0xFFDCFCE7)),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6),
+                                                      border: Border.all(
+                                                        color: _selectedCustomer!
+                                                                    .balance >
+                                                                0
+                                                            ? (isDark
+                                                                ? const Color(
+                                                                    0xFF78350F)
+                                                                : const Color(
+                                                                    0xFFFDE68A))
+                                                            : (isDark
+                                                                ? const Color(
+                                                                    0xFF065F46)
+                                                                : const Color(
+                                                                    0xFFA7F3D0)),
+                                                      ),
+                                                    ),
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      'Due: ${widget.settings.currencySymbol}${_selectedCustomer!.balance.toStringAsFixed(0)}',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: _selectedCustomer!
+                                                                    .balance >
+                                                                0
+                                                            ? (isDark
+                                                                ? const Color(
+                                                                    0xFFFCD34D)
+                                                                : const Color(
+                                                                    0xFFD97706))
+                                                            : (isDark
+                                                                ? const Color(
+                                                                    0xFF6EE7B7)
+                                                                : const Color(
+                                                                    0xFF16A34A)),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                if (_selectedCustomer!
+                                                        .loyaltyPoints >
+                                                    0)
+                                                  Container(
+                                                    height: 38,
+                                                    margin:
+                                                        const EdgeInsets.only(
+                                                            left: 6),
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 8),
+                                                    decoration: BoxDecoration(
                                                       color: isDark
                                                           ? const Color(
-                                                              0xFF4338CA)
+                                                              0xFF451A03)
                                                           : const Color(
-                                                              0xFFC7D2FE)),
+                                                              0xFFFFFBEB),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6),
+                                                      border: Border.all(
+                                                          color: isDark
+                                                              ? const Color(
+                                                                  0xFF78350F)
+                                                              : const Color(
+                                                                  0xFFFDE68A)),
+                                                    ),
+                                                    alignment: Alignment.center,
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        const Icon(
+                                                            Icons.stars_rounded,
+                                                            color: Color(
+                                                                0xFFD97706),
+                                                            size: 14),
+                                                        const SizedBox(
+                                                            width: 4),
+                                                        Text(
+                                                          '${_selectedCustomer!.loyaltyPoints.toInt()} pts',
+                                                          style: TextStyle(
+                                                            fontSize: 11,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: isDark
+                                                                ? const Color(
+                                                                    0xFFFDE68A)
+                                                                : const Color(
+                                                                    0xFF92400E),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                              ] else ...[
+                                                Tooltip(
+                                                  message:
+                                                      'Customer Outstanding Due & Ledger',
+                                                  child: InkWell(
+                                                    onTap: () {
+                                                      if (_selectedCustomer !=
+                                                          null) {
+                                                        final due =
+                                                            _selectedCustomer!
+                                                                .balance;
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                              'Customer: ${_selectedCustomer!.name} | Outstanding Due: ${widget.settings.currencySymbol} ${due.toStringAsFixed(2)}',
+                                                            ),
+                                                            backgroundColor: due >
+                                                                    0
+                                                                ? const Color(
+                                                                    0xFFD97706)
+                                                                : const Color(
+                                                                    0xFF16A34A),
+                                                          ),
+                                                        );
+                                                      }
+                                                    },
+                                                    child: Container(
+                                                      width: 38,
+                                                      height: 38,
+                                                      decoration: BoxDecoration(
+                                                        color: isDark
+                                                            ? const Color(
+                                                                0xFF312E81)
+                                                            : const Color(
+                                                                0xFFEEF2FF),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(6),
+                                                        border: Border.all(
+                                                            color: isDark
+                                                                ? const Color(
+                                                                    0xFF4338CA)
+                                                                : const Color(
+                                                                    0xFFC7D2FE)),
+                                                      ),
+                                                      child: Icon(
+                                                          Icons
+                                                              .payments_outlined,
+                                                          color: isDark
+                                                              ? const Color(
+                                                                  0xFFA5B4FC)
+                                                              : const Color(
+                                                                  0xFF4F46E5),
+                                                          size: 18),
+                                                    ),
+                                                  ),
                                                 ),
-                                                child: Icon(
-                                                    Icons.payments_outlined,
-                                                    color: isDark
-                                                        ? const Color(
-                                                            0xFFA5B4FC)
-                                                        : const Color(
-                                                            0xFF4F46E5),
-                                                    size: 18),
-                                              ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                        if (!isTabletCompact) ...[
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            flex: 2,
+                                            child: _buildBarcodeSearchRow(
+                                              isDark: isDark,
+                                              inputBg: inputBg,
+                                              inputBorder: inputBorder,
+                                              textPrimary: textPrimary,
+                                              textSecondary: textSecondary,
                                             ),
                                           ),
                                         ],
@@ -9368,26 +9363,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                   ],
                                 ),
                               ),
-
-                              // Prominent Full-Width Product Search & Barcode Bar
-                              if (!isTabletCompact)
-                                Container(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                                  decoration: BoxDecoration(
-                                    color: subtleBg,
-                                    border: Border(
-                                      bottom: BorderSide(color: borderColor),
-                                    ),
-                                  ),
-                                  child: _buildBarcodeSearchRow(
-                                    isDark: isDark,
-                                    inputBg: inputBg,
-                                    inputBorder: inputBorder,
-                                    textPrimary: textPrimary,
-                                    textSecondary: textSecondary,
-                                  ),
-                                ),
 
                               // Universal POS Bar: Wholesale/Retail Mode Toggle + Open Item Quick Button
                               Container(
@@ -11869,7 +11844,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
               link: _productDropdownLink,
               child: Container(
                 key: _productBoxKey,
-                height: 44,
+                height: 40,
                 decoration: BoxDecoration(
                   color: isDark
                       ? const Color(0xFF0F172A)
@@ -11946,31 +11921,31 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             onTap: _openPriceCheckerDialog,
             borderRadius: BorderRadius.circular(8),
             child: Container(
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: const Color(0xFF0D9488),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.qr_code_2_rounded,
-                  color: Colors.white, size: 21),
+                  color: Colors.white, size: 20),
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Tooltip(
           message: 'Add Custom Item [F11]',
           child: InkWell(
             onTap: _openCustomProductDialog,
             borderRadius: BorderRadius.circular(8),
             child: Container(
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: const Color(0xFF4F46E5),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.add, color: Colors.white, size: 21),
+              child: const Icon(Icons.add, color: Colors.white, size: 20),
             ),
           ),
         ),
