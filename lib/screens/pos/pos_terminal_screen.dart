@@ -14,6 +14,7 @@ import '../../services/keyboard_shortcuts_service.dart';
 import '../../services/lan_realtime_service.dart';
 import '../../services/local_api_service.dart';
 import '../../services/theme_service.dart';
+import '../../services/pos_sound_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import 'quick_customer_dialog.dart';
 import 'customer_search_dialog.dart';
@@ -4273,6 +4274,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         );
     _applyProductTaxIfConfigured(product);
     _checkAndApplyNearExpiryDiscount(product, selectedExpiryDate);
+    PosSoundService.playAddProduct(enabled: widget.settings.enablePosSounds);
     _evaluatePromotionalPricing(product);
     _refreshRestaurantServiceChargeIfDineIn();
     _refocusBarcodeIfEnabled();
@@ -4917,6 +4919,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         );
     _applyProductTaxIfConfigured(product);
     _checkAndApplyNearExpiryDiscount(product, product.expiryDate);
+    PosSoundService.playAddProduct(enabled: widget.settings.enablePosSounds);
     _evaluatePromotionalPricing(product);
     _refreshRestaurantServiceChargeIfDineIn();
   }
@@ -5741,6 +5744,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
 
     if (mounted) {
+      PosSoundService.playSaleComplete(
+          enabled: widget.settings.enablePosSounds);
       ref.read(cartProvider.notifier).clear(resetHistory: true);
       setState(() {
         _resumedSaleId = null;
@@ -6623,6 +6628,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
 
     if (!widget.settings.confirmBeforeCancelSale) {
+      PosSoundService.playCancel(enabled: widget.settings.enablePosSounds);
       ref.read(cartProvider.notifier).clear();
       setState(() {
         _resumedSaleId = null;
@@ -6657,6 +6663,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 foregroundColor: Colors.white),
             onPressed: () {
               Navigator.pop(ctx);
+              PosSoundService.playCancel(
+                  enabled: widget.settings.enablePosSounds);
               ref.read(cartProvider.notifier).clear();
               setState(() {
                 _resumedSaleId = null;

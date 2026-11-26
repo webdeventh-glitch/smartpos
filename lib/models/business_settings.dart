@@ -80,6 +80,7 @@ class BusinessSettings {
   final bool showSkuOnInvoice;
   final bool showWarrantyOnInvoice;
   final bool showTotalInWords;
+  final bool enablePosSounds;
   final String primaryLanguage;
   final String totalInWordsLanguage;
   final bool enableSecondaryLanguage;
@@ -197,6 +198,7 @@ class BusinessSettings {
     this.showSkuOnInvoice = true,
     this.showWarrantyOnInvoice = true,
     this.showTotalInWords = true,
+    this.enablePosSounds = true,
     this.primaryLanguage = 'en',
     this.totalInWordsLanguage = 'en',
     this.enableSecondaryLanguage = false,
@@ -871,6 +873,7 @@ class BusinessSettings {
     bool? showSkuOnInvoice,
     bool? showWarrantyOnInvoice,
     bool? showTotalInWords,
+    bool? enablePosSounds,
     String? primaryLanguage,
     String? totalInWordsLanguage,
     bool? enableSecondaryLanguage,
@@ -994,6 +997,7 @@ class BusinessSettings {
       showWarrantyOnInvoice:
           showWarrantyOnInvoice ?? this.showWarrantyOnInvoice,
       showTotalInWords: showTotalInWords ?? this.showTotalInWords,
+      enablePosSounds: enablePosSounds ?? this.enablePosSounds,
       primaryLanguage: primaryLanguage ?? this.primaryLanguage,
       totalInWordsLanguage: totalInWordsLanguage ?? this.totalInWordsLanguage,
       enableSecondaryLanguage:
@@ -1124,6 +1128,7 @@ class BusinessSettings {
         'show_sku_on_invoice': showSkuOnInvoice ? 1 : 0,
         'show_warranty_on_invoice': showWarrantyOnInvoice ? 1 : 0,
         'show_total_in_words': showTotalInWords ? 1 : 0,
+        'enable_pos_sounds': enablePosSounds ? 1 : 0,
         'primary_language': primaryLanguage,
         'total_in_words_language': totalInWordsLanguage,
         'enable_secondary_language': enableSecondaryLanguage ? 1 : 0,
@@ -1255,6 +1260,7 @@ class BusinessSettings {
         showWarrantyOnInvoice:
             modelAsBool(map['show_warranty_on_invoice'], true),
         showTotalInWords: modelAsBool(map['show_total_in_words'], true),
+        enablePosSounds: modelAsBool(map['enable_pos_sounds'], true),
         primaryLanguage: modelAsString(map['primary_language'], 'en'),
         totalInWordsLanguage: modelAsString(
           map['total_in_words_language'],

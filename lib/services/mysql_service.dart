@@ -2126,6 +2126,8 @@ class MySqlService {
     await _addMySqlColumnIfMissing(conn, 'business_settings',
         'show_total_in_words', 'TINYINT(1) DEFAULT 1');
     await _addMySqlColumnIfMissing(
+        conn, 'business_settings', 'enable_pos_sounds', 'TINYINT(1) DEFAULT 1');
+    await _addMySqlColumnIfMissing(
         conn, 'expenses', 'location_id', 'INT DEFAULT 1');
     await _addMySqlColumnIfMissing(
         conn, 'expenses', 'title', "VARCHAR(255) DEFAULT ''");

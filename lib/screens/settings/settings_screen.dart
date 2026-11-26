@@ -16,6 +16,7 @@ import '../../services/mysql_service.dart';
 import '../../services/regional_data_service.dart';
 import '../../services/currency_rate_service.dart';
 import '../../services/print_service.dart';
+import '../../services/pos_sound_service.dart';
 import '../../services/ai_assistant_service.dart';
 import '../../services/number_to_words_service.dart';
 import '../../services/localization_service.dart';
@@ -179,6 +180,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _showSkuOnInvoice = true;
   bool _showWarrantyOnInvoice = true;
   bool _showTotalInWords = true;
+  bool _enablePosSounds = true;
   String _primaryLanguage = 'en';
   String _totalInWordsLanguage = 'en';
   bool _enableSecondaryLanguage = false;
@@ -321,6 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     _showSkuOnInvoice = s.showSkuOnInvoice;
     _showWarrantyOnInvoice = s.showWarrantyOnInvoice;
     _showTotalInWords = s.showTotalInWords;
+    _enablePosSounds = s.enablePosSounds;
     _primaryLanguage = s.primaryLanguage.isNotEmpty ? s.primaryLanguage : 'en';
     _totalInWordsLanguage = _primaryLanguage;
     _enableSecondaryLanguage =
@@ -1095,6 +1098,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       showSkuOnInvoice: _showSkuOnInvoice,
       showWarrantyOnInvoice: _showWarrantyOnInvoice,
       showTotalInWords: _showTotalInWords,
+      enablePosSounds: _enablePosSounds,
       primaryLanguage: _primaryLanguage,
       totalInWordsLanguage: _totalInWordsLanguage,
       enableSecondaryLanguage:
@@ -3362,6 +3366,66 @@ class _SettingsScreenState extends State<SettingsScreen>
                                       color: Color(0xFF4F46E5)),
                                 );
                               },
+                            ),
+                            const SizedBox(height: 8),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              value: _enablePosSounds,
+                              onChanged: (val) async {
+                                setState(() => _enablePosSounds = val);
+                                final updated = widget.settings
+                                    .copyWith(enablePosSounds: val);
+                                final db = await DatabaseService.initialize();
+                                await db.updateBusinessSettings(updated);
+                                widget.onSettingsUpdated(updated);
+                                if (val) {
+                                  PosSoundService.playAddProduct(enabled: true);
+                                }
+                              },
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'POS Sound Effects (Sale, Add Product, Cancel)',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13.5,
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: _enablePosSounds
+                                        ? () =>
+                                            PosSoundService.playSaleComplete(
+                                                enabled: true)
+                                        : null,
+                                    icon: const Icon(Icons.volume_up_rounded,
+                                        size: 16),
+                                    label: const Text('Test',
+                                        style: TextStyle(fontSize: 12)),
+                                  ),
+                                ],
+                              ),
+                              subtitle: Text(
+                                'Play pleasant audio chimes when adding items, completing sales, or cancelling cart (turn off to mute)',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                              secondary: Icon(
+                                _enablePosSounds
+                                    ? Icons.volume_up_rounded
+                                    : Icons.volume_off_rounded,
+                                color: _enablePosSounds
+                                    ? const Color(0xFF4F46E5)
+                                    : const Color(0xFF94A3B8),
+                              ),
                             ),
                           ],
                         ),
@@ -8965,6 +9029,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       showSkuOnInvoice: _showSkuOnInvoice,
       showWarrantyOnInvoice: _showWarrantyOnInvoice,
       showTotalInWords: _showTotalInWords,
+      enablePosSounds: _enablePosSounds,
       primaryLanguage: _primaryLanguage,
       totalInWordsLanguage: _totalInWordsLanguage,
       enableSecondaryLanguage:
@@ -9008,6 +9073,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       showSkuOnInvoice: _showSkuOnInvoice,
       showWarrantyOnInvoice: _showWarrantyOnInvoice,
       showTotalInWords: _showTotalInWords,
+      enablePosSounds: _enablePosSounds,
       primaryLanguage: _primaryLanguage,
       totalInWordsLanguage: _totalInWordsLanguage,
       enableSecondaryLanguage:

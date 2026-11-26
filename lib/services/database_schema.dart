@@ -206,6 +206,19 @@ class DatabaseSchema {
         'ultimate_pos_expenses_parity',
       );
     }
+    if (fromVersion < 17 && toVersion >= 17) {
+      await _applyV17PosSounds(db);
+      await _recordMigration(
+        db,
+        17,
+        'pos_sound_effects_setting',
+      );
+    }
+  }
+
+  static Future<void> _applyV17PosSounds(Database db) async {
+    await _addColumnIfMissing(
+        db, 'business_settings', 'enable_pos_sounds', 'INTEGER DEFAULT 1');
   }
 
   static Future<void> _applyV16UltimatePosExpenses(Database db) async {
@@ -1257,6 +1270,7 @@ class DatabaseSchema {
         show_customer_balance INTEGER DEFAULT 1,
         show_signature INTEGER DEFAULT 1,
         show_total_in_words INTEGER DEFAULT 1,
+        enable_pos_sounds INTEGER DEFAULT 1,
         is_default INTEGER DEFAULT 0,
         created_at TEXT
       )
@@ -3145,6 +3159,7 @@ class DatabaseSchema {
         show_sku_on_invoice INTEGER DEFAULT 1,
         show_warranty_on_invoice INTEGER DEFAULT 1,
         show_total_in_words INTEGER DEFAULT 1,
+        enable_pos_sounds INTEGER DEFAULT 1,
         primary_language TEXT DEFAULT 'en',
         total_in_words_language TEXT DEFAULT 'ur',
         enable_secondary_language INTEGER DEFAULT 0,
