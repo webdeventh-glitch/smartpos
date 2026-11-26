@@ -214,7 +214,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Customer: ${quotation.customerName}  •  Total: $cur${quotation.totalAmount.toStringAsFixed(2)}',
+                  'Customer: ${quotation.customerName}  â€¢  Total: $cur${quotation.totalAmount.toStringAsFixed(2)}',
                   style: const TextStyle(
                       fontSize: 13, fontWeight: FontWeight.w600),
                 ),
@@ -717,7 +717,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                               ? FontWeight.bold
                                               : FontWeight.normal)),
                                   subtitle: Text(
-                                    'Phone: ${cust.phone.isNotEmpty ? cust.phone : 'N/A'} • Khata: $currency${cust.balance.toStringAsFixed(2)}',
+                                    'Phone: ${cust.phone.isNotEmpty ? cust.phone : 'N/A'} â€¢ Khata: $currency${cust.balance.toStringAsFixed(2)}',
                                     style: const TextStyle(fontSize: 11),
                                   ),
                                   trailing: isSel
@@ -983,7 +983,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
           pdfGenerator: (_) => PdfExportService.generateReportPdf(
             title: 'Sales List Report (${_activeTab.toUpperCase()})',
             subtitle:
-                '${widget.settings.businessName} • ${_sales.length} invoices',
+                '${widget.settings.businessName} â€¢ ${_sales.length} invoices',
             headers: headers,
             rows: rows,
             settings: widget.settings,
@@ -1000,7 +1000,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
 
     final bytes = await PdfExportService.generateReportPdf(
       title: 'Sales List Report (${_activeTab.toUpperCase()})',
-      subtitle: '${widget.settings.businessName} • ${_sales.length} invoices',
+      subtitle: '${widget.settings.businessName} â€¢ ${_sales.length} invoices',
       headers: headers,
       rows: rows,
       settings: widget.settings,
@@ -1600,15 +1600,13 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                             final colWidths =
                                                 <int, TableColumnWidth>{
                                               0: const FlexColumnWidth(
-                                                  1.7), // Action
-                                              1: const FlexColumnWidth(
                                                   1.5), // Date
-                                              2: const FlexColumnWidth(
+                                              1: const FlexColumnWidth(
                                                   1.2), // Invoice No.
-                                              3: const FlexColumnWidth(
+                                              2: const FlexColumnWidth(
                                                   1.8), // Customer name
                                             };
-                                            int cIdx = 4;
+                                            int cIdx = 3;
                                             if (_showContactCol) {
                                               colWidths[cIdx++] =
                                                   const FlexColumnWidth(1.3);
@@ -1635,6 +1633,9 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                               colWidths[cIdx++] =
                                                   const FlexColumnWidth(1.1);
                                             }
+                                            colWidths[cIdx++] =
+                                                const FlexColumnWidth(
+                                                    1.5); // Actions
                                             return colWidths;
                                           }(),
                                           defaultVerticalAlignment:
@@ -1655,23 +1656,25 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                         width: 1.2)),
                                               ),
                                               children: [
-                                                _th('Action', isDark),
-                                                _th('Date ⇅', isDark),
-                                                _th('Invoice No. ⇅', isDark),
-                                                _th('Customer name ⇅', isDark),
+                                                _th('Date â‡…', isDark),
+                                                _th('Invoice No. â‡…', isDark),
+                                                _th('Customer name â‡…',
+                                                    isDark),
                                                 if (_showContactCol)
-                                                  _th('Contact Number ⇅',
+                                                  _th('Contact Number â‡…',
                                                       isDark),
                                                 if (_showLocationCol)
-                                                  _th('Location ⇅', isDark),
-                                                _th('Payment Status ⇅', isDark),
+                                                  _th('Location â‡…', isDark),
+                                                _th('Payment Status â‡…',
+                                                    isDark),
                                                 if (_showMethodCol)
                                                   _th('Payment Method', isDark),
-                                                _th('Total amount ⇅', isDark),
+                                                _th('Total amount â‡…', isDark),
                                                 if (_showPaidCol)
-                                                  _th('Total paid ⇅', isDark),
+                                                  _th('Total paid â‡…', isDark),
                                                 if (_showDueCol)
                                                   _th('Sell Due', isDark),
+                                                _th('Actions', isDark),
                                               ],
                                             ),
                                             ..._sales
@@ -1705,504 +1708,6 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                           width: 0.8)),
                                                 ),
                                                 children: [
-                                                  // Action Button
-                                                  _td(
-                                                    s.saleStatus != 'final'
-                                                        ? Wrap(
-                                                            spacing: 4,
-                                                            runSpacing: 4,
-                                                            crossAxisAlignment:
-                                                                WrapCrossAlignment
-                                                                    .center,
-                                                            children: [
-                                                              if (s.saleStatus ==
-                                                                      'quotation' &&
-                                                                  s.isConvertedQuotation)
-                                                                Container(
-                                                                  padding: const EdgeInsets
-                                                                      .symmetric(
-                                                                      horizontal:
-                                                                          8,
-                                                                      vertical:
-                                                                          4),
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    color: const Color(
-                                                                        0xFFDCFCE7),
-                                                                    borderRadius:
-                                                                        BorderRadius
-                                                                            .circular(5),
-                                                                    border: Border.all(
-                                                                        color: const Color(
-                                                                            0xFF86EFAC)),
-                                                                  ),
-                                                                  child:
-                                                                      const Text(
-                                                                    'Converted',
-                                                                    style: TextStyle(
-                                                                        fontSize:
-                                                                            11,
-                                                                        fontWeight:
-                                                                            FontWeight
-                                                                                .bold,
-                                                                        color: Color(
-                                                                            0xFF15803D)),
-                                                                  ),
-                                                                )
-                                                              else ...[
-                                                                if (s.saleStatus ==
-                                                                    'quotation')
-                                                                  ElevatedButton
-                                                                      .icon(
-                                                                    style: ElevatedButton
-                                                                        .styleFrom(
-                                                                      backgroundColor:
-                                                                          const Color(
-                                                                              0xFF4F46E5),
-                                                                      foregroundColor:
-                                                                          Colors
-                                                                              .white,
-                                                                      padding: const EdgeInsets
-                                                                          .symmetric(
-                                                                          horizontal:
-                                                                              8,
-                                                                          vertical:
-                                                                              6),
-                                                                      shape: RoundedRectangleBorder(
-                                                                          borderRadius:
-                                                                              BorderRadius.circular(6)),
-                                                                      elevation:
-                                                                          0,
-                                                                    ),
-                                                                    icon: const Icon(
-                                                                        Icons
-                                                                            .receipt_long_rounded,
-                                                                        size:
-                                                                            13),
-                                                                    label: const Text(
-                                                                        'Convert to Invoice',
-                                                                        style: TextStyle(
-                                                                            fontSize:
-                                                                                10.5,
-                                                                            fontWeight:
-                                                                                FontWeight.bold)),
-                                                                    onPressed: () =>
-                                                                        _showConvertQuotationDialog(
-                                                                            s),
-                                                                  ),
-                                                                if (AuthService
-                                                                        .currentUser
-                                                                        ?.hasPermission(
-                                                                            'sale.edit') ??
-                                                                    true)
-                                                                  ElevatedButton
-                                                                      .icon(
-                                                                    style: ElevatedButton
-                                                                        .styleFrom(
-                                                                      backgroundColor:
-                                                                          const Color(
-                                                                              0xFF10B981),
-                                                                      foregroundColor:
-                                                                          Colors
-                                                                              .white,
-                                                                      padding: const EdgeInsets
-                                                                          .symmetric(
-                                                                          horizontal:
-                                                                              8,
-                                                                          vertical:
-                                                                              6),
-                                                                      shape: RoundedRectangleBorder(
-                                                                          borderRadius:
-                                                                              BorderRadius.circular(6)),
-                                                                      elevation:
-                                                                          0,
-                                                                    ),
-                                                                    icon: const Icon(
-                                                                        Icons
-                                                                            .play_arrow_rounded,
-                                                                        size:
-                                                                            14),
-                                                                    label: const Text(
-                                                                        'Resume in POS',
-                                                                        style: TextStyle(
-                                                                            fontSize:
-                                                                                10.5,
-                                                                            fontWeight:
-                                                                                FontWeight.bold)),
-                                                                    onPressed: () =>
-                                                                        _resumeInPos(
-                                                                            s),
-                                                                  ),
-                                                              ],
-                                                              PopupMenuButton<
-                                                                  String>(
-                                                                onSelected:
-                                                                    (val) {
-                                                                  if (val ==
-                                                                      'convert') {
-                                                                    _showConvertQuotationDialog(
-                                                                        s);
-                                                                  } else if (val ==
-                                                                      'quotation') {
-                                                                    _printQuotation(
-                                                                        s);
-                                                                  } else if (val ==
-                                                                      'pdf') {
-                                                                    _exportSalePdf(
-                                                                        s);
-                                                                  } else if (val ==
-                                                                      'email') {
-                                                                    _exportSalePdf(
-                                                                        s,
-                                                                        email:
-                                                                            true);
-                                                                  } else if (val ==
-                                                                      'delete') {
-                                                                    _deleteSaleRecord(
-                                                                        s);
-                                                                  } else if (val ==
-                                                                      'transfer_ledger') {
-                                                                    _showTransferSaleDialog(
-                                                                        s);
-                                                                  }
-                                                                },
-                                                                itemBuilder:
-                                                                    (ctx) {
-                                                                  final canDel =
-                                                                      AuthService
-                                                                              .currentUser
-                                                                              ?.hasPermission('sale.delete') ??
-                                                                          true;
-                                                                  final canConvert =
-                                                                      AuthService
-                                                                              .currentUser
-                                                                              ?.hasPermission('quotation.convert') ??
-                                                                          true;
-                                                                  return [
-                                                                    if (canConvert &&
-                                                                        s.saleStatus ==
-                                                                            'quotation' &&
-                                                                        !s
-                                                                            .isConvertedQuotation)
-                                                                      const PopupMenuItem(
-                                                                          value:
-                                                                              'convert',
-                                                                          child:
-                                                                              Text('Convert to Invoice')),
-                                                                    const PopupMenuItem(
-                                                                        value:
-                                                                            'quotation',
-                                                                        child: Text(
-                                                                            'Print Quotation / Estimate')),
-                                                                    const PopupMenuItem(
-                                                                        value:
-                                                                            'pdf',
-                                                                        child: Text(
-                                                                            'Export PDF')),
-                                                                    const PopupMenuItem(
-                                                                        value:
-                                                                            'email',
-                                                                        child: Text(
-                                                                            'Email PDF')),
-                                                                    if (canDel)
-                                                                      const PopupMenuItem(
-                                                                        value:
-                                                                            'transfer_ledger',
-                                                                        child:
-                                                                            Row(
-                                                                          children: [
-                                                                            Icon(Icons.swap_horiz_rounded,
-                                                                                size: 16,
-                                                                                color: Color(0xFF0D9488)),
-                                                                            SizedBox(width: 8),
-                                                                            Text('Transfer to Khata Ledger',
-                                                                                style: TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold)),
-                                                                          ],
-                                                                        ),
-                                                                      ),
-                                                                    const PopupMenuItem(
-                                                                      value:
-                                                                          'delete',
-                                                                      child:
-                                                                          Row(
-                                                                        children: [
-                                                                          Icon(
-                                                                              Icons.delete_outline,
-                                                                              size: 16,
-                                                                              color: Color(0xFFEF4444)),
-                                                                          SizedBox(
-                                                                              width: 8),
-                                                                          Text(
-                                                                              'Delete',
-                                                                              style: TextStyle(color: Color(0xFFEF4444))),
-                                                                        ],
-                                                                      ),
-                                                                    ),
-                                                                  ];
-                                                                },
-                                                                child:
-                                                                    Container(
-                                                                  padding:
-                                                                      const EdgeInsets
-                                                                          .all(
-                                                                          5),
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    color: isDark
-                                                                        ? const Color(
-                                                                            0xFF334155)
-                                                                        : const Color(
-                                                                            0xFFE2E8F0),
-                                                                    borderRadius:
-                                                                        BorderRadius
-                                                                            .circular(4),
-                                                                  ),
-                                                                  child: const Icon(
-                                                                      Icons
-                                                                          .more_vert,
-                                                                      size: 14),
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          )
-                                                        : PopupMenuButton<
-                                                            String>(
-                                                            onSelected: (val) {
-                                                              if (val ==
-                                                                  'receipt') {
-                                                                _printReceipt(
-                                                                    s);
-                                                              } else if (val ==
-                                                                  'quotation') {
-                                                                _printQuotation(
-                                                                    s);
-                                                              } else if (val ==
-                                                                  'pay_due') {
-                                                                showDialog(
-                                                                  context:
-                                                                      context,
-                                                                  builder: (_) =>
-                                                                      PayDueDialog(
-                                                                    settings: widget
-                                                                        .settings,
-                                                                    type: DuePaymentType
-                                                                        .sale,
-                                                                    entityId:
-                                                                        s.id!,
-                                                                    reference: s
-                                                                        .invoiceNo,
-                                                                    contactName:
-                                                                        s.customerName,
-                                                                    contactId: s
-                                                                        .customerId,
-                                                                    totalAmount:
-                                                                        s.totalAmount,
-                                                                    paidAmount:
-                                                                        s.paidAmount,
-                                                                    dueAmount: s
-                                                                        .dueAmount,
-                                                                    onPaymentSuccess:
-                                                                        _load,
-                                                                  ),
-                                                                );
-                                                              } else if (val ==
-                                                                  'whatsapp') {
-                                                                _sendWhatsAppBill(
-                                                                    s);
-                                                              } else if (val ==
-                                                                  'pdf') {
-                                                                _exportSalePdf(
-                                                                    s);
-                                                              } else if (val ==
-                                                                  'email') {
-                                                                _exportSalePdf(
-                                                                    s,
-                                                                    email:
-                                                                        true);
-                                                              } else if (val ==
-                                                                  'view') {
-                                                                _showSaleDetailsDialog(
-                                                                    s);
-                                                              } else if (val ==
-                                                                  'delete') {
-                                                                _deleteSaleRecord(
-                                                                    s);
-                                                              } else if (val ==
-                                                                  'transfer_ledger') {
-                                                                _showTransferSaleDialog(
-                                                                    s);
-                                                              }
-                                                            },
-                                                            itemBuilder: (ctx) {
-                                                              final canDel = AuthService
-                                                                      .currentUser
-                                                                      ?.hasPermission(
-                                                                          'sale.delete') ??
-                                                                  true;
-                                                              return [
-                                                                const PopupMenuItem(
-                                                                    value:
-                                                                        'receipt',
-                                                                    child: Text(
-                                                                        'Print Receipt')),
-                                                                const PopupMenuItem(
-                                                                    value:
-                                                                        'pdf',
-                                                                    child: Text(
-                                                                        'Export PDF Invoice')),
-                                                                const PopupMenuItem(
-                                                                    value:
-                                                                        'email',
-                                                                    child: Text(
-                                                                        'Email PDF Invoice')),
-                                                                const PopupMenuItem(
-                                                                  value:
-                                                                      'whatsapp',
-                                                                  child: Row(
-                                                                    children: [
-                                                                      Icon(
-                                                                          Icons
-                                                                              .chat_rounded,
-                                                                          size:
-                                                                              16,
-                                                                          color:
-                                                                              Color(0xFF25D366)),
-                                                                      SizedBox(
-                                                                          width:
-                                                                              8),
-                                                                      Text(
-                                                                          'Send WhatsApp Bill',
-                                                                          style: TextStyle(
-                                                                              color: Color(0xFF25D366),
-                                                                              fontWeight: FontWeight.bold)),
-                                                                    ],
-                                                                  ),
-                                                                ),
-                                                                const PopupMenuItem(
-                                                                    value:
-                                                                        'quotation',
-                                                                    child: Text(
-                                                                        'Print Quotation / Estimate')),
-                                                                if (s.dueAmount >
-                                                                    0)
-                                                                  const PopupMenuItem(
-                                                                    value:
-                                                                        'pay_due',
-                                                                    child: Row(
-                                                                      children: [
-                                                                        Icon(
-                                                                            Icons
-                                                                                .payments_outlined,
-                                                                            size:
-                                                                                16,
-                                                                            color:
-                                                                                Color(0xFF059669)),
-                                                                        SizedBox(
-                                                                            width:
-                                                                                8),
-                                                                        Text(
-                                                                            'Pay Due / Collect',
-                                                                            style:
-                                                                                TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold)),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                const PopupMenuItem(
-                                                                    value:
-                                                                        'view',
-                                                                    child: Text(
-                                                                        'View Details')),
-                                                                if (canDel)
-                                                                  const PopupMenuItem(
-                                                                    value:
-                                                                        'transfer_ledger',
-                                                                    child: Row(
-                                                                      children: [
-                                                                        Icon(
-                                                                            Icons
-                                                                                .swap_horiz_rounded,
-                                                                            size:
-                                                                                16,
-                                                                            color:
-                                                                                Color(0xFF0D9488)),
-                                                                        SizedBox(
-                                                                            width:
-                                                                                8),
-                                                                        Text(
-                                                                            'Transfer to Khata Ledger',
-                                                                            style:
-                                                                                TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold)),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                const PopupMenuItem(
-                                                                  value:
-                                                                      'delete',
-                                                                  child: Row(
-                                                                    children: [
-                                                                      Icon(
-                                                                          Icons
-                                                                              .delete_outline,
-                                                                          size:
-                                                                              16,
-                                                                          color:
-                                                                              Color(0xFFEF4444)),
-                                                                      SizedBox(
-                                                                          width:
-                                                                              8),
-                                                                      Text(
-                                                                          'Delete Sale',
-                                                                          style:
-                                                                              TextStyle(color: Color(0xFFEF4444))),
-                                                                    ],
-                                                                  ),
-                                                                ),
-                                                              ];
-                                                            },
-                                                            child: Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .symmetric(
-                                                                      horizontal:
-                                                                          10,
-                                                                      vertical:
-                                                                          4),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: const Color(
-                                                                    0xFF004EEB),
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            4),
-                                                              ),
-                                                              child: const Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
-                                                                children: [
-                                                                  Text(
-                                                                      'Actions',
-                                                                      style: TextStyle(
-                                                                          color: Colors
-                                                                              .white,
-                                                                          fontSize:
-                                                                              11,
-                                                                          fontWeight:
-                                                                              FontWeight.bold)),
-                                                                  SizedBox(
-                                                                      width: 4),
-                                                                  Icon(
-                                                                      Icons
-                                                                          .arrow_drop_down,
-                                                                      color: Colors
-                                                                          .white,
-                                                                      size: 16),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ),
-                                                  ),
                                                   _td(Text(s.createdAt,
                                                       style: const TextStyle(
                                                           fontSize: 12))),
@@ -2222,7 +1727,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                     _td(Text(
                                                       _customerPhonesById[
                                                               s.customerId] ??
-                                                          '—',
+                                                          'â€”',
                                                       style: const TextStyle(
                                                           fontSize: 12,
                                                           color: Color(
@@ -2319,6 +1824,8 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                                 0xFF94A3B8),
                                                       ),
                                                     )),
+                                                  _buildSaleActionsCell(
+                                                      s, isDark),
                                                 ],
                                               );
                                             }),
@@ -2370,6 +1877,301 @@ class _SalesListScreenState extends State<SalesListScreen> {
           fontSize: 12,
         ),
       ),
+    );
+  }
+
+  Widget _buildSaleActionsCell(Sale s, bool isDark) {
+    return _td(
+      s.saleStatus != 'final'
+          ? Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (s.saleStatus == 'quotation' && s.isConvertedQuotation)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: const Color(0xFF86EFAC)),
+                    ),
+                    child: const Text(
+                      'Converted',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF15803D)),
+                    ),
+                  )
+                else ...[
+                  if (s.saleStatus == 'quotation')
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6)),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.receipt_long_rounded, size: 13),
+                      label: const Text('Convert to Invoice',
+                          style: TextStyle(
+                              fontSize: 10.5, fontWeight: FontWeight.bold)),
+                      onPressed: () => _showConvertQuotationDialog(s),
+                    ),
+                  if (AuthService.currentUser?.hasPermission('sale.edit') ??
+                      true)
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6)),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.play_arrow_rounded, size: 14),
+                      label: const Text('Resume in POS',
+                          style: TextStyle(
+                              fontSize: 10.5, fontWeight: FontWeight.bold)),
+                      onPressed: () => _resumeInPos(s),
+                    ),
+                ],
+                PopupMenuButton<String>(
+                  onSelected: (val) {
+                    if (val == 'convert') {
+                      _showConvertQuotationDialog(s);
+                    } else if (val == 'quotation') {
+                      _printQuotation(s);
+                    } else if (val == 'pdf') {
+                      _exportSalePdf(s);
+                    } else if (val == 'email') {
+                      _exportSalePdf(s, email: true);
+                    } else if (val == 'delete') {
+                      _deleteSaleRecord(s);
+                    } else if (val == 'transfer_ledger') {
+                      _showTransferSaleDialog(s);
+                    }
+                  },
+                  itemBuilder: (ctx) {
+                    final canDel =
+                        AuthService.currentUser?.hasPermission('sale.delete') ??
+                            true;
+                    final canConvert = AuthService.currentUser
+                            ?.hasPermission('quotation.convert') ??
+                        true;
+                    return [
+                      if (canConvert &&
+                          s.saleStatus == 'quotation' &&
+                          !s.isConvertedQuotation)
+                        const PopupMenuItem(
+                            value: 'convert',
+                            child: Text('Convert to Invoice')),
+                      const PopupMenuItem(
+                          value: 'quotation',
+                          child: Text('Print Quotation / Estimate')),
+                      const PopupMenuItem(
+                          value: 'pdf', child: Text('Export PDF')),
+                      const PopupMenuItem(
+                          value: 'email', child: Text('Email PDF')),
+                      if (canDel)
+                        const PopupMenuItem(
+                          value: 'transfer_ledger',
+                          child: Row(
+                            children: [
+                              Icon(Icons.swap_horiz_rounded,
+                                  size: 16, color: Color(0xFF0D9488)),
+                              SizedBox(width: 8),
+                              Text('Transfer to Khata Ledger',
+                                  style: TextStyle(
+                                      color: Color(0xFF0D9488),
+                                      fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline,
+                                size: 16, color: Color(0xFFEF4444)),
+                            SizedBox(width: 8),
+                            Text('Delete',
+                                style: TextStyle(color: Color(0xFFEF4444))),
+                          ],
+                        ),
+                      ),
+                    ];
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Icon(Icons.more_vert, size: 14),
+                  ),
+                ),
+              ],
+            )
+          : PopupMenuButton<String>(
+              tooltip: PosLocalization.tr('Actions'),
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              onSelected: (val) {
+                if (val == 'receipt') {
+                  _printReceipt(s);
+                } else if (val == 'quotation') {
+                  _printQuotation(s);
+                } else if (val == 'pay_due') {
+                  showDialog(
+                    context: context,
+                    builder: (_) => PayDueDialog(
+                      settings: widget.settings,
+                      type: DuePaymentType.sale,
+                      entityId: s.id!,
+                      reference: s.invoiceNo,
+                      contactName: s.customerName,
+                      contactId: s.customerId,
+                      totalAmount: s.totalAmount,
+                      paidAmount: s.paidAmount,
+                      dueAmount: s.dueAmount,
+                      onPaymentSuccess: _load,
+                    ),
+                  );
+                } else if (val == 'whatsapp') {
+                  _sendWhatsAppBill(s);
+                } else if (val == 'pdf') {
+                  _exportSalePdf(s);
+                } else if (val == 'email') {
+                  _exportSalePdf(s, email: true);
+                } else if (val == 'view') {
+                  _showSaleDetailsDialog(s);
+                } else if (val == 'delete') {
+                  _deleteSaleRecord(s);
+                } else if (val == 'transfer_ledger') {
+                  _showTransferSaleDialog(s);
+                }
+              },
+              itemBuilder: (ctx) {
+                final canDel =
+                    AuthService.currentUser?.hasPermission('sale.delete') ??
+                        true;
+                return [
+                  const PopupMenuItem(
+                      value: 'receipt', child: Text('Print Receipt')),
+                  const PopupMenuItem(
+                      value: 'pdf', child: Text('Export PDF Invoice')),
+                  const PopupMenuItem(
+                      value: 'email', child: Text('Email PDF Invoice')),
+                  const PopupMenuItem(
+                    value: 'whatsapp',
+                    child: Row(
+                      children: [
+                        Icon(Icons.chat_rounded,
+                            size: 16, color: Color(0xFF25D366)),
+                        SizedBox(width: 8),
+                        Text('Send WhatsApp Bill',
+                            style: TextStyle(
+                                color: Color(0xFF25D366),
+                                fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                      value: 'quotation',
+                      child: Text('Print Quotation / Estimate')),
+                  if (s.dueAmount > 0)
+                    const PopupMenuItem(
+                      value: 'pay_due',
+                      child: Row(
+                        children: [
+                          Icon(Icons.payments_outlined,
+                              size: 16, color: Color(0xFF059669)),
+                          SizedBox(width: 8),
+                          Text('Pay Due / Collect',
+                              style: TextStyle(
+                                  color: Color(0xFF059669),
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  const PopupMenuItem(
+                      value: 'view', child: Text('View Details')),
+                  if (canDel)
+                    const PopupMenuItem(
+                      value: 'transfer_ledger',
+                      child: Row(
+                        children: [
+                          Icon(Icons.swap_horiz_rounded,
+                              size: 16, color: Color(0xFF0D9488)),
+                          SizedBox(width: 8),
+                          Text('Transfer to Khata Ledger',
+                              style: TextStyle(
+                                  color: Color(0xFF0D9488),
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline,
+                            size: 16, color: Color(0xFFEF4444)),
+                        SizedBox(width: 8),
+                        Text('Delete Sale',
+                            style: TextStyle(color: Color(0xFFEF4444))),
+                      ],
+                    ),
+                  ),
+                ];
+              },
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF0F9FF),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: const Color(0xFF0284C7).withValues(alpha: 0.65),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        PosLocalization.tr('Actions'),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0284C7),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.arrow_drop_down_rounded,
+                        size: 16,
+                        color: Color(0xFF0284C7),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
     );
   }
 
