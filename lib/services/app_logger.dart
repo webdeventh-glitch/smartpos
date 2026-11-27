@@ -137,11 +137,52 @@ class AppLogger {
       return;
     }
 
+    // Rate-limit identical back-to-back log spam in production (2s window)
+    if (_overrideLogsDir == null) {
+      final dedupeKey = '$tag:$message';
+      if (_lastLogKey == dedupeKey &&
+          _lastLogTime != null &&
+          now.difference(_lastLogTime!).inMilliseconds < 2000) {
+        return;
+      }
+      _lastLogKey = dedupeKey;
+      _lastLogTime = now;
+      _enqueueAsyncWrite(now, entry);
+      return;
+    }
+
     try {
       _writeWithRotation(now, entry);
     } catch (ioError) {
       debugPrint('[AppLogger] Failed writing log entry: $ioError');
     }
+  }
+
+  static String? _lastLogKey;
+  static DateTime? _lastLogTime;
+  static Future<void> _writeQueue = Future<void>.value();
+
+  static void _enqueueAsyncWrite(DateTime now, String entry) {
+    _writeQueue = _writeQueue.then((_) async {
+      try {
+        final dir = getLogsDirectory();
+        final stamp = _dateStamp(now);
+        final activeFile = File(p.join(dir.path, 'smartpos_$stamp.log'));
+        if (await activeFile.exists()) {
+          final currentSize = await activeFile.length();
+          if (currentSize + entry.length + 2 > maxFileSizeBytes) {
+            _rotateLogFile(dir, stamp, activeFile);
+          }
+        }
+        await activeFile.writeAsString(
+          '$entry\n',
+          mode: FileMode.append,
+          flush: false,
+        );
+      } catch (ioError) {
+        debugPrint('[AppLogger] Async log write failed: $ioError');
+      }
+    });
   }
 
   static String _dateStamp(DateTime dt) {

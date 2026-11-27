@@ -592,22 +592,22 @@ class BusinessSettings {
       case 'fabrics_textile':
       case 'fabrics':
         return [...base, moduleVariations, presetRetailSuperStore];
-      case 'tyres_battery':
-      case 'tyres':
-      case 'auto_parts':
       case 'lubricants_oil':
       case 'lubricants':
-      case 'hardware_tools':
-      case 'hardware':
-      case 'sanitary_tiles':
-      case 'sanitary':
         return [
           ...base,
-          moduleRepair,
           moduleVariations,
           moduleBatchExpiry,
           presetRetailSuperStore
         ];
+      case 'tyres_battery':
+      case 'tyres':
+      case 'auto_parts':
+      case 'hardware_tools':
+      case 'hardware':
+      case 'sanitary_tiles':
+      case 'sanitary':
+        return [...base, moduleVariations, presetRetailSuperStore];
       case 'pharmacy':
         return [...base, moduleBatchExpiry, presetPharmacy];
       case 'mobile':

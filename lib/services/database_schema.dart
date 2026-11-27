@@ -214,6 +214,34 @@ class DatabaseSchema {
         'pos_sound_effects_setting',
       );
     }
+    if (fromVersion < 18 && toVersion >= 18) {
+      await _applyV18PerformanceIndexesAndExpenseCategories(db);
+      await _recordMigration(
+        db,
+        18,
+        'performance_indexes_and_expense_categories',
+      );
+    }
+  }
+
+  static Future<void> _applyV18PerformanceIndexesAndExpenseCategories(
+      Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS expense_categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        code TEXT DEFAULT '',
+        created_at TEXT NOT NULL
+      )
+    ''');
+    await _ensureIndex(db, 'idx_sales_created_at', 'sales', 'created_at');
+    await _ensureIndex(
+        db, 'idx_sales_location_status', 'sales', 'location_id, sale_status');
+    await _ensureIndex(db, 'idx_sales_user_name', 'sales', 'user_name');
+    await _ensureIndex(
+        db, 'idx_expenses_date_status', 'expenses', 'date, payment_status');
+    await _ensureIndex(
+        db, 'idx_products_sku_barcode', 'products', 'sku, barcode');
   }
 
   static Future<void> _applyV17PosSounds(Database db) async {

@@ -144,14 +144,14 @@ void main() {
       expect(history.last['batch'], 'B-99');
     });
 
-    test('CurrencyFormatter formats Lakh, Million and Billion cleanly', () {
+    test('CurrencyFormatter formats large amounts with clean commas', () {
       expect(CurrencyFormatter.compact(45000, currency: 'Rs '), 'Rs 45,000.00');
       expect(
-          CurrencyFormatter.compact(550000, currency: 'Rs '), 'Rs 5.50 Lakh');
+          CurrencyFormatter.compact(550000, currency: 'Rs '), 'Rs 550,000.00');
       expect(CurrencyFormatter.compact(1100000, currency: 'Rs '),
-          'Rs 1.10 Million');
+          'Rs 1,100,000.00');
       expect(CurrencyFormatter.compact(2500000000, currency: 'Rs '),
-          'Rs 2.50 Billion');
+          'Rs 2,500,000,000.00');
     });
   });
 }

@@ -61,6 +61,22 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   void initState() {
     super.initState();
     _refCtrl.text = 'EXP-${DateTime.now().millisecondsSinceEpoch % 100000}';
+    _loadSavedCategories();
+  }
+
+  Future<void> _loadSavedCategories() async {
+    try {
+      final db = await DatabaseService.initialize();
+      final saved = await db.getExpenseCategories();
+      if (mounted) {
+        setState(() {
+          for (final c in saved) {
+            if (!_categories.contains(c)) _categories.add(c);
+          }
+          _categories.sort();
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -105,12 +121,17 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       ),
     );
     if (added != null && mounted) {
-      setState(() {
-        if (!_categories.contains(added)) {
-          _categories.add(added);
-        }
-        _selectedCategory = added;
-      });
+      final db = await DatabaseService.initialize();
+      await db.addExpenseCategory(added);
+      if (mounted) {
+        setState(() {
+          if (!_categories.contains(added)) {
+            _categories.add(added);
+            _categories.sort();
+          }
+          _selectedCategory = added;
+        });
+      }
     }
   }
 

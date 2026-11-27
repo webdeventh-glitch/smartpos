@@ -146,8 +146,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       final users = await db.getUsers();
       final contacts = await db.getContacts();
       final taxes = await db.getTaxRates();
+      final savedCats = await db.getExpenseCategories();
       if (mounted) {
         setState(() {
+          for (final c in savedCats) {
+            if (!_categories.contains(c)) _categories.add(c);
+          }
+          _categories.sort();
           _locations = locs;
           if (_locations.isNotEmpty &&
               !_locations.any((l) => l.id == _locationId)) {
@@ -268,12 +273,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       ),
     );
     if (added != null && mounted) {
-      setState(() {
-        if (!_categories.contains(added)) {
-          _categories.add(added);
-        }
-        _selectedCategory = added;
-      });
+      final db = await DatabaseService.initialize();
+      await db.addExpenseCategory(added);
+      if (mounted) {
+        setState(() {
+          if (!_categories.contains(added)) {
+            _categories.add(added);
+            _categories.sort();
+          }
+          _selectedCategory = added;
+        });
+      }
     }
   }
 

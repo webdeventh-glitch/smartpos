@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
@@ -63,9 +64,59 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
   // POS & Sales
   Future<String> generateNextInvoiceNo() async {
-    final rows = await db.rawQuery('SELECT MAX(id) as max_id FROM sales');
-    final maxId = (rows.first['max_id'] as int?) ?? 1000;
-    return 'INV-${maxId + 1}';
+    return _generateUniqueInvoiceNo(db, prefix: 'INV-');
+  }
+
+  Future<String> _generateUniqueInvoiceNo(
+    DatabaseExecutor executor, {
+    String prefix = 'INV-',
+  }) async {
+    final maxIdRows =
+        await executor.rawQuery('SELECT MAX(id) as max_id FROM sales');
+    int nextNum = ((maxIdRows.first['max_id'] as int?) ?? 1000) + 1;
+
+    final existingRows = await executor.rawQuery(
+      "SELECT invoice_no FROM sales WHERE invoice_no LIKE ?",
+      ['$prefix%'],
+    );
+    final existingSet = <String>{};
+    for (final row in existingRows) {
+      final inv = (row['invoice_no'] as String?) ?? '';
+      existingSet.add(inv);
+      final suffix = inv.substring(prefix.length);
+      final parsed = int.tryParse(suffix);
+      if (parsed != null && parsed >= nextNum) {
+        nextNum = parsed + 1;
+      }
+    }
+
+    String candidate = '$prefix$nextNum';
+    while (existingSet.contains(candidate)) {
+      nextNum++;
+      candidate = '$prefix$nextNum';
+    }
+    return candidate;
+  }
+
+  Future<String> _ensureUniqueInvoiceNo(
+    DatabaseExecutor executor,
+    String desired,
+  ) async {
+    final trimmed = desired.trim();
+    if (trimmed.isEmpty) {
+      return _generateUniqueInvoiceNo(executor);
+    }
+    final dup = await executor.query(
+      'sales',
+      columns: ['id'],
+      where: 'invoice_no = ?',
+      whereArgs: [trimmed],
+      limit: 1,
+    );
+    if (dup.isEmpty) return trimmed;
+    final match = RegExp(r'^(.*?)(\d+)$').firstMatch(trimmed);
+    final prefix = match != null ? match.group(1)! : '$trimmed-';
+    return _generateUniqueInvoiceNo(executor, prefix: prefix);
   }
 
   @override
@@ -119,8 +170,10 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         }
       }
 
-      // 1. Insert Sale record
+      // 1. Insert Sale record (guarantee unique invoice_no inside transaction)
+      final uniqueInvoiceNo = await _ensureUniqueInvoiceNo(txn, sale.invoiceNo);
       final saleMap = sale.toMap();
+      saleMap['invoice_no'] = uniqueInvoiceNo;
       if (activeRegisterId != null) {
         saleMap['cash_register_id'] = activeRegisterId;
       }
@@ -345,7 +398,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
       return Sale(
         id: saleId,
-        invoiceNo: sale.invoiceNo,
+        invoiceNo: uniqueInvoiceNo,
         customerId: sale.customerId,
         customerName: sale.customerName,
         subtotal: sale.subtotal,

@@ -214,6 +214,47 @@ class ExpenseRepository extends BaseRepository {
     return rows.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
+  static const List<String> defaultExpenseCategories = [
+    'Store Rent',
+    'Electricity & Utilities',
+    'Salaries & Wages',
+    'Staff Meal & Refreshments',
+    'Delivery & Courier',
+    'Packaging & Bags',
+    'Store Maintenance',
+    'Office Supplies & Stationery',
+    'Rent',
+    'Miscellaneous Expense',
+  ];
+
+  Future<List<String>> getExpenseCategories() async {
+    try {
+      final rows = await db.query('expense_categories', orderBy: 'name ASC');
+      final set = <String>{...defaultExpenseCategories};
+      for (final r in rows) {
+        final name = (r['name'] as String?)?.trim() ?? '';
+        if (name.isNotEmpty) set.add(name);
+      }
+      final list = set.toList()..sort();
+      return list;
+    } catch (_) {
+      return List<String>.from(defaultExpenseCategories);
+    }
+  }
+
+  Future<void> addExpenseCategory(String name) async {
+    final clean = name.trim();
+    if (clean.isEmpty) return;
+    await db.insert(
+      'expense_categories',
+      {
+        'name': clean,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
   Future<void> _applyCashRegisterDelta(
     Transaction txn, {
     required String paymentMethod,
