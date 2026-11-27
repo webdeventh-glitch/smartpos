@@ -46,8 +46,38 @@ if (Test-Path $PortableZip) {
 }
 Compress-Archive -Path "$DistVendor\*" -DestinationPath $PortableZip -CompressionLevel Optimal
 
+# Build single-file portable .exe (embeds payload.zip in .NET launcher)
+$SingleExe = Join-Path $Root "dist\SmartPOS_LicenseMaster_Portable_v1.1.1.exe"
+$LauncherCs = Join-Path $PSScriptRoot "LicenseMasterLauncher.cs"
+$CscExe = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+$ZipAsm = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\System.IO.Compression.dll"
+$IconPath = Join-Path $Root "windows\runner\resources\app_icon.ico"
+
+if ((Test-Path $LauncherCs) -and (Test-Path $CscExe) -and (Test-Path $ZipAsm)) {
+    Write-Host "Packaging single-file Portable EXE..." -ForegroundColor Cyan
+    $cscArgs = @(
+        "/nologo",
+        "/target:winexe",
+        "/optimize+",
+        "/out:$SingleExe",
+        "/reference:System.Windows.Forms.dll",
+        "/reference:System.IO.Compression.dll",
+        "/resource:$PortableZip,payload.zip"
+    )
+    if (Test-Path $IconPath) {
+        $cscArgs += "/win32icon:$IconPath"
+    }
+    $cscArgs += $LauncherCs
+    & $CscExe @cscArgs
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Single-EXE compilation failed with code $LASTEXITCODE"
+        exit $LASTEXITCODE
+    }
+}
+
 Write-Host "========================================================" -ForegroundColor Green
 Write-Host " [SUCCESS] Vendor License Master compiled!" -ForegroundColor Green
-Write-Host " Executable: dist\vendor\SmartPOS_LicenseMaster.exe" -ForegroundColor Green
+Write-Host " Executable:   dist\vendor\SmartPOS_LicenseMaster.exe" -ForegroundColor Green
 Write-Host " Portable Zip: dist\SmartPOS_LicenseMaster_Portable_v1.1.1.zip" -ForegroundColor Green
+Write-Host " Single EXE:   dist\SmartPOS_LicenseMaster_Portable_v1.1.1.exe" -ForegroundColor Green
 Write-Host "========================================================" -ForegroundColor Green
