@@ -28,6 +28,7 @@ class Product {
   final int? taxRateId;
   final int? taxGroupId;
   final bool isFeatured;
+  final bool? _isExpirableFlag;
   final String? rackLocation;
   final String?
       subUnitIds; // Comma-separated unit IDs allowed for this product (Ultimate POS style)
@@ -61,10 +62,14 @@ class Product {
     this.taxRateId,
     this.taxGroupId,
     this.isFeatured = false,
+    bool isExpirable = false,
     this.rackLocation,
     this.subUnitIds,
     this.secondaryUnit,
-  });
+  }) : _isExpirableFlag = isExpirable;
+
+  bool get isExpirable =>
+      (_isExpirableFlag ?? false) || (expiryDate?.trim().isNotEmpty ?? false);
 
   bool get isVariable => type == 'variable';
   bool get isLowStock => stockQuantity <= alertQuantity && stockQuantity > 0;
@@ -104,6 +109,7 @@ class Product {
         'tax_rate_id': taxRateId,
         'tax_group_id': taxGroupId,
         'is_featured': isFeatured ? 1 : 0,
+        'is_expirable': isExpirable ? 1 : 0,
         if (rackLocation != null) 'rack_location': rackLocation,
         if (subUnitIds != null) 'sub_unit_ids': subUnitIds,
         if (secondaryUnit != null) 'secondary_unit': secondaryUnit,
@@ -138,6 +144,8 @@ class Product {
         taxRateId: map['tax_rate_id'] as int?,
         taxGroupId: map['tax_group_id'] as int?,
         isFeatured: (map['is_featured'] as int? ?? 0) == 1,
+        isExpirable: (map['is_expirable'] as int? ?? 0) == 1 ||
+            ((map['expiry_date'] as String?)?.trim().isNotEmpty ?? false),
         rackLocation: map['rack_location'] as String?,
         subUnitIds: map['sub_unit_ids'] as String?,
         secondaryUnit: map['secondary_unit'] as String?,
@@ -171,6 +179,7 @@ class Product {
     int? taxRateId,
     int? taxGroupId,
     bool? isFeatured,
+    bool? isExpirable,
     String? rackLocation,
     String? subUnitIds,
     String? secondaryUnit,
@@ -202,6 +211,7 @@ class Product {
         taxRateId: taxRateId ?? this.taxRateId,
         taxGroupId: taxGroupId ?? this.taxGroupId,
         isFeatured: isFeatured ?? this.isFeatured,
+        isExpirable: isExpirable ?? this.isExpirable,
         rackLocation: rackLocation ?? this.rackLocation,
         subUnitIds: subUnitIds ?? this.subUnitIds,
         secondaryUnit: secondaryUnit ?? this.secondaryUnit,

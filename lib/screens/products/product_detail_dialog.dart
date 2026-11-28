@@ -950,6 +950,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                         canViewCost: canViewCost,
                       );
                       PrintService.openPrintWindow(
+                        context: context,
+                        settings: widget.settings,
                         htmlContent: html,
                         title: 'Product_${p.sku}',
                       );

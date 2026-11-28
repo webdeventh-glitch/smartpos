@@ -417,6 +417,9 @@ void main() {
       // Add product to cart by tapping its list row
       expect(find.text('Test Espresso Bean'), findsOneWidget);
       await tester.tap(find.text('Test Espresso Bean'));
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+      });
       await tester.pump();
 
       expect(find.text('No products in cart'), findsNothing);
@@ -428,6 +431,9 @@ void main() {
 
       // Tap Redo -> product is restored in cart
       await tester.tap(find.text('Redo'));
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+      });
       await tester.pump();
       expect(find.text('No products in cart'), findsNothing);
     });

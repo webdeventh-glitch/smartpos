@@ -1,12 +1,12 @@
 /// Auto-generated FA extended dictionary for SmartPOS.
 const Map<String, String> i18nExtraFa = {
-  '+ Add New': '+ افزودن جدید',
-  '+ Allowances': '+ Allowances',
-  '+ Feed Consumed': '+ Feed Consumed',
-  '+ Folio Charge': '+ Folio Charge',
-  '+ Mortality': '+ Mortality',
-  '+ Pay': '+ Pay',
-  '+ Receive': '+ Receive',
+  '+ Add New': 'افزودن جدید',
+  '+ Allowances': 'Allowances',
+  '+ Feed Consumed': 'Feed Consumed',
+  '+ Folio Charge': 'Folio Charge',
+  '+ Mortality': 'Mortality',
+  '+ Pay': 'Pay',
+  '+ Receive': 'Receive',
   '- Deductions': '- Deductions',
   '1-Tap Apply': '1-Tap اعمال',
   '1. Count': '1. تعداد',
@@ -281,12 +281,11 @@ const Map<String, String> i18nExtraFa = {
   'Capability Profile (ESC/POS)': 'Capability پروفایل (ESC/POS)',
   'Card / Online Terminal': 'Card / آنلاین Terminal',
   'Card / POS': 'Card / POS',
-  'Card [F8]': 'Card [F8]',
   'Cards View': 'Cards مشاهده',
   'Carried forward from previous period': 'Carried forward from قبلی period',
+  'Cash': 'نقدی',
   'Cash Drawer / Register': 'نقدی کشو / صندوق',
   'Cash Register': 'نقدی صندوق',
-  'Cash [F2]': 'نقدی [F2]',
   'Cash: {amount}': 'نقدی: {amount}',
   'Cashier / Counter': 'Cashier / Counter',
   'Categories & Sub-Categories': 'دسته‌بندی‌ها & Sub-Categories',
@@ -329,7 +328,7 @@ const Map<String, String> i18nExtraFa = {
   'Client Machine Hardware ID:': 'Client Machine Hardware ID:',
   'Clock-In Time': 'Clock-In زمان',
   'Clock-Out Time': 'Clock-Out زمان',
-  'Close (ESC)': 'بستن (ESC)',
+  'Close': 'بستن',
   'Close Passbook': 'بستن Passbook',
   'Close fiscal years, snapshot balance sheets, carry forward ledgers, and audit agency books':
       'بستن سال مالی، ذخیره ترازنامه، انتقال مانده حساب‌ها و حسابرسی دفاتر',
@@ -404,9 +403,7 @@ const Map<String, String> i18nExtraFa = {
   'Create Purchase Order (PO)': 'ایجاد خرید سفارش (PO)',
   'Create new customer and assign to current cart':
       'ایجاد جدید مشتری and assign to فعلی cart',
-  'Credit / Khata / Udhaar Sale [F6]':
-      'نسیه / بستانکار / Khata / Udhaar فروش [F6]',
-  'Credit / Khata [F6]': 'نسیه / بستانکار / Khata [F6]',
+  'Credit / Khata / Udhaar Sale': 'نسیه / بستانکار / Khata / Udhaar فروش',
   'Current Month Payroll Register': 'فعلی Month فیش حقوق صندوق',
   'Current Password': 'فعلی رمز عبور',
   'Current: {business}': 'فعلی: {business}',
@@ -438,8 +435,7 @@ const Map<String, String> i18nExtraFa = {
   'Days of Week (leave empty for all days)':
       'روز of Week (leave empty for همه روز)',
   'Dead Stock (Slow)': 'Dead موجودی (Slow)',
-  'Debit / Credit Card Payment [F8]':
-      'بدهکار / نسیه / بستانکار Card پرداخت [F8]',
+  'Debit / Credit Card Payment': 'بدهکار / نسیه / بستانکار Card پرداخت',
   'Debit Note / Purchase Return': 'بدهکار Note / خرید مرجوعی',
   'Deduct & Attach': 'Deduct & Attach',
   'Deduct Raw Material Product (Optional)':
@@ -824,7 +820,6 @@ const Map<String, String> i18nExtraFa = {
   'Move inventory between branches or warehouses':
       'Move انبار between branches or warehouses',
   'Multi-Industry Business Hub': 'Multi-Industry کسب‌وکار Hub',
-  'Multiple Pay [F7]': 'Multiple Pay [F7]',
   'My Profile & Roles': 'My پروفایل & Roles',
   'N/A': 'N/A',
   'NET PROFIT': 'خالص سود',
@@ -1004,7 +999,6 @@ const Map<String, String> i18nExtraFa = {
   'Pallet / Lot & Serial Range Tracking': 'پالت / سری & سریال Range Tracking',
   'Pallet / Lot No.': 'پالت / سری هیچ.',
   'Paper Size': 'Paper اندازه',
-  'Park [F4]': 'Park [F4]',
   'Partial': 'جزئی',
   'Parts Attached to Job:': 'Parts Attached to سفارش کار:',
   'Parts Used: {parts}': 'Parts Used: {parts}',

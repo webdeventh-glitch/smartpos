@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
+import '../../widgets/searchable_select_dialog.dart';
 
 /// Step 6.5: Discount Schedules & Promotional Rules Engine UI.
 class DiscountRulesScreen extends StatefulWidget {
@@ -318,39 +319,42 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: DropdownButtonFormField<int?>(
-                          initialValue: categoryId,
-                          decoration: InputDecoration(
-                              labelText: PosLocalization.tr('Category Scope'),
-                              isDense: true,
-                              border: const OutlineInputBorder()),
-                          items: [
-                            DropdownMenuItem<int?>(
-                                value: null,
-                                child:
-                                    Text(PosLocalization.tr('All Categories'))),
-                            ...categories.map((c) => DropdownMenuItem<int?>(
-                                value: c.id, child: Text(c.name))),
-                          ],
-                          onChanged: (v) => setDlg(() => categoryId = v),
+                        child: SearchableDropdownField<Category>(
+                          label: PosLocalization.tr('Category Scope'),
+                          selectedItem: categoryId == null
+                              ? null
+                              : categories
+                                  .where((c) => c.id == categoryId)
+                                  .firstOrNull,
+                          items: categories,
+                          labelBuilder: (c) => c.name,
+                          placeholder: PosLocalization.tr('All Categories'),
+                          searchHint: 'Search category...',
+                          prefixIcon: Icons.category_outlined,
+                          height: 40,
+                          allowClear: true,
+                          clearLabel: PosLocalization.tr('All Categories'),
+                          onChanged: (v) => setDlg(() => categoryId = v?.id),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: DropdownButtonFormField<int?>(
-                          initialValue: brandId,
-                          decoration: InputDecoration(
-                              labelText: PosLocalization.tr('Brand Scope'),
-                              isDense: true,
-                              border: const OutlineInputBorder()),
-                          items: [
-                            DropdownMenuItem<int?>(
-                                value: null,
-                                child: Text(PosLocalization.tr('All Brands'))),
-                            ...brands.map((b) => DropdownMenuItem<int?>(
-                                value: b.id, child: Text(b.name))),
-                          ],
-                          onChanged: (v) => setDlg(() => brandId = v),
+                        child: SearchableDropdownField<Brand>(
+                          label: PosLocalization.tr('Brand Scope'),
+                          selectedItem: brandId == null
+                              ? null
+                              : brands
+                                  .where((b) => b.id == brandId)
+                                  .firstOrNull,
+                          items: brands,
+                          labelBuilder: (b) => b.name,
+                          placeholder: PosLocalization.tr('All Brands'),
+                          searchHint: 'Search brand...',
+                          prefixIcon: Icons.branding_watermark_outlined,
+                          height: 40,
+                          allowClear: true,
+                          clearLabel: PosLocalization.tr('All Brands'),
+                          onChanged: (v) => setDlg(() => brandId = v?.id),
                         ),
                       ),
                     ],

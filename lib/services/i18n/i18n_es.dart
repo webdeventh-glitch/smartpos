@@ -1,12 +1,12 @@
 /// Auto-generated ES extended dictionary for SmartPOS.
 const Map<String, String> i18nExtraEs = {
-  '+ Add New': '+ Agregar Nuevo',
-  '+ Allowances': '+ Allowances',
-  '+ Feed Consumed': '+ Feed Consumed',
-  '+ Folio Charge': '+ Folio Charge',
-  '+ Mortality': '+ Mortality',
-  '+ Pay': '+ Pay',
-  '+ Receive': '+ Receive',
+  '+ Add New': 'Agregar Nuevo',
+  '+ Allowances': 'Allowances',
+  '+ Feed Consumed': 'Feed Consumed',
+  '+ Folio Charge': 'Folio Charge',
+  '+ Mortality': 'Mortality',
+  '+ Pay': 'Pay',
+  '+ Receive': 'Receive',
   '- Deductions': '- Deductions',
   '1-Tap Apply': '1-Tap Aplicar',
   '1. Count': '1. Conteo',
@@ -282,13 +282,12 @@ const Map<String, String> i18nExtraEs = {
   'Capability Profile (ESC/POS)': 'Capability Perfil (ESC/POS)',
   'Card / Online Terminal': 'Card / En línea Terminal',
   'Card / POS': 'Card / POS',
-  'Card [F8]': 'Card [F8]',
   'Cards View': 'Cards Ver',
   'Carried forward from previous period':
       'Carried forward from Anterior period',
+  'Cash': 'Efectivo',
   'Cash Drawer / Register': 'Efectivo Gaveta / Caja',
   'Cash Register': 'Efectivo Caja',
-  'Cash [F2]': 'Efectivo [F2]',
   'Cash: {amount}': 'Efectivo: {amount}',
   'Cashier / Counter': 'Cashier / Counter',
   'Categories & Sub-Categories': 'Categorías & Sub-Categories',
@@ -332,7 +331,7 @@ const Map<String, String> i18nExtraEs = {
   'Client Machine Hardware ID:': 'Client Machine Hardware ID:',
   'Clock-In Time': 'Clock-In Hora',
   'Clock-Out Time': 'Clock-Out Hora',
-  'Close (ESC)': 'Cerrar (ESC)',
+  'Close': 'Cerrar',
   'Close Passbook': 'Cerrar Passbook',
   'Close fiscal years, snapshot balance sheets, carry forward ledgers, and audit agency books':
       'Cierra años fiscales, guarda balances generales, traslada saldos y audita libros',
@@ -407,8 +406,7 @@ const Map<String, String> i18nExtraEs = {
   'Create Purchase Order (PO)': 'Crear Compra Pedido (PO)',
   'Create new customer and assign to current cart':
       'Crear Nuevo Cliente and assign to Actual cart',
-  'Credit / Khata / Udhaar Sale [F6]': 'Crédito / Khata / Udhaar Venta [F6]',
-  'Credit / Khata [F6]': 'Crédito / Khata [F6]',
+  'Credit / Khata / Udhaar Sale': 'Crédito / Khata / Udhaar Venta',
   'Current Month Payroll Register': 'Actual Month Nómina Caja',
   'Current Password': 'Actual Contraseña',
   'Current: {business}': 'Actual: {business}',
@@ -440,7 +438,7 @@ const Map<String, String> i18nExtraEs = {
   'Days of Week (leave empty for all days)':
       'días of Week (leave empty for Todos días)',
   'Dead Stock (Slow)': 'Dead Stock (Slow)',
-  'Debit / Credit Card Payment [F8]': 'Débito / Crédito Card Pago [F8]',
+  'Debit / Credit Card Payment': 'Débito / Crédito Card Pago',
   'Debit Note / Purchase Return': 'Débito Note / Compra Devolución',
   'Deduct & Attach': 'Deduct & Attach',
   'Deduct Raw Material Product (Optional)':
@@ -831,7 +829,6 @@ const Map<String, String> i18nExtraEs = {
   'Move inventory between branches or warehouses':
       'Move Inventario between branches or warehouses',
   'Multi-Industry Business Hub': 'Multi-Industry Negocio Hub',
-  'Multiple Pay [F7]': 'Multiple Pay [F7]',
   'My Profile & Roles': 'My Perfil & Roles',
   'N/A': 'N/A',
   'NET PROFIT': 'Neto Ganancia',
@@ -1014,7 +1011,6 @@ const Map<String, String> i18nExtraEs = {
       'Tarima / Lote & Serie Range Tracking',
   'Pallet / Lot No.': 'Tarima / Lote Sin.',
   'Paper Size': 'Paper Tamaño',
-  'Park [F4]': 'Park [F4]',
   'Partial': 'Parcial',
   'Parts Attached to Job:': 'Parts Attached to Orden:',
   'Parts Used: {parts}': 'Parts Used: {parts}',

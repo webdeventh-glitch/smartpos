@@ -146,5 +146,92 @@ void main() {
           (await db.getProducts()).firstWhere((p) => p.id == pId);
       expect(updatedProduct.stockQuantity, 300.0);
     });
+
+    test(
+        '4. Exact-first unit matching & subUnitIds filtering (Ultimate POS parity)',
+        () async {
+      final units = await db.getUnits();
+      final piecesUnit = units.firstWhere(
+        (u) => u.actualName.toLowerCase() == 'pieces',
+      );
+      final containerId = await db.addUnit(Unit(
+        actualName: 'Solar Panel Container',
+        shortName: 'Con',
+        allowDecimal: false,
+        baseUnitId: piecesUnit.id,
+        baseUnitMultiplier: 20.0,
+        category: 'count',
+      ));
+
+      // Custom subUnitIds: only Pieces + Solar Panel Container (excludes Strip/Dozen noise)
+      final solarPanel = Product(
+        name: 'Longi 750W A Grade',
+        sku: 'SOL-750',
+        barcode: 'SOL-750',
+        unit: 'Pieces (Pc)',
+        purchasePrice: 20000.0,
+        sellingPrice: 23375.0,
+        stockQuantity: 173.0,
+        subUnitIds: '$containerId',
+      );
+      final customUnits = await db.getConversionUnitsForProduct(solarPanel);
+      expect(customUnits.length, 2);
+      expect(customUnits.first.actualName, 'Pieces (Pc)');
+      expect(customUnits.last.actualName, 'Solar Panel Container');
+      expect(customUnits.last.baseUnitMultiplier, 20.0);
+
+      // Explicit "none": primary unit only
+      final strictPanel = solarPanel.copyWith(subUnitIds: 'none');
+      final strictUnits = await db.getConversionUnitsForProduct(strictPanel);
+      expect(strictUnits.length, 1);
+      expect(strictUnits.first.actualName, 'Pieces (Pc)');
+
+      // Exact match check: "Box (12 Pcs)" should not match "Pieces (Pc)"
+      final boxProduct = Product(
+        name: 'Boxed Cable',
+        sku: 'BOX-12',
+        barcode: 'BOX-12',
+        unit: 'Box (12 Pcs)',
+        purchasePrice: 1000.0,
+        sellingPrice: 1200.0,
+        stockQuantity: 10.0,
+      );
+      final boxUnits = await db.getConversionUnitsForProduct(boxProduct);
+      expect(boxUnits.first.actualName, 'Box (12 Pcs)');
+      expect(boxUnits.first.baseUnitMultiplier, 1.0);
+      expect(boxUnits.first.allowDecimal, isFalse);
+    });
+
+    test('5. allowDecimal flag is preserved per unit including unchecked Kg',
+        () async {
+      final units = await db.getUnits();
+      final kgUnit = units.firstWhere(
+        (u) =>
+            u.actualName.toLowerCase() == 'kilograms' ||
+            u.actualName.toLowerCase() == 'kilogram',
+      );
+      await db.updateUnit(Unit(
+        id: kgUnit.id,
+        actualName: kgUnit.actualName,
+        shortName: kgUnit.shortName,
+        allowDecimal: false,
+        baseUnitId: kgUnit.baseUnitId,
+        baseUnitMultiplier: kgUnit.baseUnitMultiplier,
+        category: kgUnit.category,
+      ));
+
+      final bagKgProd = Product(
+        name: 'Pre-Packed Rice 1Kg',
+        sku: 'RICE-1KG',
+        barcode: 'RICE-1KG',
+        unit: kgUnit.actualName,
+        purchasePrice: 300.0,
+        sellingPrice: 350.0,
+        stockQuantity: 50.0,
+      );
+      final conv = await db.getConversionUnitsForProduct(bagKgProd);
+      expect(conv.first.actualName, kgUnit.actualName);
+      expect(conv.first.allowDecimal, isFalse);
+    });
   });
 }

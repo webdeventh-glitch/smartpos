@@ -354,73 +354,27 @@ class DatabaseSchema {
       }
     }
 
-    // 1. Count (Ginti) - Pieces, Unit, Dozen, Box, Pack, Strip, Carton, Pair
-    final pieceId = await ensureUnit(
+    // 1. Count - Pieces, Box, Dozen, Pack (clean base units, Ultimate POS style)
+    await ensureUnit(
         actualName: 'Pieces',
         shortName: 'Pc',
         category: 'count',
         allowDecimal: false);
     await ensureUnit(
-        actualName: 'Unit',
-        shortName: 'Unit',
+        actualName: 'Box',
+        shortName: 'Box',
         category: 'count',
         allowDecimal: false);
     await ensureUnit(
-        actualName: 'Dozen (12 Pcs)',
+        actualName: 'Dozen',
         shortName: 'Dzn',
         category: 'count',
-        allowDecimal: false,
-        baseUnitId: pieceId,
-        multiplier: 12.0);
+        allowDecimal: false);
     await ensureUnit(
-        actualName: 'Half Dozen (6 Pcs)',
-        shortName: 'Half Dzn',
-        category: 'count',
-        allowDecimal: false,
-        baseUnitId: pieceId,
-        multiplier: 6.0);
-    await ensureUnit(
-        actualName: 'Box (12 Pcs)',
-        shortName: 'Box',
-        category: 'count',
-        allowDecimal: false,
-        baseUnitId: pieceId,
-        multiplier: 12.0);
-    await ensureUnit(
-        actualName: 'Box (24 Pcs)',
-        shortName: 'Box 24',
-        category: 'count',
-        allowDecimal: false,
-        baseUnitId: pieceId,
-        multiplier: 24.0);
-    await ensureUnit(
-        actualName: 'Pack (10 Pcs)',
+        actualName: 'Pack',
         shortName: 'Pack',
         category: 'count',
-        allowDecimal: false,
-        baseUnitId: pieceId,
-        multiplier: 10.0);
-    await ensureUnit(
-        actualName: 'Strip (10 Tablets)',
-        shortName: 'Strip',
-        category: 'count',
-        allowDecimal: false,
-        baseUnitId: pieceId,
-        multiplier: 10.0);
-    await ensureUnit(
-        actualName: 'Master Carton (72 Pcs)',
-        shortName: 'Ctn',
-        category: 'count',
-        allowDecimal: false,
-        baseUnitId: pieceId,
-        multiplier: 72.0);
-    await ensureUnit(
-        actualName: 'Pair (2 Pcs)',
-        shortName: 'Pair',
-        category: 'count',
-        allowDecimal: false,
-        baseUnitId: pieceId,
-        multiplier: 2.0);
+        allowDecimal: false);
 
     // 2. Weight (Wazan) - Kilograms, Grams, Pao, Aadha Kg, 3 Pao, Dhari, Mann, Bori
     final kgId = await ensureUnit(
@@ -825,6 +779,8 @@ class DatabaseSchema {
     // Step 7.2: Real boolean is_featured column replacing ID % 5 hack
     await _addColumnIfMissing(
         db, 'products', 'is_featured', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'products', 'is_expirable', 'INTEGER DEFAULT 0');
 
     // Step 7.3 & 7.4: Touch-friendly UI & custom keyboard shortcut JSON
     await _addColumnIfMissing(
@@ -3277,7 +3233,8 @@ class DatabaseSchema {
         rack_location TEXT,
         tax_rate_id INTEGER,
         tax_group_id INTEGER,
-        is_featured INTEGER DEFAULT 0
+        is_featured INTEGER DEFAULT 0,
+        is_expirable INTEGER DEFAULT 0
       )
     ''');
 

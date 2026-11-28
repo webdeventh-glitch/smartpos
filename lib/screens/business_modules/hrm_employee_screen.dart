@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/pdf_export_service.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../../services/localization_service.dart';
 
@@ -561,20 +562,15 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    DropdownButtonFormField<Map<String, dynamic>>(
-                      initialValue: selectedEmployee,
-                      decoration: InputDecoration(
-                        labelText: PosLocalization.tr('Select Staff Member'),
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: _staff.map((emp) {
-                        return DropdownMenuItem(
-                          value: emp,
-                          child: Text('${emp['name']} (${emp['role']})',
-                              overflow: TextOverflow.ellipsis),
-                        );
-                      }).toList(),
+                    SearchableDropdownField<Map<String, dynamic>>(
+                      label: PosLocalization.tr('Select Staff Member'),
+                      selectedItem: selectedEmployee,
+                      items: _staff,
+                      labelBuilder: (emp) => '${emp['name']} (${emp['role']})',
+                      placeholder: 'Select Staff Member...',
+                      searchHint: 'Search staff...',
+                      prefixIcon: Icons.person_outline_rounded,
+                      height: 40,
                       onChanged: (val) =>
                           setDlgState(() => selectedEmployee = val),
                     ),
@@ -607,22 +603,16 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                       ],
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<PaymentAccount>(
-                      initialValue: selectedAccount,
-                      decoration: InputDecoration(
-                        labelText:
-                            PosLocalization.tr('Disbursal Payment Account'),
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: _paymentAccounts.map((a) {
-                        return DropdownMenuItem(
-                          value: a,
-                          child: Text(
-                              '${a.name} ($currency${a.currentBalance.toStringAsFixed(0)})',
-                              overflow: TextOverflow.ellipsis),
-                        );
-                      }).toList(),
+                    SearchableDropdownField<PaymentAccount>(
+                      label: PosLocalization.tr('Disbursal Payment Account'),
+                      selectedItem: selectedAccount,
+                      items: _paymentAccounts,
+                      labelBuilder: (a) =>
+                          '${a.name} ($currency${a.currentBalance.toStringAsFixed(0)})',
+                      placeholder: 'Select Payment Account...',
+                      searchHint: 'Search account...',
+                      prefixIcon: Icons.account_balance_wallet_outlined,
+                      height: 40,
                       onChanged: (val) =>
                           setDlgState(() => selectedAccount = val),
                     ),
@@ -2544,23 +2534,18 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
               children: [
                 Expanded(
                   flex: 2,
-                  child: DropdownButtonFormField<Map<String, dynamic>?>(
-                    initialValue: _selectedCommissionStaff,
-                    decoration: InputDecoration(
-                      labelText: PosLocalization.tr('Select Cashier / Staff'),
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: [
-                      DropdownMenuItem(
-                          value: null,
-                          child:
-                              Text(PosLocalization.tr('All Cashiers & Staff'))),
-                      ..._staff.map((e) => DropdownMenuItem(
-                          value: e,
-                          child: Text(
-                              '${e['empId']} • ${e['name']} (${e['role']})'))),
-                    ],
+                  child: SearchableDropdownField<Map<String, dynamic>>(
+                    label: PosLocalization.tr('Select Cashier / Staff'),
+                    selectedItem: _selectedCommissionStaff,
+                    items: _staff,
+                    labelBuilder: (e) =>
+                        '${e['empId']} • ${e['name']} (${e['role']})',
+                    placeholder: PosLocalization.tr('All Cashiers & Staff'),
+                    searchHint: 'Search cashier or staff...',
+                    prefixIcon: Icons.badge_outlined,
+                    height: 40,
+                    allowClear: true,
+                    clearLabel: PosLocalization.tr('All Cashiers & Staff'),
                     onChanged: (val) {
                       setState(() => _selectedCommissionStaff = val);
                       _loadCommissionSales();

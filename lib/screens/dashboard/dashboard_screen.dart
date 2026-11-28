@@ -300,6 +300,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    String? shortcut,
     Color? color,
     Color? bg,
   }) {
@@ -335,6 +336,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: isDark ? Colors.white : const Color(0xFF334155),
                 ),
               ),
+              if (shortcut != null) ...[
+                const SizedBox(width: 6),
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF475569)
+                            : const Color(0xFFCBD5E1),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      shortcut,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : const Color(0xFF334155),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -405,22 +436,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        '${PosLocalization.tr('Welcome', settings: widget.settings)} $userName ($roleTitle)',
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            '${PosLocalization.tr('Welcome', settings: widget.settings)} $userName ($roleTitle)',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.waving_hand_rounded,
-                          color: Colors.amberAccent, size: 24),
-                    ],
+                        const SizedBox(width: 8),
+                        const Icon(Icons.waving_hand_rounded,
+                            color: Colors.amberAccent, size: 24),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   Row(
                     children: [
                       // Filter by date dropdown
@@ -743,8 +781,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 _actionPill(
                   icon: Icons.point_of_sale_outlined,
-                  label: PosLocalization.tr('Cash Register (F2)',
+                  label: PosLocalization.tr('Cash Register',
                       settings: widget.settings),
+                  shortcut: 'F2',
                   onTap: _openRegisterDialog,
                 ),
                 _actionPill(
@@ -1028,34 +1067,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        PosLocalization.tr('Sales Last 30 Days',
-                            settings: widget.settings),
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color:
-                              isDark ? Colors.white : const Color(0xFF0F172A),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          PosLocalization.tr('Sales Last 30 Days',
+                              settings: widget.settings),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color:
+                                isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
                         ),
-                      ),
-                      Text(
-                        _chartMode == 0
-                            ? PosLocalization.tr(
-                                'Daily sales turnover (Sales & Revenue Velocity)',
-                                settings: widget.settings)
-                            : PosLocalization.tr(
-                                'Daily completed transactions count',
-                                settings: widget.settings),
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: isDark
-                                ? const Color(0xFF94A3B8)
-                                : const Color(0xFF64748B)),
-                      ),
-                    ],
+                        Text(
+                          _chartMode == 0
+                              ? PosLocalization.tr(
+                                  'Daily sales turnover (Sales & Revenue Velocity)',
+                                  settings: widget.settings)
+                              : PosLocalization.tr(
+                                  'Daily completed transactions count',
+                                  settings: widget.settings),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1359,25 +1404,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     color: Color(0xFF10B981), size: 20),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    PosLocalization.tr('Payment Breakdown',
-                        settings: widget.settings),
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      PosLocalization.tr('Payment Breakdown',
+                          settings: widget.settings),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
                     ),
-                  ),
-                  Text(
-                    PosLocalization.tr('Volume by tender method',
-                        settings: widget.settings),
-                    style:
-                        const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
-                  ),
-                ],
+                    Text(
+                      PosLocalization.tr('Volume by tender method',
+                          settings: widget.settings),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFF94A3B8)),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -1918,62 +1969,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(9),
-                    decoration: BoxDecoration(
-                      color: _lowStock.isEmpty
-                          ? (isDark
-                              ? const Color(0xFF064E3B).withValues(alpha: 0.4)
-                              : const Color(0xFFECFDF5))
-                          : (isDark
-                              ? const Color(0xFF450A0A).withValues(alpha: 0.4)
-                              : const Color(0xFFFEF2F2)),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      _lowStock.isEmpty
-                          ? Icons.check_circle_outline_rounded
-                          : Icons.warning_amber_rounded,
-                      color: _lowStock.isEmpty
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFDC2626),
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${PosLocalization.tr('Inventory Reorder & Low Stock Alerts', settings: widget.settings)} (${_lowStock.length})',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 15,
-                          color:
-                              isDark ? Colors.white : const Color(0xFF0F172A),
-                        ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: _lowStock.isEmpty
+                            ? (isDark
+                                ? const Color(0xFF064E3B).withValues(alpha: 0.4)
+                                : const Color(0xFFECFDF5))
+                            : (isDark
+                                ? const Color(0xFF450A0A).withValues(alpha: 0.4)
+                                : const Color(0xFFFEF2F2)),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      Text(
+                      child: Icon(
                         _lowStock.isEmpty
-                            ? PosLocalization.tr(
-                                'All inventory items are currently at healthy stock levels.',
-                                settings: widget.settings)
-                            : PosLocalization.tr(
-                                'Items at or below minimum threshold requiring immediate restock.',
-                                settings: widget.settings),
-                        style: const TextStyle(
-                            fontSize: 11, color: Color(0xFF94A3B8)),
+                            ? Icons.check_circle_outline_rounded
+                            : Icons.warning_amber_rounded,
+                        color: _lowStock.isEmpty
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFDC2626),
+                        size: 20,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${PosLocalization.tr('Inventory Reorder & Low Stock Alerts', settings: widget.settings)} (${_lowStock.length})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 15,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            _lowStock.isEmpty
+                                ? PosLocalization.tr(
+                                    'All inventory items are currently at healthy stock levels.',
+                                    settings: widget.settings)
+                                : PosLocalization.tr(
+                                    'Items at or below minimum threshold requiring immediate restock.',
+                                    settings: widget.settings),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 11, color: Color(0xFF94A3B8)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+              const SizedBox(width: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
                 children: [
-                  if (_lowStock.isNotEmpty) ...[
+                  if (_lowStock.isNotEmpty)
                     OutlinedButton.icon(
                       onPressed: () {
                         final html =
@@ -2007,8 +2069,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                  ],
                   ElevatedButton.icon(
                     onPressed: () =>
                         widget.onNavigateToRoute(AppRoute.purchasesList),

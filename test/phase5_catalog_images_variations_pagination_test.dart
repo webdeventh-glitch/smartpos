@@ -815,6 +815,9 @@ void main() {
       expect(find.text('Black - XL'), findsOneWidget);
 
       await tester.tap(find.text('Black - XL'));
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+      });
       await tester.pump();
 
       final cart = container.read(cartProvider);

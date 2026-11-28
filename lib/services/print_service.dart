@@ -1,55 +1,555 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
+import '../widgets/native_print_dialog.dart';
 import 'app_logger.dart';
 import 'number_to_words_service.dart';
 import 'localization_service.dart';
 
-class PrintService {
-  /// Opens the native Windows Print Dialog directly without launching a browser tab.
-  static Future<bool> openPrintWindow({
-    required String htmlContent,
-    required String title,
-  }) async {
-    try {
-      final tempDir = Directory.systemTemp;
-      final cleanTitle = title.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
-      final tempFile = File(
-          '${tempDir.path}\\smartpos_${cleanTitle}_${DateTime.now().millisecondsSinceEpoch}.html');
-      final preparedHtml = _ensureIeEdgeMeta(htmlContent);
-      await tempFile.writeAsString(preparedHtml);
+class PrintDispatchResult {
+  final bool printed;
+  final bool cancelled;
+  final String? error;
 
-      if (Platform.isWindows) {
-        final systemRoot = Platform.environment['SystemRoot'] ?? r'C:\Windows';
-        final mshtmlPath = '$systemRoot\\System32\\mshtml.dll';
-        if (File(mshtmlPath).existsSync()) {
-          await Process.start(
-            'rundll32.exe',
-            ['mshtml.dll,PrintHTML', tempFile.path],
-            mode: ProcessStartMode.detached,
-          );
-          return true;
-        }
-        await Process.run('cmd.exe', ['/c', 'start', '', tempFile.path]);
-        return true;
-      } else {
-        await Process.run('open', [tempFile.path]);
-        return true;
+  const PrintDispatchResult({
+    required this.printed,
+    this.cancelled = false,
+    this.error,
+  });
+}
+
+class PrintPreviewBundle {
+  final Uint8List pdfBytes;
+  final List<Uint8List> pagePngs;
+  final List<String> printers;
+  final String? defaultPrinter;
+  final bool defaultLandscape;
+
+  const PrintPreviewBundle({
+    required this.pdfBytes,
+    required this.pagePngs,
+    required this.printers,
+    this.defaultPrinter,
+    this.defaultLandscape = false,
+  });
+}
+
+class PrintService {
+  static String? _findHeadlessBrowserExecutable() {
+    if (!Platform.isWindows) return null;
+    final pf86 =
+        Platform.environment['ProgramFiles(x86)'] ?? r'C:\Program Files (x86)';
+    final pf = Platform.environment['ProgramFiles'] ?? r'C:\Program Files';
+    final localAppData = Platform.environment['LOCALAPPDATA'] ?? '';
+    final candidates = <String>[
+      '$pf86\\Microsoft\\Edge\\Application\\msedge.exe',
+      '$pf\\Microsoft\\Edge\\Application\\msedge.exe',
+      if (localAppData.isNotEmpty)
+        '$localAppData\\Microsoft\\Edge\\Application\\msedge.exe',
+      '$pf\\Google\\Chrome\\Application\\chrome.exe',
+      '$pf86\\Google\\Chrome\\Application\\chrome.exe',
+      if (localAppData.isNotEmpty)
+        '$localAppData\\Google\\Chrome\\Application\\chrome.exe',
+    ];
+    for (final path in candidates) {
+      if (File(path).existsSync()) return path;
+    }
+    return null;
+  }
+
+  static String _prepareHtmlForHeadlessPdf(String html) {
+    // Strip auto-invoking window.print() scripts so headless PDF export never stalls.
+    var cleaned = html.replaceAll(
+      RegExp(
+        r'<script[^>]*>[\s\S]*?window\.print\s*\(\s*\)[\s\S]*?</script>',
+        caseSensitive: false,
+      ),
+      '',
+    );
+    if (!cleaned.contains('charset=')) {
+      cleaned = cleaned.replaceFirst(
+        RegExp(r'<head>', caseSensitive: false),
+        '<head><meta charset="utf-8">',
+      );
+    }
+    return cleaned;
+  }
+
+  /// Renders HTML into vector PDF bytes via headless Edge/Chrome without opening
+  /// any browser window, preserving Unicode scripts (Urdu/Arabic/Farsi) and CSS.
+  static Future<Uint8List?> htmlToPdfBytes(
+    String htmlContent, {
+    String title = 'Document',
+  }) async {
+    final exe = _findHeadlessBrowserExecutable();
+    if (exe == null) return null;
+
+    final tempDir = Directory.systemTemp;
+    final cleanTitle = title.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final htmlFile =
+        File('${tempDir.path}\\smartpos_${cleanTitle}_$stamp.html');
+    final pdfFile = File('${tempDir.path}\\smartpos_${cleanTitle}_$stamp.pdf');
+    final userDataDir = Directory('${tempDir.path}\\smartpos_edge_pdf_$stamp');
+
+    try {
+      await htmlFile.writeAsString(_prepareHtmlForHeadlessPdf(htmlContent));
+      final uri = Uri.file(htmlFile.path).toString();
+      final result = await Process.run(
+        exe,
+        [
+          '--headless',
+          '--disable-gpu',
+          '--no-first-run',
+          '--no-pdf-header-footer',
+          '--user-data-dir=${userDataDir.path}',
+          '--print-to-pdf=${pdfFile.path}',
+          uri,
+        ],
+      ).timeout(const Duration(seconds: 20));
+
+      if (await pdfFile.exists()) {
+        final bytes = await pdfFile.readAsBytes();
+        if (bytes.isNotEmpty) return bytes;
       }
-    } catch (e) {
-      debugPrint('[PrintService] Error opening print dialog: $e');
-      return false;
+      AppLogger.warning(
+        'PrintService',
+        'Headless PDF export exited with ${result.exitCode}: ${result.stderr}',
+      );
+      return null;
+    } catch (e, st) {
+      AppLogger.warning(
+          'PrintService', 'Headless HTML-to-PDF conversion failed', e, st);
+      return null;
+    } finally {
+      try {
+        if (await htmlFile.exists()) await htmlFile.delete();
+      } catch (_) {}
+      try {
+        if (await pdfFile.exists()) await pdfFile.delete();
+      } catch (_) {}
+      try {
+        if (await userDataDir.exists()) {
+          await userDataDir.delete(recursive: true);
+        }
+      } catch (_) {}
     }
   }
 
-  static String _ensureIeEdgeMeta(String html) {
-    if (html.contains('X-UA-Compatible')) return html;
-    return html.replaceFirst(
-      RegExp(r'<head>', caseSensitive: false),
-      '<head><meta http-equiv="X-UA-Compatible" content="IE=edge">',
+  static const String _winRtPdfPreamble = r'''
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$null = [Windows.Data.Pdf.PdfDocument, Windows.Data.Pdf, ContentType=WindowsRuntime]
+$null = [Windows.Storage.StorageFile, Windows.Storage, ContentType=WindowsRuntime]
+$null = [Windows.Storage.Streams.InMemoryRandomAccessStream, Windows.Storage, ContentType=WindowsRuntime]
+
+$asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
+  $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1'
+})[0]
+function AwaitOp($op, $type) {
+  $netTask = $asTaskGeneric.MakeGenericMethod($type).Invoke($null, @($op))
+  $netTask.Wait(-1) | Out-Null
+  return $netTask.Result
+}
+$asTaskAction = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
+  $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncAction'
+})[0]
+function AwaitAct($act) {
+  $netTask = $asTaskAction.Invoke($null, @($act))
+  $netTask.Wait(-1) | Out-Null
+}
+''';
+
+  /// Renders PDF pages as PNGs via WinRT PdfDocument and enumerates installed
+  /// Windows printers so the in-app Print Preview dialog shows live pages.
+  static Future<PrintPreviewBundle> buildWindowsPrintPreview(
+      Uint8List pdfBytes) async {
+    final tempDir = Directory.systemTemp;
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final workDir = Directory('${tempDir.path}\\smartpos_preview_$stamp');
+    final pdfFile = File('${workDir.path}\\doc.pdf');
+    final psFile = File('${workDir.path}\\preview.ps1');
+
+    final script = '''
+$_winRtPdfPreamble
+\$pdfPath = '${pdfFile.path.replaceAll("'", "''")}'
+\$outDir = '${workDir.path.replaceAll("'", "''")}'
+\$file = AwaitOp ([Windows.Storage.StorageFile]::GetFileFromPathAsync(\$pdfPath)) ([Windows.Storage.StorageFile])
+\$pdfDoc = AwaitOp ([Windows.Data.Pdf.PdfDocument]::LoadFromFileAsync(\$file)) ([Windows.Data.Pdf.PdfDocument])
+\$pageCount = [int]\$pdfDoc.PageCount
+\$isLandscape = \$false
+\$pngFiles = @()
+for (\$i = 0; \$i -lt \$pageCount; \$i++) {
+  \$page = \$pdfDoc.GetPage([uint32]\$i)
+  if (\$i -eq 0 -and \$page.Size.Width -gt \$page.Size.Height) {
+    \$isLandscape = \$true
+  }
+  \$stream = New-Object Windows.Storage.Streams.InMemoryRandomAccessStream
+  \$opts = New-Object Windows.Data.Pdf.PdfPageRenderOptions
+  \$dpiScale = 1.75
+  \$opts.DestinationWidth = [uint32]([Math]::Max(600, [int][Math]::Round(\$page.Size.Width * \$dpiScale)))
+  \$opts.DestinationHeight = [uint32]([Math]::Max(600, [int][Math]::Round(\$page.Size.Height * \$dpiScale)))
+  AwaitAct (\$page.RenderToStreamAsync(\$stream, \$opts))
+  \$stream.Seek(0) | Out-Null
+  \$netStream = [System.IO.WindowsRuntimeStreamExtensions]::AsStreamForRead(\$stream)
+  \$img = [System.Drawing.Image]::FromStream(\$netStream)
+  \$outPng = Join-Path \$outDir ("page_" + \$i + ".png")
+  \$img.Save(\$outPng, [System.Drawing.Imaging.ImageFormat]::Png)
+  \$img.Dispose()
+  \$netStream.Dispose()
+  \$stream.Dispose()
+  \$page.Dispose()
+  \$pngFiles += \$outPng
+}
+
+\$defaultDoc = New-Object System.Drawing.Printing.PrintDocument
+\$defaultName = \$defaultDoc.PrinterSettings.PrinterName
+\$defaultDoc.Dispose()
+\$printers = @([System.Drawing.Printing.PrinterSettings]::InstalledPrinters | ForEach-Object { \$_ })
+
+@{
+  defaultPrinter = \$defaultName
+  printers = \$printers
+  defaultLandscape = \$isLandscape
+  pages = \$pngFiles
+} | ConvertTo-Json -Compress
+''';
+
+    try {
+      await workDir.create(recursive: true);
+      await pdfFile.writeAsBytes(pdfBytes, flush: true);
+      await psFile.writeAsString(script, flush: true);
+      final res = await Process.run(
+        'powershell.exe',
+        [
+          '-STA',
+          '-NoProfile',
+          '-WindowStyle',
+          'Hidden',
+          '-ExecutionPolicy',
+          'Bypass',
+          '-File',
+          psFile.path,
+        ],
+      );
+      if (res.exitCode != 0) {
+        throw Exception('${res.stderr}'.trim());
+      }
+      final rawJson = '${res.stdout}'.trim();
+      final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
+      final rawPrinters = decoded['printers'];
+      final printers = <String>[
+        if (rawPrinters is List)
+          ...rawPrinters.map((e) => e.toString())
+        else if (rawPrinters is String && rawPrinters.isNotEmpty)
+          rawPrinters,
+      ];
+      final rawPages = decoded['pages'];
+      final pagePaths = <String>[
+        if (rawPages is List)
+          ...rawPages.map((e) => e.toString())
+        else if (rawPages is String && rawPages.isNotEmpty)
+          rawPages,
+      ];
+      final pagePngs = <Uint8List>[];
+      for (final p in pagePaths) {
+        final f = File(p);
+        if (await f.exists()) {
+          pagePngs.add(await f.readAsBytes());
+        }
+      }
+      return PrintPreviewBundle(
+        pdfBytes: pdfBytes,
+        pagePngs: pagePngs,
+        printers: printers,
+        defaultPrinter: decoded['defaultPrinter']?.toString(),
+        defaultLandscape: decoded['defaultLandscape'] == true,
+      );
+    } finally {
+      try {
+        if (await workDir.exists()) {
+          await workDir.delete(recursive: true);
+        }
+      } catch (_) {}
+    }
+  }
+
+  /// Dispatches PDF bytes straight to the selected Windows printer spooler
+  /// (or optional OS driver dialog) via WinRT PdfDocument + .NET PrintDocument.
+  static Future<PrintDispatchResult> directPrintPdfBytes({
+    required Uint8List pdfBytes,
+    required String documentName,
+    String? printerName,
+    int copies = 1,
+    bool? landscape,
+    bool grayscale = false,
+    bool showSystemDialog = false,
+  }) async {
+    return _printPdfOnWindows(
+      pdfBytes: pdfBytes,
+      documentName: documentName,
+      printerName: printerName,
+      copies: copies,
+      landscape: landscape,
+      grayscale: grayscale,
+      showDialogPrompt: showSystemDialog,
     );
+  }
+
+  /// Dispatches PDF bytes straight to the native Windows PrintDialog or
+  /// chosen Windows printer using built-in WinRT PdfDocument + .NET
+  /// (zero Flutter plugins, zero symlinks, zero browser windows).
+  static Future<PrintDispatchResult> _printPdfOnWindows({
+    required Uint8List pdfBytes,
+    required String documentName,
+    String? printerName,
+    int copies = 1,
+    bool? landscape,
+    bool grayscale = false,
+    bool showDialogPrompt = true,
+  }) async {
+    final tempDir = Directory.systemTemp;
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final pdfFile = File('${tempDir.path}\\smartpos_job_$stamp.pdf');
+    final psFile = File('${tempDir.path}\\smartpos_job_$stamp.ps1');
+    final escapedName = documentName.replaceAll("'", "''");
+    final escapedPrinter = (printerName ?? '').replaceAll("'", "''");
+    final landscapeExpr =
+        landscape == null ? '\$null' : (landscape ? '\$true' : '\$false');
+
+    final script = '''
+$_winRtPdfPreamble
+\$pdfPath = '${pdfFile.path.replaceAll("'", "''")}'
+\$file = AwaitOp ([Windows.Storage.StorageFile]::GetFileFromPathAsync(\$pdfPath)) ([Windows.Storage.StorageFile])
+\$pdfDoc = AwaitOp ([Windows.Data.Pdf.PdfDocument]::LoadFromFileAsync(\$file)) ([Windows.Data.Pdf.PdfDocument])
+if (\$pdfDoc.PageCount -le 0) {
+  throw 'PDF has 0 pages.'
+}
+
+\$printDoc = New-Object System.Drawing.Printing.PrintDocument
+\$printDoc.DocumentName = '$escapedName'
+\$printDoc.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0, 0, 0, 0)
+\$firstPage = \$pdfDoc.GetPage([uint32]0)
+\$landscapeOverride = $landscapeExpr
+if (\$null -ne \$landscapeOverride) {
+  \$printDoc.DefaultPageSettings.Landscape = [bool]\$landscapeOverride
+} elseif (\$firstPage.Size.Width -gt \$firstPage.Size.Height) {
+  \$printDoc.DefaultPageSettings.Landscape = \$true
+}
+\$firstPage.Dispose()
+\$printerOverride = '$escapedPrinter'
+if (\$printerOverride.Length -gt 0) {
+  \$printDoc.PrinterSettings.PrinterName = \$printerOverride
+}
+if (${copies.clamp(1, 99)} -gt 1) {
+  \$printDoc.PrinterSettings.Copies = [int16]${copies.clamp(1, 99)}
+}
+if (${grayscale ? '\$true' : '\$false'}) {
+  \$printDoc.DefaultPageSettings.Color = \$false
+}
+
+\$fromPage = 1
+\$toPage = [int]\$pdfDoc.PageCount
+
+if (${showDialogPrompt ? '\$true' : '\$false'}) {
+  [System.Windows.Forms.Application]::EnableVisualStyles()
+  \$owner = New-Object System.Windows.Forms.Form
+  \$owner.ShowInTaskbar = \$false
+  \$owner.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None
+  \$owner.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+  \$owner.Size = New-Object System.Drawing.Size(1, 1)
+  \$owner.Opacity = 0
+  \$owner.TopMost = \$true
+  \$owner.Show()
+  \$owner.Activate()
+
+  \$dlg = New-Object System.Windows.Forms.PrintDialog
+  \$dlg.Document = \$printDoc
+  \$dlg.UseEXDialog = \$true
+  \$dlg.AllowSomePages = \$true
+  \$dlg.AllowCurrentPage = \$false
+  \$dlg.AllowSelection = \$false
+  \$dlg.PrinterSettings.MinimumPage = 1
+  \$dlg.PrinterSettings.MaximumPage = [int]\$pdfDoc.PageCount
+  \$dlg.PrinterSettings.FromPage = 1
+  \$dlg.PrinterSettings.ToPage = [int]\$pdfDoc.PageCount
+
+  \$res = \$dlg.ShowDialog(\$owner)
+  \$owner.Close()
+  \$owner.Dispose()
+  if (\$res -ne [System.Windows.Forms.DialogResult]::OK) {
+    exit 2
+  }
+  if (\$printDoc.PrinterSettings.PrintRange -eq [System.Drawing.Printing.PrintRange]::SomePages) {
+    \$fromPage = [Math]::Max(1, \$printDoc.PrinterSettings.FromPage)
+    \$toPage = [Math]::Min([int]\$pdfDoc.PageCount, \$printDoc.PrinterSettings.ToPage)
+  }
+}
+
+\$script:curIndex = \$fromPage - 1
+\$script:endIndex = \$toPage - 1
+\$printDoc.add_PrintPage({
+  param(\$sender, \$ev)
+  \$page = \$pdfDoc.GetPage([uint32]\$script:curIndex)
+  \$stream = New-Object Windows.Storage.Streams.InMemoryRandomAccessStream
+  \$opts = New-Object Windows.Data.Pdf.PdfPageRenderOptions
+  \$dpiScale = 3.125
+  \$opts.DestinationWidth = [uint32]([Math]::Max(900, [int][Math]::Round(\$page.Size.Width * \$dpiScale)))
+  \$opts.DestinationHeight = [uint32]([Math]::Max(900, [int][Math]::Round(\$page.Size.Height * \$dpiScale)))
+  AwaitAct (\$page.RenderToStreamAsync(\$stream, \$opts))
+  \$stream.Seek(0) | Out-Null
+  \$netStream = [System.IO.WindowsRuntimeStreamExtensions]::AsStreamForRead(\$stream)
+  \$img = [System.Drawing.Image]::FromStream(\$netStream)
+  try {
+    \$ev.Graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    \$bounds = \$ev.PageBounds
+    \$ratioX = [double]\$bounds.Width / [double]\$img.Width
+    \$ratioY = [double]\$bounds.Height / [double]\$img.Height
+    \$ratio = [Math]::Min(\$ratioX, \$ratioY)
+    \$drawW = [float](\$img.Width * \$ratio)
+    \$drawH = [float](\$img.Height * \$ratio)
+    \$drawX = [float](\$bounds.X + ((\$bounds.Width - \$drawW) / 2.0))
+    \$drawY = [float]\$bounds.Y
+    \$ev.Graphics.DrawImage(\$img, \$drawX, \$drawY, \$drawW, \$drawH)
+  } finally {
+    \$img.Dispose()
+    \$netStream.Dispose()
+    \$stream.Dispose()
+    \$page.Dispose()
+  }
+  \$script:curIndex++
+  \$ev.HasMorePages = (\$script:curIndex -le \$script:endIndex)
+})
+
+\$printDoc.Print()
+\$printDoc.Dispose()
+''';
+
+    try {
+      await pdfFile.writeAsBytes(pdfBytes, flush: true);
+      await psFile.writeAsString(script, flush: true);
+      final res = await Process.run(
+        'powershell.exe',
+        [
+          '-STA',
+          '-NoProfile',
+          '-WindowStyle',
+          'Hidden',
+          '-ExecutionPolicy',
+          'Bypass',
+          '-File',
+          psFile.path,
+        ],
+      );
+      if (res.exitCode == 0) {
+        return const PrintDispatchResult(printed: true);
+      }
+      if (res.exitCode == 2) {
+        return const PrintDispatchResult(printed: false, cancelled: true);
+      }
+      final err = '${res.stderr}'.trim();
+      AppLogger.warning(
+          'PrintService', 'Windows PrintDialog failed (${res.exitCode}): $err');
+      return PrintDispatchResult(
+        printed: false,
+        error: err.isNotEmpty
+            ? err
+            : 'Windows printer spooler returned code ${res.exitCode}.',
+      );
+    } catch (e, st) {
+      AppLogger.warning('PrintService', 'Windows print exception', e, st);
+      return PrintDispatchResult(printed: false, error: '$e');
+    } finally {
+      try {
+        if (await pdfFile.exists()) await pdfFile.delete();
+      } catch (_) {}
+      try {
+        if (await psFile.exists()) await psFile.delete();
+      } catch (_) {}
+    }
+  }
+
+  /// Prints HTML directly from inside the application. When [context] is
+  /// supplied on Windows, shows the in-app live Print Preview & Printer Picker
+  /// dialog before sending the job directly to the selected printer.
+  static Future<PrintDispatchResult> printHtmlDocument({
+    required String htmlContent,
+    required String title,
+    String? paperSize,
+    Future<Uint8List> Function()? pdfFallback,
+    String? printerName,
+    bool showDialogPrompt = true,
+    BuildContext? context,
+    BusinessSettings? settings,
+  }) async {
+    final cleanTitle = title.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
+    try {
+      if (Platform.isWindows) {
+        if (showDialogPrompt && context != null && context.mounted) {
+          return await NativePrintDialog.show(
+            context,
+            title: title,
+            htmlContent: htmlContent,
+            pdfFallback: pdfFallback,
+            settings: settings,
+          );
+        }
+        Uint8List? pdfBytes =
+            await htmlToPdfBytes(htmlContent, title: cleanTitle);
+        if ((pdfBytes == null || pdfBytes.isEmpty) && pdfFallback != null) {
+          pdfBytes = await pdfFallback();
+        }
+        if (pdfBytes != null && pdfBytes.isNotEmpty) {
+          return await _printPdfOnWindows(
+            pdfBytes: pdfBytes,
+            documentName: title,
+            printerName: printerName,
+            showDialogPrompt: showDialogPrompt,
+          );
+        }
+        return const PrintDispatchResult(
+          printed: false,
+          error:
+              'Unable to prepare document for printing. Use PDF Export or ensure Microsoft Edge is installed.',
+        );
+      } else {
+        final tempDir = Directory.systemTemp;
+        final tempFile = File(
+            '${tempDir.path}/smartpos_${cleanTitle}_${DateTime.now().millisecondsSinceEpoch}.html');
+        await tempFile.writeAsString(htmlContent);
+        await Process.run('open', [tempFile.path]);
+        return const PrintDispatchResult(printed: true);
+      }
+    } catch (e, st) {
+      AppLogger.warning('PrintService', 'Direct print failed', e, st);
+      return PrintDispatchResult(printed: false, error: '$e');
+    }
+  }
+
+  /// Opens the in-app Print Preview & Printer Dialog (or native Print Dialog
+  /// when [context] is omitted) without launching a browser tab.
+  static Future<bool> openPrintWindow({
+    required String htmlContent,
+    required String title,
+    String? paperSize,
+    Future<Uint8List> Function()? pdfFallback,
+    BuildContext? context,
+    BusinessSettings? settings,
+  }) async {
+    final res = await printHtmlDocument(
+      htmlContent: htmlContent,
+      title: title,
+      paperSize: paperSize,
+      pdfFallback: pdfFallback,
+      context: context,
+      settings: settings,
+    );
+    return res.printed;
   }
 
   /// Copies receipt or document text to clipboard

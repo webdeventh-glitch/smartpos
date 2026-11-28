@@ -6,6 +6,7 @@ import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
 import '../../widgets/product_thumbnail.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'add_product_dialog.dart';
 import 'add_product_screen.dart';
@@ -390,30 +391,36 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   ),
                   const SizedBox(height: 14),
-                  DropdownButtonFormField<int?>(
-                    initialValue: catId,
-                    decoration: const InputDecoration(
-                        labelText: 'Filter by Category', isDense: true),
-                    items: [
-                      const DropdownMenuItem<int?>(
-                          value: null, child: Text('All Categories')),
-                      ..._categories.map((c) => DropdownMenuItem<int?>(
-                          value: c.id, child: Text(c.name))),
-                    ],
-                    onChanged: (v) => setDlg(() => catId = v),
+                  SearchableDropdownField<Category>(
+                    label: 'Filter by Category',
+                    selectedItem: catId == null
+                        ? null
+                        : _categories.where((c) => c.id == catId).firstOrNull,
+                    items: _categories,
+                    labelBuilder: (c) => c.name,
+                    placeholder: 'All Categories',
+                    searchHint: 'Search category...',
+                    prefixIcon: Icons.category_outlined,
+                    height: 40,
+                    allowClear: true,
+                    clearLabel: 'All Categories',
+                    onChanged: (c) => setDlg(() => catId = c?.id),
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<int?>(
-                    initialValue: brandId,
-                    decoration: const InputDecoration(
-                        labelText: 'Filter by Brand', isDense: true),
-                    items: [
-                      const DropdownMenuItem<int?>(
-                          value: null, child: Text('All Brands')),
-                      ..._brands.map((b) => DropdownMenuItem<int?>(
-                          value: b.id, child: Text(b.name))),
-                    ],
-                    onChanged: (v) => setDlg(() => brandId = v),
+                  SearchableDropdownField<Brand>(
+                    label: 'Filter by Brand',
+                    selectedItem: brandId == null
+                        ? null
+                        : _brands.where((b) => b.id == brandId).firstOrNull,
+                    items: _brands,
+                    labelBuilder: (b) => b.name,
+                    placeholder: 'All Brands',
+                    searchHint: 'Search brand...',
+                    prefixIcon: Icons.branding_watermark_outlined,
+                    height: 40,
+                    allowClear: true,
+                    clearLabel: 'All Brands',
+                    onChanged: (b) => setDlg(() => brandId = b?.id),
                   ),
                   const SizedBox(height: 12),
                   SegmentedButton<String>(
@@ -685,27 +692,20 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 12)),
                   const SizedBox(height: 6),
-                  DropdownButtonFormField<Contact?>(
-                    initialValue: selectedSup,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: isDark
-                          ? const Color(0xFF0F172A)
-                          : const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                          value: null,
-                          child: Text('Direct / Walk-in Stock In')),
-                      ...suppliers.map((s) => DropdownMenuItem(
-                          value: s,
-                          child:
-                              Text(s.name, overflow: TextOverflow.ellipsis))),
-                    ],
+                  SearchableDropdownField<Contact>(
+                    selectedItem: selectedSup,
+                    items: suppliers,
+                    labelBuilder: (s) => s.name,
+                    subtitleBuilder: (s) => s.phone.isNotEmpty ? s.phone : null,
+                    filter: (s, q) =>
+                        s.name.toLowerCase().contains(q) ||
+                        s.phone.toLowerCase().contains(q),
+                    placeholder: 'Direct / Walk-in Stock In',
+                    searchHint: 'Search supplier...',
+                    prefixIcon: Icons.storefront_outlined,
+                    height: 40,
+                    allowClear: true,
+                    clearLabel: 'Direct / Walk-in Stock In',
                     onChanged: (val) => setDialogState(() => selectedSup = val),
                   ),
                 ],
@@ -1352,38 +1352,23 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       // Category Dropdown
                       Expanded(
                         flex: 2,
-                        child: DropdownButtonFormField<int?>(
-                          isExpanded: true,
-                          initialValue: _selectedCategory,
-                          dropdownColor:
-                              isDark ? const Color(0xFF1E293B) : Colors.white,
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF0F172A)),
-                          decoration: _dropdownDeco('Category', isDark: isDark),
-                          items: [
-                            DropdownMenuItem<int?>(
-                                value: null,
-                                child: Text('All Categories',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white
-                                            : const Color(0xFF0F172A)))),
-                            ..._categories.map((c) => DropdownMenuItem<int?>(
-                                value: c.id,
-                                child: Text(c.name,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white
-                                            : const Color(0xFF0F172A))))),
-                          ],
+                        child: SearchableDropdownField<Category>(
+                          selectedItem: _selectedCategory == null
+                              ? null
+                              : _categories
+                                  .where((c) => c.id == _selectedCategory)
+                                  .firstOrNull,
+                          items: _categories,
+                          labelBuilder: (c) => c.name,
+                          placeholder: 'All Categories',
+                          searchHint: 'Search category...',
+                          prefixIcon: Icons.category_outlined,
+                          height: 40,
+                          allowClear: true,
+                          clearLabel: 'All Categories',
                           onChanged: (val) {
                             setState(() {
-                              _selectedCategory = val;
+                              _selectedCategory = val?.id;
                               _currentPage = 1;
                             });
                             _load(refreshMetadata: false);
@@ -1395,38 +1380,23 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       // Brand Dropdown
                       Expanded(
                         flex: 2,
-                        child: DropdownButtonFormField<int?>(
-                          isExpanded: true,
-                          initialValue: _selectedBrand,
-                          dropdownColor:
-                              isDark ? const Color(0xFF1E293B) : Colors.white,
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF0F172A)),
-                          decoration: _dropdownDeco('Brand', isDark: isDark),
-                          items: [
-                            DropdownMenuItem<int?>(
-                                value: null,
-                                child: Text('All Brands',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white
-                                            : const Color(0xFF0F172A)))),
-                            ..._brands.map((b) => DropdownMenuItem<int?>(
-                                value: b.id,
-                                child: Text(b.name,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white
-                                            : const Color(0xFF0F172A))))),
-                          ],
+                        child: SearchableDropdownField<Brand>(
+                          selectedItem: _selectedBrand == null
+                              ? null
+                              : _brands
+                                  .where((b) => b.id == _selectedBrand)
+                                  .firstOrNull,
+                          items: _brands,
+                          labelBuilder: (b) => b.name,
+                          placeholder: 'All Brands',
+                          searchHint: 'Search brand...',
+                          prefixIcon: Icons.branding_watermark_outlined,
+                          height: 40,
+                          allowClear: true,
+                          clearLabel: 'All Brands',
                           onChanged: (val) {
                             setState(() {
-                              _selectedBrand = val;
+                              _selectedBrand = val?.id;
                               _currentPage = 1;
                             });
                             _load(refreshMetadata: false);
@@ -1439,6 +1409,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       Expanded(
                         flex: 2,
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           initialValue: _stockFilter,
                           dropdownColor:
                               isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -1453,6 +1424,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             DropdownMenuItem(
                                 value: 'all',
                                 child: Text('All Stock Levels',
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                         color: isDark
                                             ? Colors.white
@@ -1460,6 +1432,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             DropdownMenuItem(
                                 value: 'in_stock',
                                 child: Text('In Stock',
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                         color: isDark
                                             ? Colors.white
@@ -1467,6 +1440,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             DropdownMenuItem(
                                 value: 'low_stock',
                                 child: Text('Low Stock Alert',
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                         color: isDark
                                             ? Colors.white
@@ -1474,6 +1448,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             DropdownMenuItem(
                                 value: 'out_of_stock',
                                 child: Text('Out of Stock',
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                         color: isDark
                                             ? Colors.white
@@ -2089,7 +2064,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                                             color: Color(
                                                                 0xFF059669)),
                                                         SizedBox(width: 2),
-                                                        Text('+ Stock',
+                                                        Text('Stock',
                                                             style: TextStyle(
                                                                 fontSize: 10,
                                                                 fontWeight:

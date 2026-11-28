@@ -6,6 +6,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/pdf_export_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import '../../services/localization_service.dart';
 
 /// Step 6.2: Purchase Orders Workflow (Ordered -> Partial -> Received + Supplier Email).
@@ -145,21 +146,20 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 2,
-                          child: DropdownButtonFormField<Contact>(
-                            initialValue: selectedSupplier,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              labelText: PosLocalization.tr('Supplier'),
-                              isDense: true,
-                              border: const OutlineInputBorder(),
-                            ),
-                            items: suppliers
-                                .map((s) => DropdownMenuItem(
-                                      value: s,
-                                      child: Text(s.name,
-                                          overflow: TextOverflow.ellipsis),
-                                    ))
-                                .toList(),
+                          child: SearchableDropdownField<Contact>(
+                            label: PosLocalization.tr('Supplier'),
+                            selectedItem: selectedSupplier,
+                            items: suppliers,
+                            labelBuilder: (s) => s.name,
+                            subtitleBuilder: (s) =>
+                                s.phone.isNotEmpty ? s.phone : null,
+                            filter: (s, q) =>
+                                s.name.toLowerCase().contains(q) ||
+                                s.phone.toLowerCase().contains(q),
+                            placeholder: 'Select Supplier...',
+                            searchHint: 'Search supplier...',
+                            prefixIcon: Icons.storefront_outlined,
+                            height: 40,
                             onChanged: (v) =>
                                 setDlg(() => selectedSupplier = v),
                           ),
@@ -171,21 +171,20 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                       children: [
                         Expanded(
                           flex: 3,
-                          child: DropdownButtonFormField<Product>(
-                            initialValue: pickerProd,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              labelText: PosLocalization.tr('Select Product'),
-                              isDense: true,
-                              border: const OutlineInputBorder(),
-                            ),
-                            items: products
-                                .map((p) => DropdownMenuItem(
-                                      value: p,
-                                      child: Text('${p.name} (${p.sku})',
-                                          overflow: TextOverflow.ellipsis),
-                                    ))
-                                .toList(),
+                          child: SearchableDropdownField<Product>(
+                            label: PosLocalization.tr('Select Product'),
+                            selectedItem: pickerProd,
+                            items: products,
+                            labelBuilder: (p) => '${p.name} (${p.sku})',
+                            filter: (p, q) =>
+                                p.name.toLowerCase().contains(q) ||
+                                p.sku.toLowerCase().contains(q) ||
+                                p.barcode.toLowerCase().contains(q),
+                            placeholder: 'Search & select product...',
+                            searchHint:
+                                'Search product by name, SKU, barcode...',
+                            prefixIcon: Icons.inventory_2_outlined,
+                            height: 40,
                             onChanged: (v) => setDlg(() {
                               pickerProd = v;
                               if (v != null) {

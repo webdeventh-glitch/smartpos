@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import 'product_search_dialog.dart';
 import '../../services/localization_service.dart';
 
@@ -449,22 +450,20 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                           fontWeight: FontWeight.w600,
                                           color: textPrimary)),
                                   const SizedBox(height: 4),
-                                  DropdownButtonFormField<Contact>(
-                                    dropdownColor: cardBg,
-                                    decoration: inputDeco,
-                                    style: TextStyle(
-                                        fontSize: 13, color: textPrimary),
-                                    initialValue: _selectedSupplier,
-                                    items: _suppliers
-                                        .map((s) => DropdownMenuItem(
-                                              value: s,
-                                              child: Text(
-                                                  '${s.name} ${s.balance > 0 ? "(Due: $currency${s.balance.toStringAsFixed(0)})" : ""}',
-                                                  style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: textPrimary)),
-                                            ))
-                                        .toList(),
+                                  SearchableDropdownField<Contact>(
+                                    selectedItem: _selectedSupplier,
+                                    items: _suppliers,
+                                    labelBuilder: (s) =>
+                                        '${s.name}${s.balance > 0 ? " (Due: $currency${s.balance.toStringAsFixed(0)})" : ""}',
+                                    subtitleBuilder: (s) =>
+                                        s.phone.isNotEmpty ? s.phone : null,
+                                    filter: (s, q) =>
+                                        s.name.toLowerCase().contains(q) ||
+                                        s.phone.toLowerCase().contains(q),
+                                    placeholder: 'Select Supplier...',
+                                    searchHint: 'Search supplier...',
+                                    prefixIcon: Icons.storefront_outlined,
+                                    height: 40,
                                     onChanged: (val) =>
                                         setState(() => _selectedSupplier = val),
                                   ),
@@ -485,21 +484,14 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                           fontWeight: FontWeight.w600,
                                           color: textPrimary)),
                                   const SizedBox(height: 4),
-                                  DropdownButtonFormField<BusinessLocation>(
-                                    dropdownColor: cardBg,
-                                    decoration: inputDeco,
-                                    style: TextStyle(
-                                        fontSize: 13, color: textPrimary),
-                                    initialValue: _selectedLocation,
-                                    items: _locations
-                                        .map((loc) => DropdownMenuItem(
-                                              value: loc,
-                                              child: Text(loc.name,
-                                                  style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: textPrimary)),
-                                            ))
-                                        .toList(),
+                                  SearchableDropdownField<BusinessLocation>(
+                                    selectedItem: _selectedLocation,
+                                    items: _locations,
+                                    labelBuilder: (loc) => loc.name,
+                                    placeholder: 'Select Location...',
+                                    searchHint: 'Search location...',
+                                    prefixIcon: Icons.location_on_outlined,
+                                    height: 40,
                                     onChanged: (val) =>
                                         setState(() => _selectedLocation = val),
                                   ),

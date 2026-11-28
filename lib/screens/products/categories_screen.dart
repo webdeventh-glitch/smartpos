@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import '../../services/localization_service.dart';
 
 class CategoriesScreen extends StatefulWidget {
@@ -138,44 +139,26 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                           children: [
                             _fieldLabel('Parent Category (Optional)', isDark),
                             const SizedBox(height: 6),
-                            DropdownButtonFormField<int?>(
-                              initialValue: selectedParent,
-                              dropdownColor: isDark
-                                  ? const Color(0xFF1E293B)
-                                  : Colors.white,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDark
-                                      ? Colors.white
-                                      : const Color(0xFF0F172A)),
-                              decoration:
-                                  _inputDeco('None (Top Level)', isDark),
-                              items: [
-                                DropdownMenuItem<int?>(
-                                  value: null,
-                                  child: Text(
-                                      PosLocalization.tr('None (Main Level)'),
-                                      style: TextStyle(
-                                          color: isDark
-                                              ? Colors.white
-                                              : const Color(0xFF0F172A))),
-                                ),
-                                ..._categories
-                                    .where((c) => c.id != toEdit?.id)
-                                    .map(
-                                      (c) => DropdownMenuItem<int?>(
-                                        value: c.id,
-                                        child: Text(c.name,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                                color: isDark
-                                                    ? Colors.white
-                                                    : const Color(0xFF0F172A))),
-                                      ),
-                                    ),
-                              ],
+                            SearchableDropdownField<Category>(
+                              selectedItem: selectedParent == null
+                                  ? null
+                                  : _categories
+                                      .where((c) => c.id == selectedParent)
+                                      .firstOrNull,
+                              items: _categories
+                                  .where((c) => c.id != toEdit?.id)
+                                  .toList(),
+                              labelBuilder: (c) => c.name,
+                              placeholder:
+                                  PosLocalization.tr('None (Main Level)'),
+                              searchHint: 'Search category...',
+                              prefixIcon: Icons.category_outlined,
+                              height: 40,
+                              allowClear: true,
+                              clearLabel:
+                                  PosLocalization.tr('None (Main Level)'),
                               onChanged: (val) =>
-                                  setDlgState(() => selectedParent = val),
+                                  setDlgState(() => selectedParent = val?.id),
                             ),
                           ],
                         ),

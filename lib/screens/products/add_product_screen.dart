@@ -163,9 +163,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   u.shortName.toLowerCase() != u.actualName.toLowerCase()
               ? '${u.actualName} (${u.shortName})'
               : u.actualName;
-          final key = u.shortName.isNotEmpty
-              ? u.shortName.toLowerCase()
-              : u.actualName.toLowerCase();
+          final key =
+              '${u.actualName.toLowerCase()}|${u.shortName.toLowerCase()}';
           if (!seenKeys.contains(key) && !_units.contains(label)) {
             seenKeys.add(key);
             _units.add(label);
@@ -218,8 +217,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
           }
           _batchCtrl.text = p.batchNumber ?? '';
           _expiryCtrl.text = p.expiryDate ?? '';
-          _isExpirable =
-              p.expiryDate != null && p.expiryDate!.trim().isNotEmpty;
+          _isExpirable = p.isExpirable ||
+              (p.expiryDate != null && p.expiryDate!.trim().isNotEmpty);
           _bonusQtyCtrl.text = p.bonusQty.toString();
           _packSizeCtrl.text = p.packSize.toString();
           _rackLocationCtrl.text = p.rackLocation ?? '';
@@ -278,164 +277,350 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final shortCtrl = TextEditingController();
     final multCtrl = TextEditingController(text: '1');
     bool allowDecimal = false;
+    bool isMultipleOfOther = false;
     int? selectedBaseUnit;
+    String? generalError;
+    String? nameError;
+    String? shortError;
+    String? multError;
+    String? baseUnitError;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => Dialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Padding(
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Add New Unit of Measure',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF0F172A))),
-                      IconButton(
-                          icon: const Icon(Icons.close, size: 20),
-                          onPressed: () => Navigator.pop(ctx)),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  _buildFieldLabel('Unit Name (e.g. Strip, Gram, Carton)',
-                      isRequired: true),
-                  const SizedBox(height: 4),
-                  TextFormField(
-                      controller: nameCtrl,
-                      decoration: _inputDecor('e.g. Strip')),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildFieldLabel('Short Code', isRequired: true),
-                            const SizedBox(height: 4),
-                            TextFormField(
-                                controller: shortCtrl,
-                                decoration: _inputDecor('e.g. Strip')),
-                          ],
+        builder: (ctx, setDlgState) {
+          final baseCandidates = _dbUnits
+              .where((u) => u.id != null && u.baseUnitId == null)
+              .toList();
+          final safeBaseId = baseCandidates.any((u) => u.id == selectedBaseUnit)
+              ? selectedBaseUnit
+              : null;
+          final unitPreview = nameCtrl.text.trim().isNotEmpty
+              ? nameCtrl.text.trim()
+              : (shortCtrl.text.trim().isNotEmpty
+                  ? shortCtrl.text.trim()
+                  : 'New Unit');
+
+          return Dialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Add Unit',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
+                        IconButton(
+                            icon: const Icon(Icons.close, size: 20),
+                            onPressed: () => Navigator.pop(ctx)),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    if (generalError != null) ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFFEF4444).withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: const Color(0xFFEF4444)
+                                  .withValues(alpha: 0.35)),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            _buildFieldLabel('Allow Decimal?'),
-                            const SizedBox(height: 4),
-                            SwitchListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(allowDecimal ? 'Yes' : 'No',
-                                  style: const TextStyle(fontSize: 12)),
-                              value: allowDecimal,
-                              onChanged: (v) =>
-                                  setDlgState(() => allowDecimal = v),
+                            const Icon(Icons.error_outline_rounded,
+                                color: Color(0xFFEF4444), size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                generalError!,
+                                style: const TextStyle(
+                                  color: Color(0xFFDC2626),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFieldLabel('Base Unit (Optional - for sub-units)'),
-                  const SizedBox(height: 4),
-                  DropdownButtonFormField<int?>(
-                    initialValue: selectedBaseUnit,
-                    decoration: _inputDecor('Select Base Unit'),
-                    items: [
-                      const DropdownMenuItem(
-                          value: null,
-                          child: Text('None (This is a primary unit)',
-                              style: TextStyle(fontSize: 12))),
-                      ..._dbUnits
-                          .where((u) => u.id != null && u.baseUnitId == null)
-                          .map(
-                            (u) => DropdownMenuItem(
-                                value: u.id,
-                                child: Text('${u.actualName} (${u.shortName})',
-                                    style: const TextStyle(fontSize: 12))),
-                          ),
-                    ],
-                    onChanged: (v) => setDlgState(() => selectedBaseUnit = v),
-                  ),
-                  if (selectedBaseUnit != null) ...[
-                    const SizedBox(height: 12),
                     _buildFieldLabel(
-                        'Multiplier (How many base units in this unit?)'),
+                        'Name (e.g. Solar Panel Container, Strip, Box)',
+                        isRequired: true),
                     const SizedBox(height: 4),
                     TextFormField(
-                      controller: multCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: _inputDecor(
-                          'e.g. 10 for Strip of 10 Tabs, 100 for Box'),
+                        controller: nameCtrl,
+                        onChanged: (_) => setDlgState(() {
+                              nameError = null;
+                              generalError = null;
+                            }),
+                        decoration: _inputDecor('e.g. Solar Panel Container')
+                            .copyWith(errorText: nameError, errorMaxLines: 2)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildFieldLabel('Short name', isRequired: true),
+                              const SizedBox(height: 4),
+                              TextFormField(
+                                  controller: shortCtrl,
+                                  onChanged: (_) => setDlgState(() {
+                                        shortError = null;
+                                        generalError = null;
+                                      }),
+                                  decoration: _inputDecor('e.g. Con').copyWith(
+                                      errorText: shortError, errorMaxLines: 2)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildFieldLabel('Allow decimal?'),
+                              const SizedBox(height: 4),
+                              SwitchListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(allowDecimal ? 'Yes' : 'No',
+                                    style: const TextStyle(fontSize: 12)),
+                                value: allowDecimal,
+                                onChanged: (v) =>
+                                    setDlgState(() => allowDecimal = v),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                  const SizedBox(height: 18),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Cancel')),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF004EEB),
-                            foregroundColor: Colors.white),
-                        onPressed: () async {
-                          final name = nameCtrl.text.trim();
-                          final short = shortCtrl.text.trim();
-                          if (name.isEmpty) return;
-                          final mult =
-                              double.tryParse(multCtrl.text.trim()) ?? 1.0;
-                          final newUnit = Unit(
-                            actualName: name,
-                            shortName: short.isNotEmpty ? short : name,
-                            allowDecimal: allowDecimal,
-                            baseUnitId: selectedBaseUnit,
-                            baseUnitMultiplier: mult,
-                          );
-                          final db = await DatabaseService.initialize();
-                          await db.addUnit(newUnit);
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          await _loadMetadata();
-                          final newLabel = short.isNotEmpty && short != name
-                              ? '$name ($short)'
-                              : name;
-                          setState(() {
-                            _selectedUnit = newLabel;
-                            if (!_units.contains(_selectedUnit)) {
-                              _units.add(_selectedUnit);
-                            }
-                          });
-                        },
-                        child: const Text('Save Unit'),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => setDlgState(() {
+                        isMultipleOfOther = !isMultipleOfOther;
+                        if (!isMultipleOfOther) {
+                          selectedBaseUnit = null;
+                          multCtrl.text = '1';
+                        } else if (safeBaseId == null &&
+                            baseCandidates.isNotEmpty) {
+                          selectedBaseUnit = baseCandidates.first.id;
+                        }
+                      }),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: isMultipleOfOther,
+                            activeColor: const Color(0xFF004EEB),
+                            onChanged: (v) => setDlgState(() {
+                              isMultipleOfOther = v ?? false;
+                              if (!isMultipleOfOther) {
+                                selectedBaseUnit = null;
+                                multCtrl.text = '1';
+                              } else if (safeBaseId == null &&
+                                  baseCandidates.isNotEmpty) {
+                                selectedBaseUnit = baseCandidates.first.id;
+                              }
+                            }),
+                          ),
+                          const Text('Add as multiple of other unit',
+                              style: TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                    if (isMultipleOfOther) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            Flexible(
+                              flex: 3,
+                              child: Text('1 $unitPreview',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Text('=',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                controller: multCtrl,
+                                onChanged: (_) => setDlgState(() {
+                                  multError = null;
+                                  generalError = null;
+                                }),
+                                textAlign: TextAlign.center,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                decoration: _inputDecor('20').copyWith(
+                                    errorText: multError, errorMaxLines: 2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 4,
+                              child: DropdownButtonFormField<int?>(
+                                initialValue: safeBaseId,
+                                isExpanded: true,
+                                decoration: _inputDecor('Base Unit').copyWith(
+                                    errorText: baseUnitError, errorMaxLines: 2),
+                                items: baseCandidates
+                                    .map((u) => DropdownMenuItem<int?>(
+                                          value: u.id,
+                                          child: Text(
+                                            '${u.actualName} (${u.shortName})',
+                                            overflow: TextOverflow.ellipsis,
+                                            style:
+                                                const TextStyle(fontSize: 12),
+                                          ),
+                                        ))
+                                    .toList(),
+                                onChanged: (v) => setDlgState(() {
+                                  selectedBaseUnit = v;
+                                  baseUnitError = null;
+                                  generalError = null;
+                                }),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: 18),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Close')),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF004EEB),
+                              foregroundColor: Colors.white),
+                          onPressed: () async {
+                            final name = nameCtrl.text.trim();
+                            final short = shortCtrl.text.trim();
+                            final effectiveBase =
+                                isMultipleOfOther ? safeBaseId : null;
+                            final mult = isMultipleOfOther
+                                ? (double.tryParse(multCtrl.text.trim()) ?? 0.0)
+                                : 1.0;
+
+                            final nextNameErr =
+                                name.isEmpty ? 'Unit name is required' : null;
+                            final nextShortErr =
+                                short.isEmpty ? 'Short name is required' : null;
+                            final nextMultErr = (isMultipleOfOther && mult <= 0)
+                                ? 'Enter a multiplier > 0'
+                                : null;
+                            final nextBaseErr =
+                                (isMultipleOfOther && effectiveBase == null)
+                                    ? 'Select a base unit'
+                                    : null;
+                            final nextGeneralErr = (isMultipleOfOther &&
+                                    baseCandidates.isEmpty)
+                                ? 'No base unit is available. Create a base unit first.'
+                                : null;
+
+                            if (nextNameErr != null ||
+                                nextShortErr != null ||
+                                nextMultErr != null ||
+                                nextBaseErr != null ||
+                                nextGeneralErr != null) {
+                              setDlgState(() {
+                                nameError = nextNameErr;
+                                shortError = nextShortErr;
+                                multError = nextMultErr;
+                                baseUnitError = nextBaseErr;
+                                generalError = nextGeneralErr;
+                              });
+                              return;
+                            }
+
+                            try {
+                              final baseCategory = effectiveBase != null
+                                  ? baseCandidates
+                                      .firstWhere((b) => b.id == effectiveBase)
+                                      .category
+                                  : 'count';
+                              final newUnit = Unit(
+                                actualName: name,
+                                shortName: short.isNotEmpty ? short : name,
+                                allowDecimal: allowDecimal,
+                                baseUnitId: effectiveBase,
+                                baseUnitMultiplier: mult,
+                                category: baseCategory,
+                              );
+                              final db = await DatabaseService.initialize();
+                              await db.addUnit(newUnit);
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              await _loadMetadata();
+                              final newLabel = short.isNotEmpty && short != name
+                                  ? '$name ($short)'
+                                  : name;
+                              setState(() {
+                                _selectedUnit = newLabel;
+                                if (!_units.contains(_selectedUnit)) {
+                                  _units.add(_selectedUnit);
+                                }
+                              });
+                            } catch (e) {
+                              if (ctx.mounted) {
+                                setDlgState(() {
+                                  generalError = 'Failed to save unit: $e';
+                                });
+                              }
+                            }
+                          },
+                          child: const Text('Save'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -923,19 +1108,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DropdownButtonFormField<VariationTemplate>(
-                  initialValue: selected,
-                  decoration: const InputDecoration(
-                    labelText: 'Select Variation Template',
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _variationTemplates
-                      .map((t) => DropdownMenuItem(
-                            value: t,
-                            child: Text('${t.name} (${t.values.join(", ")})'),
-                          ))
-                      .toList(),
+                SearchableDropdownField<VariationTemplate>(
+                  label: 'Select Variation Template',
+                  selectedItem: selected,
+                  items: _variationTemplates,
+                  labelBuilder: (t) => '${t.name} (${t.values.join(", ")})',
+                  placeholder: 'Select Variation Template...',
+                  searchHint: 'Search variation template...',
+                  prefixIcon: Icons.tune_rounded,
+                  height: 40,
                   onChanged: (val) {
                     if (val != null) setDlgState(() => selected = val);
                   },
@@ -1317,6 +1498,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         taxRateId: _selectedTaxRateId,
         taxGroupId: _selectedTaxGroupId,
         isFeatured: _isFeatured,
+        isExpirable: _isExpirable,
       );
 
       if (!widget.isDuplicate &&
@@ -1355,6 +1537,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           taxRateId: _selectedTaxRateId,
           taxGroupId: _selectedTaxGroupId,
           isFeatured: _isFeatured,
+          isExpirable: _isExpirable,
         );
         if (_productType == 'variable' && _variations.isNotEmpty) {
           await db.updateProductWithVariations(toUpdate, _variations);

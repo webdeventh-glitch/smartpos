@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
+import '../../widgets/searchable_select_dialog.dart';
 
 class QuickAddProductDialog extends StatefulWidget {
   final BusinessSettings settings;
@@ -23,9 +24,18 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
 
   List<Category> _categories = [];
   Category? _selectedCategory;
-  String _unit = 'Pc';
+  List<String> _unitOptions = const [
+    'Pieces (Pc)',
+    'Box (Box)',
+    'Strip (Strip)',
+    'Kilograms (Kg)',
+    'Liters (Ltr)',
+    'Pack (Pack)',
+  ];
+  String _unit = 'Pieces (Pc)';
   bool _isLoading = true;
   bool _isSaving = false;
+  String? _generalError;
 
   @override
   void initState() {
@@ -47,10 +57,28 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
   Future<void> _loadCategories() async {
     final db = await DatabaseService.initialize();
     final cats = await db.getCategories();
+    final units = await db.getUnits();
+    final labels = <String>[];
+    for (final u in units) {
+      final label = u.shortName.isNotEmpty &&
+              u.shortName.toLowerCase() != u.actualName.toLowerCase()
+          ? '${u.actualName} (${u.shortName})'
+          : u.actualName;
+      if (!labels.contains(label)) labels.add(label);
+    }
     if (mounted) {
       setState(() {
         _categories = cats;
         if (cats.isNotEmpty) _selectedCategory = cats.first;
+        if (labels.isNotEmpty) {
+          _unitOptions = labels;
+          _unit = labels.firstWhere(
+            (l) =>
+                l.toLowerCase().contains('piece') ||
+                l.toLowerCase().contains('(pc)'),
+            orElse: () => labels.first,
+          );
+        }
         _isLoading = false;
       });
     }
@@ -84,6 +112,7 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
   }
 
   Future<void> _save() async {
+    setState(() => _generalError = null);
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
@@ -92,15 +121,12 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
       final cost = double.tryParse(_costCtrl.text.trim()) ?? 0.0;
       final selling = double.tryParse(_sellingCtrl.text.trim()) ?? cost;
       if (cost > 0 && selling < cost) {
-        setState(() => _isSaving = false);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(PosLocalization.tr(
-                  'Loss Guard: Selling price cannot be lower than purchase cost!')),
-              backgroundColor: Colors.red,
-            ),
-          );
+          setState(() {
+            _isSaving = false;
+            _generalError = PosLocalization.tr(
+                'Loss Guard: Selling price cannot be lower than purchase cost!');
+          });
         }
         return;
       }
@@ -143,11 +169,9 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Failed to add product: $e'),
-              backgroundColor: Colors.red),
-        );
+        setState(() {
+          _generalError = 'Failed to add product: $e';
+        });
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -249,6 +273,39 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
+                          if (_generalError != null) ...[
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(bottom: 14),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEF4444)
+                                    .withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: const Color(0xFFEF4444)
+                                        .withValues(alpha: 0.35)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.error_outline_rounded,
+                                      color: Color(0xFFEF4444), size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _generalError!,
+                                      style: const TextStyle(
+                                        color: Color(0xFFDC2626),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           Row(
                             children: [
                               Expanded(
@@ -289,20 +346,15 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                             fontWeight: FontWeight.w600,
                                             color: textPrimary)),
                                     const SizedBox(height: 5),
-                                    DropdownButtonFormField<Category>(
-                                      dropdownColor: cardBg,
-                                      decoration: inputDeco,
-                                      style: TextStyle(
-                                          fontSize: 13, color: textPrimary),
-                                      initialValue: _selectedCategory,
-                                      items: _categories
-                                          .map((c) => DropdownMenuItem(
-                                              value: c,
-                                              child: Text(c.name,
-                                                  style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: textPrimary))))
-                                          .toList(),
+                                    SearchableDropdownField<Category>(
+                                      selectedItem: _selectedCategory,
+                                      items: _categories,
+                                      labelBuilder: (c) => c.name,
+                                      placeholder: 'Select Category...',
+                                      searchHint: 'Search category...',
+                                      prefixIcon: Icons.category_outlined,
+                                      height: 40,
+                                      allowClear: true,
                                       onChanged: (val) => setState(
                                           () => _selectedCategory = val),
                                     ),
@@ -370,38 +422,25 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                     const SizedBox(height: 5),
                                     DropdownButtonFormField<String>(
                                       dropdownColor: cardBg,
+                                      isExpanded: true,
                                       decoration: inputDeco,
                                       style: TextStyle(
                                           fontSize: 13, color: textPrimary),
-                                      initialValue: _unit,
-                                      items: [
-                                        DropdownMenuItem(
-                                            value: 'Pc',
-                                            child: Text(PosLocalization.tr(
-                                                'Pieces (Pc)'))),
-                                        DropdownMenuItem(
-                                            value: 'Box',
-                                            child: Text(PosLocalization.tr(
-                                                'Box / Carton'))),
-                                        DropdownMenuItem(
-                                            value: 'Strip',
-                                            child: Text(
-                                                PosLocalization.tr('Strip'))),
-                                        DropdownMenuItem(
-                                            value: 'Kg',
-                                            child: Text(PosLocalization.tr(
-                                                'Kilogram (Kg)'))),
-                                        DropdownMenuItem(
-                                            value: 'Ltr',
-                                            child: Text(PosLocalization.tr(
-                                                'Liter (Ltr)'))),
-                                        DropdownMenuItem(
-                                            value: 'Pack',
-                                            child: Text(
-                                                PosLocalization.tr('Pack'))),
-                                      ],
-                                      onChanged: (val) =>
-                                          setState(() => _unit = val ?? 'Pc'),
+                                      initialValue: _unitOptions.contains(_unit)
+                                          ? _unit
+                                          : _unitOptions.first,
+                                      items: _unitOptions
+                                          .map((u) => DropdownMenuItem(
+                                                value: u,
+                                                child: Text(
+                                                  u,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ))
+                                          .toList(),
+                                      onChanged: (val) => setState(() =>
+                                          _unit = val ?? _unitOptions.first),
                                     ),
                                   ],
                                 ),

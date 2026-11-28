@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
+import '../../widgets/searchable_select_dialog.dart';
 
 class ManufacturingScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -203,21 +204,22 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                     children: [
                       // Select from existing product or type new
                       if (_products.isNotEmpty) ...[
-                        DropdownButtonFormField<Product>(
-                          decoration: InputDecoration(
-                            labelText: PosLocalization.tr(
-                                'Link Existing Finished Product (Optional)'),
-                            border: const OutlineInputBorder(),
-                            isDense: true,
-                          ),
-                          items: _products.take(30).map((p) {
-                            return DropdownMenuItem(
-                              value: p,
-                              child: Text(
-                                  '${p.name} (Stock: ${p.stockQuantity.toInt()})',
-                                  overflow: TextOverflow.ellipsis),
-                            );
-                          }).toList(),
+                        SearchableDropdownField<Product>(
+                          label: PosLocalization.tr(
+                              'Link Existing Finished Product (Optional)'),
+                          selectedItem: selectedProduct,
+                          items: _products,
+                          labelBuilder: (p) =>
+                              '${p.name} (Stock: ${p.stockQuantity.toInt()})',
+                          filter: (p, q) =>
+                              p.name.toLowerCase().contains(q) ||
+                              p.sku.toLowerCase().contains(q) ||
+                              p.barcode.toLowerCase().contains(q),
+                          placeholder: 'Search & link product...',
+                          searchHint: 'Search product...',
+                          prefixIcon: Icons.inventory_2_outlined,
+                          height: 40,
+                          allowClear: true,
                           onChanged: (p) {
                             if (p != null) {
                               setDlgState(() {
@@ -780,32 +782,25 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                                 ],
                               ),
                               const SizedBox(height: 6),
-                              DropdownButtonFormField<Product?>(
-                                initialValue: manualRawMaterial,
-                                isDense: true,
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  border: const OutlineInputBorder(),
-                                  hintText: PosLocalization.tr(
-                                      'Select raw material product to deduct'),
-                                ),
-                                items: [
-                                  DropdownMenuItem(
-                                    value: null,
-                                    child: Text(PosLocalization.tr(
-                                        'None / Pre-deducted')),
-                                  ),
-                                  ..._products
-                                      .where((p) => p.id != matchedProduct?.id)
-                                      .take(30)
-                                      .map((p) => DropdownMenuItem(
-                                            value: p,
-                                            child: Text(
-                                              '${p.name} (Stock: ${p.stockQuantity.toInt()})',
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          )),
-                                ],
+                              SearchableDropdownField<Product>(
+                                selectedItem: manualRawMaterial,
+                                items: _products
+                                    .where((p) => p.id != matchedProduct?.id)
+                                    .toList(),
+                                labelBuilder: (p) =>
+                                    '${p.name} (Stock: ${p.stockQuantity.toInt()})',
+                                filter: (p, q) =>
+                                    p.name.toLowerCase().contains(q) ||
+                                    p.sku.toLowerCase().contains(q) ||
+                                    p.barcode.toLowerCase().contains(q),
+                                placeholder:
+                                    PosLocalization.tr('None / Pre-deducted'),
+                                searchHint: 'Search raw material...',
+                                prefixIcon: Icons.inventory_2_outlined,
+                                height: 40,
+                                allowClear: true,
+                                clearLabel:
+                                    PosLocalization.tr('None / Pre-deducted'),
                                 onChanged: (p) =>
                                     setDlgState(() => manualRawMaterial = p),
                               ),

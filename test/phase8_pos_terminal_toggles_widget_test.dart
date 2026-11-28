@@ -81,11 +81,12 @@ void main() {
 
     // Right catalog filter pills should NOT be rendered when panel is hidden
     expect(find.text('Featured Products'), findsNothing);
-    // Inline barcode search box inside Cart header SHOULD be present
+    // Inline barcode search box inside Cart header SHOULD be present (with detached Esc badge)
     expect(
-      find.text('Scan barcode / search item / 2*SKU [Esc]'),
+      find.text('Scan barcode / search item / 2*SKU'),
       findsOneWidget,
     );
+    expect(find.text('Esc'), findsWidgets);
     // Counter token button SHOULD be present
     expect(find.text('Send Token'), findsOneWidget);
 

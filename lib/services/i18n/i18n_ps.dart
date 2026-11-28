@@ -1,12 +1,12 @@
 /// Auto-generated PS extended dictionary for SmartPOS.
 const Map<String, String> i18nExtraPs = {
-  '+ Add New': '+ اضافه کړئ نوی',
-  '+ Allowances': '+ Allowances',
-  '+ Feed Consumed': '+ Feed Consumed',
-  '+ Folio Charge': '+ Folio Charge',
-  '+ Mortality': '+ Mortality',
-  '+ Pay': '+ Pay',
-  '+ Receive': '+ Receive',
+  '+ Add New': 'اضافه کړئ نوی',
+  '+ Allowances': 'Allowances',
+  '+ Feed Consumed': 'Feed Consumed',
+  '+ Folio Charge': 'Folio Charge',
+  '+ Mortality': 'Mortality',
+  '+ Pay': 'Pay',
+  '+ Receive': 'Receive',
   '- Deductions': '- Deductions',
   '1-Tap Apply': '1-Tap پلي کول',
   '1. Count': '1. شمېر',
@@ -281,12 +281,11 @@ const Map<String, String> i18nExtraPs = {
   'Capability Profile (ESC/POS)': 'Capability پروفایل (ESC/POS)',
   'Card / Online Terminal': 'Card / آنلاین Terminal',
   'Card / POS': 'Card / POS',
-  'Card [F8]': 'Card [F8]',
   'Cards View': 'Cards لیدل',
   'Carried forward from previous period': 'Carried forward from پخوانی period',
+  'Cash': 'نغد',
   'Cash Drawer / Register': 'نغد دراز / رجسټر',
   'Cash Register': 'نغد رجسټر',
-  'Cash [F2]': 'نغد [F2]',
   'Cash: {amount}': 'نغد: {amount}',
   'Cashier / Counter': 'Cashier / Counter',
   'Categories & Sub-Categories': 'کټګورۍ & Sub-Categories',
@@ -329,7 +328,7 @@ const Map<String, String> i18nExtraPs = {
   'Client Machine Hardware ID:': 'Client Machine Hardware ID:',
   'Clock-In Time': 'Clock-In وخت',
   'Clock-Out Time': 'Clock-Out وخت',
-  'Close (ESC)': 'بندول (ESC)',
+  'Close': 'بندول',
   'Close Passbook': 'بندول Passbook',
   'Close fiscal years, snapshot balance sheets, carry forward ledgers, and audit agency books':
       'مالي کلونه وتړئ، بیلانس شیټ خوندي کړئ او حسابونه راتلونکي کال ته انتقال کړئ',
@@ -403,9 +402,7 @@ const Map<String, String> i18nExtraPs = {
   'Create Purchase Order (PO)': 'جوړول پیرود امر (PO)',
   'Create new customer and assign to current cart':
       'جوړول نوی پیرودونکی and assign to اوسنی cart',
-  'Credit / Khata / Udhaar Sale [F6]':
-      'پور / کریډیټ / Khata / Udhaar پلور [F6]',
-  'Credit / Khata [F6]': 'پور / کریډیټ / Khata [F6]',
+  'Credit / Khata / Udhaar Sale': 'پور / کریډیټ / Khata / Udhaar پلور',
   'Current Month Payroll Register': 'اوسنی Month معاشات رجسټر',
   'Current Password': 'اوسنی پټنوم',
   'Current: {business}': 'اوسنی: {business}',
@@ -437,7 +434,7 @@ const Map<String, String> i18nExtraPs = {
   'Days of Week (leave empty for all days)':
       'ورځې of Week (leave empty for ټول ورځې)',
   'Dead Stock (Slow)': 'Dead زیرمه (Slow)',
-  'Debit / Credit Card Payment [F8]': 'ډیبټ / پور / کریډیټ Card تادیه [F8]',
+  'Debit / Credit Card Payment': 'ډیبټ / پور / کریډیټ Card تادیه',
   'Debit Note / Purchase Return': 'ډیبټ Note / پیرود بیرته راګرځول',
   'Deduct & Attach': 'Deduct & Attach',
   'Deduct Raw Material Product (Optional)':
@@ -819,7 +816,6 @@ const Map<String, String> i18nExtraPs = {
   'Move inventory between branches or warehouses':
       'Move انوینټري between branches or warehouses',
   'Multi-Industry Business Hub': 'Multi-Industry کاروبار Hub',
-  'Multiple Pay [F7]': 'Multiple Pay [F7]',
   'My Profile & Roles': 'My پروفایل & Roles',
   'N/A': 'N/A',
   'NET PROFIT': 'خالص ګټه',
@@ -1001,7 +997,6 @@ const Map<String, String> i18nExtraPs = {
   'Pallet / Lot & Serial Range Tracking': 'پلیټ / لاټ & سیریل Range Tracking',
   'Pallet / Lot No.': 'پلیټ / لاټ هیڅ.',
   'Paper Size': 'Paper اندازه',
-  'Park [F4]': 'Park [F4]',
   'Partial': 'جزوي',
   'Parts Attached to Job:': 'Parts Attached to دنده:',
   'Parts Used: {parts}': 'Parts Used: {parts}',

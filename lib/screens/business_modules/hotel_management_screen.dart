@@ -948,7 +948,7 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.add_shopping_cart, size: 16),
-                    label: Text(PosLocalization.tr('+ Folio Charge',
+                    label: Text(PosLocalization.tr('Folio Charge',
                         settings: widget.settings)),
                     onPressed: () {
                       Navigator.pop(ctx);

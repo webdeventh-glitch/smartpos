@@ -206,5 +206,57 @@ void main() {
       expect(PosLocalization.tr('Cheque Management', settings: enUrSettings),
           'Cheque Management (چیک مینجمنٹ)');
     });
+
+    test(
+        'Rule 5: Shortcuts and symbols are detached from translations across all languages',
+        () {
+      final enUrSettings = BusinessSettings(
+        primaryLanguage: 'en',
+        enableSecondaryLanguage: true,
+        secondaryLanguage: 'ur',
+      );
+      final urSettings = BusinessSettings(primaryLanguage: 'ur');
+      final faSettings = BusinessSettings(primaryLanguage: 'fa');
+
+      final cashEnUr = PosLocalization.tr('Cash', settings: enUrSettings);
+      expect(cashEnUr, 'Cash (نقد وصولی)');
+      expect(cashEnUr.contains('[F2]'), isFalse);
+      expect(PosLocalization.tr('Cash', settings: urSettings), 'نقد وصولی');
+      expect(PosLocalization.tr('Recent Sales', settings: faSettings),
+          'فروش‌های اخیر');
+
+      final discLabel = PosLocalization.tr('DISCOUNT', settings: enUrSettings);
+      expect(discLabel, 'DISCOUNT (رعایت)');
+      expect(discLabel.contains('(-)'), isFalse);
+
+      final taxLabel = PosLocalization.tr('ORDER TAX', settings: enUrSettings);
+      expect(taxLabel, 'ORDER TAX (ٹیکس)');
+      expect(taxLabel.contains('(+)'), isFalse);
+
+      final addFirstLabel =
+          PosLocalization.tr('Add First Product', settings: enUrSettings);
+      expect(addFirstLabel, 'Add First Product (پہلی پروڈکٹ شامل کریں)');
+      expect(addFirstLabel.contains('+'), isFalse);
+
+      // Clean lookup never leaks shortcut tokens in any language
+      expect(
+          PosLocalization.tr('Scan barcode / search item / 2*SKU',
+                  settings: urSettings)
+              .contains('[Esc]'),
+          isFalse);
+      expect(
+          PosLocalization.tr('Select Customer', settings: urSettings)
+              .contains('(F3)'),
+          isFalse);
+
+      // Even if a legacy shortcut/symbol key is passed directly, bilingual mode strips duplicates
+      final legacyCash =
+          PosLocalization.tr('Cash [F2]', settings: enUrSettings);
+      expect('[F2]'.allMatches(legacyCash).length, 1);
+      final legacyEsc = PosLocalization.tr(
+          'Scan barcode / search item / 2*SKU [Esc]',
+          settings: enUrSettings);
+      expect('[Esc]'.allMatches(legacyEsc).length, 1);
+    });
   });
 }

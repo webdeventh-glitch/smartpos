@@ -979,11 +979,8 @@ class _RecordContactPaymentDialogState
             runSpacing: 4,
             children: [
               _buildQuickChip(
-                label: PosLocalization.trParams(
-                  'Full Due ({currency}{amount})',
-                  {'currency': cur, 'amount': totalDue.toStringAsFixed(0)},
-                  settings: widget.settings,
-                ),
+                label:
+                    '${PosLocalization.tr('Full Due', settings: widget.settings)} ($cur${totalDue.toStringAsFixed(0)})',
                 onTap: () => _setAmount(totalDue),
                 isDark: isDark,
               ),

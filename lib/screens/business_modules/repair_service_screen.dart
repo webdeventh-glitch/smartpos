@@ -7,6 +7,7 @@ import '../../services/database_service.dart';
 import '../../services/messaging_service.dart';
 import '../../services/pdf_export_service.dart';
 import '../../services/localization_service.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 
 class RepairServiceScreen extends StatefulWidget {
@@ -1130,32 +1131,22 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                           settings: widget.settings),
                       style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<Product>(
-                    initialValue: selectedProduct,
-                    decoration: InputDecoration(
-                      labelText: PosLocalization.tr(
-                          'Select Spare Part (Screen, Battery, IC, Cable)',
-                          settings: widget.settings),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      isDense: true,
-                    ),
-                    items: allProducts
-                        .map((p) => DropdownMenuItem(
-                            value: p,
-                            child: Text(
-                                PosLocalization.trParams(
-                                    '{name} (Stock: {stock} • {currency}{price})',
-                                    {
-                                      'name': p.name,
-                                      'stock': '${p.stockQuantity.toInt()}',
-                                      'currency': currency,
-                                      'price':
-                                          p.sellingPrice.toStringAsFixed(2),
-                                    },
-                                    settings: widget.settings),
-                                style: const TextStyle(fontSize: 13))))
-                        .toList(),
+                  SearchableDropdownField<Product>(
+                    label: PosLocalization.tr(
+                        'Select Spare Part (Screen, Battery, IC, Cable)',
+                        settings: widget.settings),
+                    selectedItem: selectedProduct,
+                    items: allProducts,
+                    labelBuilder: (p) =>
+                        '${p.name} (Stock: ${p.stockQuantity.toInt()} • $currency${p.sellingPrice.toStringAsFixed(2)})',
+                    filter: (p, q) =>
+                        p.name.toLowerCase().contains(q) ||
+                        p.sku.toLowerCase().contains(q) ||
+                        p.barcode.toLowerCase().contains(q),
+                    placeholder: 'Search & select spare part...',
+                    searchHint: 'Search spare part...',
+                    prefixIcon: Icons.build_outlined,
+                    height: 40,
                     onChanged: (val) {
                       if (val != null) setDlgState(() => selectedProduct = val);
                     },

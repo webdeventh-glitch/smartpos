@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
+import '../../widgets/searchable_select_dialog.dart';
 
 class SalesReturnDialog extends StatefulWidget {
   final BusinessSettings settings;
@@ -754,25 +755,19 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
           children: [
             Expanded(
               flex: 3,
-              child: DropdownButtonFormField<Sale>(
-                initialValue: _selectedSale,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Select Sale Bill / Invoice *',
-                  isDense: true,
-                  prefixIcon: Icon(Icons.receipt_outlined, size: 18),
-                ),
-                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                items: _recentSales.map((s) {
-                  return DropdownMenuItem(
-                    value: s,
-                    child: Text(
-                      '${s.invoiceNo} — ${s.customerName} ($currency ${s.totalAmount.toStringAsFixed(2)})',
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  );
-                }).toList(),
+              child: SearchableDropdownField<Sale>(
+                label: 'Select Sale Bill / Invoice *',
+                selectedItem: _selectedSale,
+                items: _recentSales,
+                labelBuilder: (s) =>
+                    '${s.invoiceNo} — ${s.customerName} ($currency ${s.totalAmount.toStringAsFixed(2)})',
+                filter: (s, q) =>
+                    s.invoiceNo.toLowerCase().contains(q) ||
+                    s.customerName.toLowerCase().contains(q),
+                placeholder: 'Search & select invoice...',
+                searchHint: 'Search by invoice no or customer...',
+                prefixIcon: Icons.receipt_outlined,
+                height: 40,
                 onChanged: (sale) {
                   if (sale != null) _selectSale(sale);
                 },
@@ -1197,27 +1192,23 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
         Row(
           children: [
             Expanded(
-              child: DropdownButtonFormField<Contact?>(
-                initialValue: _customers.contains(_manualCustomer)
+              child: SearchableDropdownField<Contact>(
+                label: 'Customer (Walk-in or Registered)',
+                selectedItem: _customers.contains(_manualCustomer)
                     ? _manualCustomer
                     : null,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                    labelText: 'Customer (Walk-in or Registered)',
-                    isDense: true),
-                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                items: [
-                  const DropdownMenuItem<Contact?>(
-                    value: null,
-                    child: Text('Walk-in Customer (No Khata)'),
-                  ),
-                  ..._customers.map(
-                    (c) => DropdownMenuItem<Contact?>(
-                      value: c,
-                      child: Text(c.name, overflow: TextOverflow.ellipsis),
-                    ),
-                  ),
-                ],
+                items: _customers,
+                labelBuilder: (c) => c.name,
+                subtitleBuilder: (c) => c.phone.isNotEmpty ? c.phone : null,
+                filter: (c, q) =>
+                    c.name.toLowerCase().contains(q) ||
+                    c.phone.toLowerCase().contains(q),
+                placeholder: 'Walk-in Customer (No Khata)',
+                searchHint: 'Search customer...',
+                prefixIcon: Icons.person_outline_rounded,
+                height: 40,
+                allowClear: true,
+                clearLabel: 'Walk-in Customer (No Khata)',
                 onChanged: (v) => setState(() => _manualCustomer = v),
               ),
             ),
@@ -1264,24 +1255,23 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
               child: Row(
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<Product>(
-                      initialValue: _manualProduct,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Or Pick Product *',
-                        isDense: true,
-                      ),
-                      dropdownColor:
-                          isDark ? const Color(0xFF1E293B) : Colors.white,
-                      items: _allProducts.take(150).map((p) {
-                        return DropdownMenuItem(
-                          value: p,
-                          child: Text(
-                            '${p.name} ($currency${p.sellingPrice.toStringAsFixed(0)})',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }).toList(),
+                    child: SearchableDropdownField<Product>(
+                      label: 'Or Pick Product *',
+                      selectedItem: _manualProduct,
+                      items: _allProducts,
+                      labelBuilder: (p) =>
+                          '${p.name} ($currency${p.sellingPrice.toStringAsFixed(0)})',
+                      subtitleBuilder: (p) => p.sku.isNotEmpty
+                          ? 'SKU: ${p.sku}${p.barcode.isNotEmpty ? ' • ${p.barcode}' : ''}'
+                          : null,
+                      filter: (p, q) =>
+                          p.name.toLowerCase().contains(q) ||
+                          p.sku.toLowerCase().contains(q) ||
+                          p.barcode.toLowerCase().contains(q),
+                      placeholder: 'Search & select product...',
+                      searchHint: 'Search product...',
+                      prefixIcon: Icons.inventory_2_outlined,
+                      height: 40,
                       onChanged: (p) => setState(() => _manualProduct = p),
                     ),
                   ),

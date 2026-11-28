@@ -9047,6 +9047,8 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
 
     PrintService.openPrintWindow(
+        context: context,
+        settings: tempSettings,
         htmlContent: html,
         title: _receiptPaperSize == 'a4'
             ? 'Sample-A4-Invoice'
@@ -11322,8 +11324,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.credit_card_outlined,
-                  title: PosLocalization.tr('Debit / Credit Card Payment [F8]',
-                      settings: widget.settings),
+                  title:
+                      '${PosLocalization.tr('Debit / Credit Card Payment', settings: widget.settings)} [F8]',
                   subtitle:
                       'Show Card checkout button (rarely used in local PK retail; off by default).',
                   value: _enableCardPayment,
@@ -11389,8 +11391,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.menu_book_rounded,
-                  title: PosLocalization.tr('Credit / Khata / Udhaar Sale [F6]',
-                      settings: widget.settings),
+                  title:
+                      '${PosLocalization.tr('Credit / Khata / Udhaar Sale', settings: widget.settings)} [F6]',
                   subtitle: 'Enable due/credit sale for registered customers.',
                   value: _enableCreditSale,
                   onChanged: (val) {

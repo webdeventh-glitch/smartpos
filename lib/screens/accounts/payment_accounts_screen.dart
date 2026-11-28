@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import 'account_statement_dialog.dart';
 import '../../services/localization_service.dart';
+import '../../widgets/searchable_select_dialog.dart';
 
 class PaymentAccountsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -475,61 +476,35 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _fieldLabel('From Account (Source)', isRequired: true),
-                      DropdownButtonFormField<PaymentAccount>(
-                        initialValue: fromAcc,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 12),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide:
-                                  const BorderSide(color: Color(0xFFCBD5E1))),
-                          enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide:
-                                  const BorderSide(color: Color(0xFFE2E8F0))),
-                        ),
-                        items: _accounts
-                            .map((a) => DropdownMenuItem(
-                                  value: a,
-                                  child: Text(
-                                      '${a.name} ($currency${a.currentBalance.toStringAsFixed(2)})',
-                                      style: const TextStyle(fontSize: 13)),
-                                ))
-                            .toList(),
+                      SearchableDropdownField<PaymentAccount>(
+                        selectedItem: fromAcc,
+                        items: _accounts,
+                        labelBuilder: (a) =>
+                            '${a.name} ($currency${a.currentBalance.toStringAsFixed(2)})',
+                        subtitleBuilder: (a) => a.accountType.isNotEmpty
+                            ? a.accountType.toUpperCase()
+                            : null,
+                        placeholder: 'Select Source Account...',
+                        searchHint: 'Search account...',
+                        prefixIcon: Icons.account_balance_outlined,
+                        height: 40,
                         onChanged: (val) =>
                             setDlgState(() => fromAcc = val ?? fromAcc),
                       ),
                       const SizedBox(height: 14),
                       _fieldLabel('To Account (Destination)', isRequired: true),
-                      DropdownButtonFormField<PaymentAccount>(
-                        initialValue: toAcc,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 12),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide:
-                                  const BorderSide(color: Color(0xFFCBD5E1))),
-                          enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide:
-                                  const BorderSide(color: Color(0xFFE2E8F0))),
-                        ),
-                        items: _accounts
-                            .map((a) => DropdownMenuItem(
-                                  value: a,
-                                  child: Text(
-                                      '${a.name} ($currency${a.currentBalance.toStringAsFixed(2)})',
-                                      style: const TextStyle(fontSize: 13)),
-                                ))
-                            .toList(),
+                      SearchableDropdownField<PaymentAccount>(
+                        selectedItem: toAcc,
+                        items: _accounts,
+                        labelBuilder: (a) =>
+                            '${a.name} ($currency${a.currentBalance.toStringAsFixed(2)})',
+                        subtitleBuilder: (a) => a.accountType.isNotEmpty
+                            ? a.accountType.toUpperCase()
+                            : null,
+                        placeholder: 'Select Destination Account...',
+                        searchHint: 'Search account...',
+                        prefixIcon: Icons.account_balance_outlined,
+                        height: 40,
                         onChanged: (val) =>
                             setDlgState(() => toAcc = val ?? toAcc),
                       ),

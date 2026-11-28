@@ -6,6 +6,7 @@ import '../../services/database_service.dart';
 import '../../services/regional_data_service.dart';
 import '../../widgets/barcode_type_badge.dart';
 import '../../widgets/product_thumbnail.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import '../../services/localization_service.dart';
 
 class AddProductDialog extends StatefulWidget {
@@ -53,7 +54,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
     final p = widget.productToEdit;
     _pickedImagePath = p?.resolvedImagePath;
     _isFeatured = p?.isFeatured ?? false;
-    _isExpirable = p?.expiryDate != null && p!.expiryDate!.trim().isNotEmpty;
+    _isExpirable = p != null &&
+        (p.isExpirable ||
+            (p.expiryDate != null && p.expiryDate!.trim().isNotEmpty));
     _nameController = TextEditingController(text: p?.name ?? '');
     _skuController = TextEditingController(text: p?.sku ?? '');
     _barcodeController = TextEditingController(text: p?.barcode ?? '');
@@ -248,6 +251,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
         bonusQty: double.tryParse(_bonusController.text.trim()) ?? 0.0,
         packSize: double.tryParse(_packSizeController.text.trim()) ?? 1.0,
         isFeatured: _isFeatured,
+        isExpirable: _isExpirable,
       );
 
       if (widget.productToEdit == null) {
@@ -496,30 +500,32 @@ class _AddProductDialogState extends State<AddProductDialog> {
                       Row(
                         children: [
                           Expanded(
-                            child: DropdownButtonFormField<Category>(
-                              decoration: InputDecoration(
-                                  labelText: PosLocalization.tr('Category'),
-                                  isDense: true),
-                              initialValue: _selectedCategory,
-                              items: _categories
-                                  .map((c) => DropdownMenuItem(
-                                      value: c, child: Text(c.name)))
-                                  .toList(),
+                            child: SearchableDropdownField<Category>(
+                              label: PosLocalization.tr('Category'),
+                              selectedItem: _selectedCategory,
+                              items: _categories,
+                              labelBuilder: (c) => c.name,
+                              placeholder: 'Select Category...',
+                              searchHint: 'Search category...',
+                              prefixIcon: Icons.category_outlined,
+                              height: 40,
+                              allowClear: true,
                               onChanged: (val) =>
                                   setState(() => _selectedCategory = val),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: DropdownButtonFormField<Brand>(
-                              decoration: InputDecoration(
-                                  labelText: PosLocalization.tr('Brand'),
-                                  isDense: true),
-                              initialValue: _selectedBrand,
-                              items: _brands
-                                  .map((b) => DropdownMenuItem(
-                                      value: b, child: Text(b.name)))
-                                  .toList(),
+                            child: SearchableDropdownField<Brand>(
+                              label: PosLocalization.tr('Brand'),
+                              selectedItem: _selectedBrand,
+                              items: _brands,
+                              labelBuilder: (b) => b.name,
+                              placeholder: 'Select Brand...',
+                              searchHint: 'Search brand...',
+                              prefixIcon: Icons.branding_watermark_outlined,
+                              height: 40,
+                              allowClear: true,
                               onChanged: (val) =>
                                   setState(() => _selectedBrand = val),
                             ),

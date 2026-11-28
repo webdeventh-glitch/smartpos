@@ -1,4 +1,6 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/localization_service.dart';
 
 /// Generic Searchable Select Dialog for fast searching and selection of entities
@@ -182,8 +184,7 @@ class _SearchableSelectDialogState<T> extends State<SearchableSelectDialog<T>> {
                           ),
                           icon: const Icon(Icons.add_circle_outline, size: 16),
                           label: Text(
-                            widget.addNewLabel ??
-                                PosLocalization.tr('+ Add New'),
+                            widget.addNewLabel ?? PosLocalization.tr('Add New'),
                             style: const TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.bold),
                           ),
@@ -688,6 +689,7 @@ class SearchableDropdownField<T> extends StatefulWidget {
   final List<T> items;
   final String Function(T) labelBuilder;
   final String? Function(T)? subtitleBuilder;
+  final bool Function(T item, String query)? filter;
   final String placeholder;
   final String searchHint;
   final IconData prefixIcon;
@@ -695,6 +697,8 @@ class SearchableDropdownField<T> extends StatefulWidget {
   final VoidCallback? onAdd;
   final bool allowClear;
   final String clearLabel;
+  final double height;
+  final bool showSearch;
 
   const SearchableDropdownField({
     super.key,
@@ -704,6 +708,7 @@ class SearchableDropdownField<T> extends StatefulWidget {
     required this.items,
     required this.labelBuilder,
     this.subtitleBuilder,
+    this.filter,
     required this.placeholder,
     this.searchHint = 'Search...',
     required this.prefixIcon,
@@ -711,6 +716,8 @@ class SearchableDropdownField<T> extends StatefulWidget {
     this.onAdd,
     this.allowClear = false,
     this.clearLabel = 'None / Clear',
+    this.height = 44,
+    this.showSearch = true,
   });
 
   @override
@@ -726,14 +733,31 @@ class _SearchableDropdownFieldState<T>
   OverlayEntry? _overlayEntry;
 
   @override
+  void reassemble() {
+    _closeDropdown();
+    super.reassemble();
+  }
+
+  @override
   void dispose() {
     _closeDropdown();
     super.dispose();
   }
 
   void _closeDropdown() {
-    _overlayEntry?.remove();
+    final entry = _overlayEntry;
     _overlayEntry = null;
+    if (entry != null && entry.mounted) {
+      entry.remove();
+    }
+  }
+
+  bool _matchesQuery(T item, String queryLower) {
+    if (queryLower.isEmpty) return true;
+    if (widget.filter != null) return widget.filter!(item, queryLower);
+    final lbl = widget.labelBuilder(item).toLowerCase();
+    final sub = widget.subtitleBuilder?.call(item)?.toLowerCase() ?? '';
+    return lbl.contains(queryLower) || sub.contains(queryLower);
   }
 
   void _toggleDropdown() {
@@ -744,7 +768,15 @@ class _SearchableDropdownFieldState<T>
 
     final boxContext = _fieldKey.currentContext;
     final box = boxContext?.findRenderObject() as RenderBox?;
-    final width = box?.size.width ?? 280.0;
+    final width = math.max(box?.size.width ?? 280.0, 220.0);
+    final fieldHeight = box?.size.height ?? widget.height;
+    final fieldTopLeft = box?.localToGlobal(Offset.zero) ?? Offset.zero;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final spaceBelow = screenHeight - (fieldTopLeft.dy + fieldHeight);
+    final spaceAbove = fieldTopLeft.dy;
+    final openUpward = spaceBelow < 180 && spaceAbove > spaceBelow;
+    final maxMenuHeight =
+        ((openUpward ? spaceAbove : spaceBelow) - 16).clamp(140.0, 280.0);
     String query = '';
 
     _overlayEntry = OverlayEntry(
@@ -762,183 +794,203 @@ class _SearchableDropdownFieldState<T>
           child: CompositedTransformFollower(
             link: _layerLink,
             showWhenUnlinked: false,
-            offset: const Offset(0, 48),
+            targetAnchor: openUpward ? Alignment.topLeft : Alignment.bottomLeft,
+            followerAnchor:
+                openUpward ? Alignment.bottomLeft : Alignment.topLeft,
+            offset: Offset(0, openUpward ? -4 : 4),
             child: TapRegion(
               groupId: _tapGroup,
               onTapOutside: (_) => _closeDropdown(),
-              child: StatefulBuilder(
-                builder: (ctx, setDropState) {
-                  final q = query.trim().toLowerCase();
-                  final filtered = widget.items.where((item) {
-                    if (q.isEmpty) return true;
-                    final lbl = widget.labelBuilder(item).toLowerCase();
-                    final sub =
-                        widget.subtitleBuilder?.call(item)?.toLowerCase() ?? '';
-                    return lbl.contains(q) || sub.contains(q);
-                  }).toList();
+              child: CallbackShortcuts(
+                bindings: {
+                  const SingleActivator(LogicalKeyboardKey.escape):
+                      _closeDropdown,
+                },
+                child: StatefulBuilder(
+                  builder: (ctx, setDropState) {
+                    final q = query.trim().toLowerCase();
+                    final filtered = widget.items
+                        .where((item) => _matchesQuery(item, q))
+                        .toList();
 
-                  return Material(
-                    elevation: 10,
-                    borderRadius: BorderRadius.circular(10),
-                    color: bg,
-                    child: Container(
-                      constraints: const BoxConstraints(maxHeight: 280),
-                      decoration: BoxDecoration(
-                        color: bg,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: borderCol),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: TextField(
-                              autofocus: true,
-                              style:
-                                  TextStyle(fontSize: 13, color: textPrimary),
-                              decoration: InputDecoration(
-                                hintText: PosLocalization.tr(widget.searchHint),
-                                hintStyle: TextStyle(
-                                    fontSize: 12, color: textSecondary),
-                                prefixIcon: Icon(Icons.search,
-                                    size: 17, color: textSecondary),
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 8),
-                                filled: true,
-                                fillColor: isDark
-                                    ? const Color(0xFF0F172A)
-                                    : const Color(0xFFF8FAFC),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: borderCol),
-                                ),
-                              ),
-                              onChanged: (v) => setDropState(() => query = v),
-                            ),
-                          ),
-                          Divider(
-                              height: 1,
-                              color: borderCol.withValues(alpha: 0.5)),
-                          if (widget.allowClear && widget.selectedItem != null)
-                            InkWell(
-                              onTap: () {
-                                widget.onChanged(null);
-                                _closeDropdown();
-                              },
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                        color:
-                                            borderCol.withValues(alpha: 0.4)),
-                                  ),
-                                ),
-                                child: Text(
-                                  PosLocalization.tr(widget.clearLabel),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFFEF4444),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          Flexible(
-                            child: filtered.isEmpty
-                                ? Padding(
-                                    padding: const EdgeInsets.all(14),
-                                    child: Text(
-                                      PosLocalization.tr('No results found'),
-                                      style: TextStyle(
-                                          fontSize: 12.5, color: textSecondary),
+                    return Material(
+                      elevation: 10,
+                      borderRadius: BorderRadius.circular(10),
+                      color: bg,
+                      child: Container(
+                        constraints: BoxConstraints(maxHeight: maxMenuHeight),
+                        decoration: BoxDecoration(
+                          color: bg,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: borderCol),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.showSearch) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: TextField(
+                                  autofocus: true,
+                                  style: TextStyle(
+                                      fontSize: 13, color: textPrimary),
+                                  decoration: InputDecoration(
+                                    hintText:
+                                        PosLocalization.tr(widget.searchHint),
+                                    hintStyle: TextStyle(
+                                        fontSize: 12, color: textSecondary),
+                                    prefixIcon: Icon(Icons.search,
+                                        size: 17, color: textSecondary),
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 8),
+                                    filled: true,
+                                    fillColor: isDark
+                                        ? const Color(0xFF0F172A)
+                                        : const Color(0xFFF8FAFC),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(color: borderCol),
                                     ),
-                                  )
-                                : ListView.separated(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 4),
-                                    shrinkWrap: true,
-                                    itemCount: filtered.length,
-                                    separatorBuilder: (_, __) => Divider(
-                                        height: 1,
-                                        color:
-                                            borderCol.withValues(alpha: 0.35)),
-                                    itemBuilder: (_, idx) {
-                                      final item = filtered[idx];
-                                      final isSel = widget.selectedItem !=
-                                              null &&
-                                          widget.labelBuilder(
-                                                  widget.selectedItem as T) ==
-                                              widget.labelBuilder(item);
-                                      final sub =
-                                          widget.subtitleBuilder?.call(item);
-                                      return InkWell(
-                                        onTap: () {
-                                          widget.onChanged(item);
-                                          _closeDropdown();
-                                        },
-                                        child: Container(
-                                          color: isSel
-                                              ? const Color(0xFF4F46E5)
-                                                  .withValues(alpha: 0.08)
-                                              : null,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 9),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      widget.labelBuilder(item),
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        fontWeight: isSel
-                                                            ? FontWeight.w700
-                                                            : FontWeight.w500,
-                                                        color: textPrimary,
-                                                      ),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                    if (sub != null &&
-                                                        sub.isNotEmpty)
+                                  ),
+                                  onChanged: (v) =>
+                                      setDropState(() => query = v),
+                                  onSubmitted: (_) {
+                                    if (filtered.isNotEmpty) {
+                                      widget.onChanged(filtered.first);
+                                      _closeDropdown();
+                                    }
+                                  },
+                                ),
+                              ),
+                              Divider(
+                                  height: 1,
+                                  color: borderCol.withValues(alpha: 0.5)),
+                            ],
+                            if (widget.allowClear &&
+                                widget.selectedItem != null)
+                              InkWell(
+                                onTap: () {
+                                  widget.onChanged(null);
+                                  _closeDropdown();
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                          color:
+                                              borderCol.withValues(alpha: 0.4)),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    PosLocalization.tr(widget.clearLabel),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFEF4444),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            Flexible(
+                              child: filtered.isEmpty
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(14),
+                                      child: Text(
+                                        PosLocalization.tr('No results found'),
+                                        style: TextStyle(
+                                            fontSize: 12.5,
+                                            color: textSecondary),
+                                      ),
+                                    )
+                                  : ListView.separated(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 4),
+                                      shrinkWrap: true,
+                                      itemCount: filtered.length,
+                                      separatorBuilder: (_, __) => Divider(
+                                          height: 1,
+                                          color: borderCol.withValues(
+                                              alpha: 0.35)),
+                                      itemBuilder: (_, idx) {
+                                        final item = filtered[idx];
+                                        final isSel = widget.selectedItem !=
+                                                null &&
+                                            widget.labelBuilder(
+                                                    widget.selectedItem as T) ==
+                                                widget.labelBuilder(item);
+                                        final sub =
+                                            widget.subtitleBuilder?.call(item);
+                                        return InkWell(
+                                          onTap: () {
+                                            widget.onChanged(item);
+                                            _closeDropdown();
+                                          },
+                                          child: Container(
+                                            color: isSel
+                                                ? const Color(0xFF4F46E5)
+                                                    .withValues(alpha: 0.08)
+                                                : null,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 9),
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
                                                       Text(
-                                                        sub,
+                                                        widget
+                                                            .labelBuilder(item),
                                                         style: TextStyle(
-                                                          fontSize: 11,
-                                                          color: textSecondary,
+                                                          fontSize: 13,
+                                                          fontWeight: isSel
+                                                              ? FontWeight.w700
+                                                              : FontWeight.w500,
+                                                          color: textPrimary,
                                                         ),
                                                         overflow: TextOverflow
                                                             .ellipsis,
                                                       ),
-                                                  ],
+                                                      if (sub != null &&
+                                                          sub.isNotEmpty)
+                                                        Text(
+                                                          sub,
+                                                          style: TextStyle(
+                                                            fontSize: 11,
+                                                            color:
+                                                                textSecondary,
+                                                          ),
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
-                                              if (isSel)
-                                                const Icon(
-                                                  Icons.check_rounded,
-                                                  size: 16,
-                                                  color: Color(0xFF4F46E5),
-                                                ),
-                                            ],
+                                                if (isSel)
+                                                  const Icon(
+                                                    Icons.check_rounded,
+                                                    size: 16,
+                                                    color: Color(0xFF4F46E5),
+                                                  ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                          ),
-                        ],
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -994,7 +1046,7 @@ class _SearchableDropdownFieldState<T>
                     onTap: _toggleDropdown,
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      height: 44,
+                      height: widget.height,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF1E293B) : Colors.white,

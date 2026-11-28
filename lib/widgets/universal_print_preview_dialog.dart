@@ -51,25 +51,43 @@ class _UniversalPrintPreviewDialogState
   Future<void> _handlePrint() async {
     setState(() => _isPrinting = true);
     final html = _getHtml(_selectedPaperSize);
-    final success = await PrintService.openPrintWindow(
-        htmlContent: html, title: widget.title);
+    final res = await PrintService.printHtmlDocument(
+      context: context,
+      settings: widget.settings,
+      htmlContent: html,
+      title: widget.title,
+      paperSize: _selectedPaperSize,
+      pdfFallback: widget.pdfGenerator != null
+          ? () => widget.pdfGenerator!(_selectedPaperSize)
+          : null,
+    );
     if (mounted) {
       setState(() => _isPrinting = false);
-      if (success) {
+      if (res.printed) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 const Icon(Icons.print_rounded, color: Colors.white, size: 18),
                 const SizedBox(width: 8),
-                Text(PosLocalization.tr(
-                    'Document dispatched to Windows Print Manager!',
-                    settings: widget.settings)),
+                Expanded(
+                  child: Text(PosLocalization.tr(
+                      'Document dispatched to Windows Print Manager!',
+                      settings: widget.settings)),
+                ),
               ],
             ),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 3),
+          ),
+        );
+      } else if (res.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Print failed: ${res.error}'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }

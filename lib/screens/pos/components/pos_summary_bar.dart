@@ -28,7 +28,6 @@ class PosSummaryBar extends StatelessWidget {
   final VoidCallback onEditDiscount;
   final VoidCallback onEditTax;
   final VoidCallback onEditShipping;
-  final VoidCallback onWordsLanguageTap;
   final VoidCallback onCancel;
   final VoidCallback onParkSale;
   final VoidCallback onDraftQuote;
@@ -61,7 +60,6 @@ class PosSummaryBar extends StatelessWidget {
     required this.onEditDiscount,
     required this.onEditTax,
     required this.onEditShipping,
-    required this.onWordsLanguageTap,
     required this.onCancel,
     required this.onParkSale,
     required this.onDraftQuote,
@@ -74,9 +72,78 @@ class PosSummaryBar extends StatelessWidget {
     required this.onQuickCash,
   });
 
+  Widget _symbolBadge(String symbol, {required bool isDark}) {
+    final isMinus = symbol == '-';
+    final fg = isMinus ? const Color(0xFFDC2626) : const Color(0xFF059669);
+    final bg = (isMinus ? const Color(0xFFEF4444) : const Color(0xFF10B981))
+        .withValues(alpha: isDark ? 0.22 : 0.12);
+    return Directionality(
+      textDirection: ui.TextDirection.ltr,
+      child: Container(
+        margin: const EdgeInsetsDirectional.only(start: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0.5),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          '($symbol)',
+          style: TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w800,
+            color: fg,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _shortcutBadge(
+    String keyLabel, {
+    bool onSolid = false,
+    Color? fgColor,
+    required bool isDark,
+  }) {
+    final fg = onSolid
+        ? Colors.white
+        : (fgColor ?? (isDark ? Colors.white : const Color(0xFF334155)));
+    final bg = onSolid
+        ? Colors.white.withValues(alpha: 0.20)
+        : (fgColor != null
+            ? fgColor.withValues(alpha: 0.12)
+            : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)));
+    final border = onSolid
+        ? Colors.white.withValues(alpha: 0.35)
+        : (fgColor != null
+            ? fgColor.withValues(alpha: 0.35)
+            : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)));
+
+    return Directionality(
+      textDirection: ui.TextDirection.ltr,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: border, width: 0.8),
+        ),
+        child: Text(
+          keyLabel,
+          style: TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w800,
+            color: fg,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _summaryBlock(
     String label,
     String value, {
+    String? symbol,
     bool isEditable = false,
     VoidCallback? onEdit,
     required bool isDark,
@@ -104,6 +171,7 @@ class PosSummaryBar extends StatelessWidget {
                         : const Color(0xFF64748B),
                   ),
                 ),
+                if (symbol != null) _symbolBadge(symbol, isDark: isDark),
                 if (isEditable) ...[
                   const SizedBox(width: 2),
                   Icon(
@@ -174,13 +242,14 @@ class PosSummaryBar extends StatelessWidget {
                         ),
                         SizedBox(width: isSmallScreen ? 8 : 14),
                         _summaryBlock(
-                          PosLocalization.tr('DISCOUNT(-)', settings: settings),
+                          PosLocalization.tr('DISCOUNT', settings: settings),
                           discountValue <= 0
                               ? '$currency 0.00'
                               : (discountType == 'percentage'
                                   ? '${discountValue.toStringAsFixed(discountValue.truncateToDouble() == discountValue ? 0 : 2)}% (${CurrencyFormatter.exact(calculatedDiscount, currency: '$currency ')})'
                                   : CurrencyFormatter.exact(calculatedDiscount,
                                       currency: '$currency ')),
+                          symbol: '-',
                           isEditable: true,
                           onEdit: onEditDiscount,
                           isDark: isDark,
@@ -188,10 +257,10 @@ class PosSummaryBar extends StatelessWidget {
                         ),
                         SizedBox(width: isSmallScreen ? 8 : 14),
                         _summaryBlock(
-                          PosLocalization.tr('ORDER TAX(+)',
-                              settings: settings),
+                          PosLocalization.tr('ORDER TAX', settings: settings),
                           CurrencyFormatter.exact(orderTax,
                               currency: '$currency '),
+                          symbol: '+',
                           isEditable: true,
                           onEdit: onEditTax,
                           isDark: isDark,
@@ -199,9 +268,10 @@ class PosSummaryBar extends StatelessWidget {
                         ),
                         SizedBox(width: isSmallScreen ? 8 : 14),
                         _summaryBlock(
-                          PosLocalization.tr('SHIPPING(+)', settings: settings),
+                          PosLocalization.tr('SHIPPING', settings: settings),
                           CurrencyFormatter.exact(shippingCharge,
                               currency: '$currency '),
+                          symbol: '+',
                           isEditable: true,
                           onEdit: onEditShipping,
                           isDark: isDark,
@@ -213,110 +283,82 @@ class PosSummaryBar extends StatelessWidget {
                 ),
                 SizedBox(width: isSmallScreen ? 8 : 16),
 
-                // Big Green TOTAL PAYABLE Box with Words
-                InkWell(
-                  onTap: onWordsLanguageTap,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Tooltip(
-                    message: PosLocalization.trParams(
-                      'Click to change words language ({lang})',
-                      {'lang': wordsLanguage.toUpperCase()},
-                      settings: settings,
+                // Big Green TOTAL PAYABLE Box with Words (Language controlled in Settings only)
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 10 : 16,
+                    vertical: isSmallScreen ? 4 : 6,
+                  ),
+                  constraints: BoxConstraints(
+                    minWidth: isSmallScreen ? 130 : 160,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF064E3B) : Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF059669)
+                          : const Color(0xFF86EFAC),
                     ),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isSmallScreen ? 10 : 16,
-                        vertical: isSmallScreen ? 4 : 6,
-                      ),
-                      constraints: BoxConstraints(
-                        minWidth: isSmallScreen ? 130 : 160,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF064E3B) : Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        PosLocalization.tr('TOTAL PAYABLE', settings: settings),
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 10 : 11,
+                          fontWeight: FontWeight.w900,
                           color: isDark
-                              ? const Color(0xFF059669)
-                              : const Color(0xFF86EFAC),
+                              ? const Color(0xFF6EE7B7)
+                              : const Color(0xFF16A34A),
+                          letterSpacing: isSmallScreen ? 0.4 : 0.8,
                         ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.translate,
-                                size: isSmallScreen ? 10 : 11,
-                                color: isDark
-                                    ? const Color(0xFF6EE7B7)
-                                        .withValues(alpha: 0.8)
-                                    : const Color(0xFF16A34A)
-                                        .withValues(alpha: 0.8),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                PosLocalization.tr('TOTAL PAYABLE',
-                                    settings: settings),
-                                style: TextStyle(
-                                  fontSize: isSmallScreen ? 10 : 11,
-                                  fontWeight: FontWeight.w900,
-                                  color: isDark
-                                      ? const Color(0xFF6EE7B7)
-                                      : const Color(0xFF16A34A),
-                                  letterSpacing: isSmallScreen ? 0.4 : 0.8,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Text(
-                            CurrencyFormatter.exact(grandTotal),
-                            style: TextStyle(
-                              fontSize: isSmallScreen ? 20 : 26,
-                              fontWeight: FontWeight.w900,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF15803D),
-                              height: 1.1,
-                            ),
-                          ),
-                          if (grandTotal > 0)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth: isSmallScreen ? 180 : 240,
-                                ),
-                                child: Text(
-                                  NumberToWordsService.convert(
-                                    grandTotal,
-                                    language: wordsLanguage,
-                                    currencySymbol: settings.currencySymbol,
-                                    currencyCode: settings.currencyCode,
-                                  ),
-                                  textDirection:
-                                      NumberToWordsService.isRtl(wordsLanguage)
-                                          ? ui.TextDirection.rtl
-                                          : ui.TextDirection.ltr,
-                                  textAlign: TextAlign.right,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: isSmallScreen ? 9.5 : 11,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.2,
-                                    color: isDark
-                                        ? const Color(0xFFA7F3D0)
-                                        : const Color(0xFF166534),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
+                      Text(
+                        CurrencyFormatter.exact(grandTotal),
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 20 : 26,
+                          fontWeight: FontWeight.w900,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF15803D),
+                          height: 1.1,
+                        ),
                       ),
-                    ),
+                      if (grandTotal > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: isSmallScreen ? 180 : 240,
+                            ),
+                            child: Text(
+                              NumberToWordsService.convert(
+                                grandTotal,
+                                language: wordsLanguage,
+                                currencySymbol: settings.currencySymbol,
+                                currencyCode: settings.currencyCode,
+                              ),
+                              textDirection:
+                                  NumberToWordsService.isRtl(wordsLanguage)
+                                      ? ui.TextDirection.rtl
+                                      : ui.TextDirection.ltr,
+                              textAlign: TextAlign.right,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 9.5 : 11,
+                                fontWeight: FontWeight.w700,
+                                height: 1.2,
+                                color: isDark
+                                    ? const Color(0xFFA7F3D0)
+                                    : const Color(0xFF166534),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -408,10 +450,19 @@ class PosSummaryBar extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6)),
                         ),
                         icon: const Icon(Icons.pause_circle_outline, size: 14),
-                        label: Text(
-                          PosLocalization.tr('Park [F4]', settings: settings),
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold),
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              PosLocalization.tr('Park', settings: settings),
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(width: 6),
+                            _shortcutBadge('F4',
+                                fgColor: const Color(0xFFF59E0B),
+                                isDark: isDark),
+                          ],
                         ),
                         onPressed: onParkSale,
                       ),
@@ -450,11 +501,20 @@ class PosSummaryBar extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(6)),
                           ),
                           icon: const Icon(Icons.menu_book_rounded, size: 14),
-                          label: Text(
-                            PosLocalization.tr('Credit / Khata [F6]',
-                                settings: settings),
-                            style: const TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.bold),
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                PosLocalization.tr('Credit / Khata',
+                                    settings: settings),
+                                style: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(width: 6),
+                              _shortcutBadge('F6',
+                                  fgColor: const Color(0xFF8B5CF6),
+                                  isDark: isDark),
+                            ],
                           ),
                           onPressed: onQuickCredit,
                         ),
@@ -480,11 +540,24 @@ class PosSummaryBar extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(6)),
                           ),
                           icon: const Icon(Icons.access_time_rounded, size: 14),
-                          label: Text(
-                            PosLocalization.tr('Recent Sales [F9]',
-                                settings: settings),
-                            style: const TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.bold),
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                PosLocalization.tr('Recent Sales',
+                                    settings: settings),
+                                style: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(width: 6),
+                              _shortcutBadge(
+                                'F9',
+                                fgColor: isDark
+                                    ? const Color(0xFFA5B4FC)
+                                    : const Color(0xFF4F46E5),
+                                isDark: isDark,
+                              ),
+                            ],
                           ),
                           onPressed: onRecentTransactions,
                         ),
@@ -494,7 +567,7 @@ class PosSummaryBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
 
-                // Primary Checkout Buttons (Card, Multiple Pay [F7], Cash [F2])
+                // Primary Checkout Buttons (Card, Multiple Pay, Cash)
                 Row(
                   children: [
                     if (settings.enableCardPayment) ...[
@@ -510,10 +583,23 @@ class PosSummaryBar extends StatelessWidget {
                             elevation: 2,
                           ),
                           icon: const Icon(Icons.credit_card, size: 18),
-                          label: Text(
-                            PosLocalization.tr('Card [F8]', settings: settings),
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w900),
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  PosLocalization.tr('Card',
+                                      settings: settings),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w900),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              _shortcutBadge('F8',
+                                  onSolid: true, isDark: isDark),
+                            ],
                           ),
                           onPressed: onQuickCard,
                         ),
@@ -532,11 +618,21 @@ class PosSummaryBar extends StatelessWidget {
                           elevation: 2,
                         ),
                         icon: const Icon(Icons.payment, size: 18),
-                        label: Text(
-                          PosLocalization.tr('Multiple Pay [F7]',
-                              settings: settings),
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w900),
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                PosLocalization.tr('Multiple Pay',
+                                    settings: settings),
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w900),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            _shortcutBadge('F7', onSolid: true, isDark: isDark),
+                          ],
                         ),
                         onPressed: onMultiplePay,
                       ),
@@ -554,10 +650,26 @@ class PosSummaryBar extends StatelessWidget {
                           elevation: 3,
                         ),
                         icon: const Icon(Icons.flash_on_rounded, size: 20),
-                        label: Text(
-                          '${PosLocalization.tr('Cash [F2]', settings: settings)} • $currency ${grandTotal.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w900),
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                PosLocalization.tr('Cash', settings: settings),
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.w900),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            _shortcutBadge('F2', onSolid: true, isDark: isDark),
+                            const SizedBox(width: 6),
+                            Text(
+                              '• $currency ${grandTotal.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w900),
+                            ),
+                          ],
                         ),
                         onPressed: onQuickCash,
                       ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,7 +30,6 @@ import 'recent_transactions_dialog.dart';
 import '../../widgets/calculator_dialog.dart';
 import '../products/add_product_dialog.dart';
 import '../../services/currency_rate_service.dart';
-import '../../services/number_to_words_service.dart';
 import '../../services/thermal_printer_service.dart';
 import '../../services/localization_service.dart';
 import '../../services/weight_scale_service.dart';
@@ -150,6 +150,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   static const Object _productDropdownTapGroup = Object();
   List<Category> _categories = [];
   List<Brand> _brands = [];
+  final Map<String, List<Unit>> _conversionUnitsCache = {};
   int? _selectedCategoryId;
   int? _selectedBrandId;
   bool _filterFeatured = false;
@@ -180,16 +181,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   String _appliedPromoRuleName = '';
   bool _manualOrderDiscountOverride = false;
 
-  late String _wordsLanguage;
+  String get _wordsLanguage => widget.settings.hasEffectiveSecondaryLanguage
+      ? widget.settings.secondaryLanguage
+      : widget.settings.activePrimaryLanguage;
   late String _shortcutsJson;
   late Map<String, String> _shortcutBindings;
 
   @override
   void initState() {
     super.initState();
-    _wordsLanguage = widget.settings.hasEffectiveSecondaryLanguage
-        ? widget.settings.secondaryLanguage
-        : widget.settings.activePrimaryLanguage;
     _showProductPanel = widget.settings.showPosProductPanel;
     _shortcutsJson = widget.settings.keyboardShortcutsJson;
     _shortcutBindings =
@@ -282,109 +282,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         oldWidget.settings.serverPort != widget.settings.serverPort) {
       unawaited(LanRealtimeService.instance.configure(widget.settings));
     }
-    if (oldWidget.settings.primaryLanguage != widget.settings.primaryLanguage ||
-        oldWidget.settings.enableSecondaryLanguage !=
-            widget.settings.enableSecondaryLanguage ||
-        oldWidget.settings.secondaryLanguage !=
-            widget.settings.secondaryLanguage) {
-      setState(() {
-        _wordsLanguage = widget.settings.hasEffectiveSecondaryLanguage
-            ? widget.settings.secondaryLanguage
-            : widget.settings.activePrimaryLanguage;
-      });
-    }
-  }
-
-  void _showWordsLanguageDialog() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.translate, color: Color(0xFF10B981), size: 22),
-            const SizedBox(width: 10),
-            Text(
-              'Amount in Words Language',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 340,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: NumberToWordsService.supportedLanguages.map((lang) {
-              final isSelected = _wordsLanguage == lang.code;
-              final previewVal = _grandTotal > 0 ? _grandTotal : 865.0;
-              final previewText = NumberToWordsService.convert(
-                previewVal,
-                language: lang.code,
-                currencySymbol: widget.settings.currencySymbol,
-                currencyCode: widget.settings.currencyCode,
-              );
-              return ListTile(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                tileColor: isSelected
-                    ? (isDark
-                        ? const Color(0xFF064E3B)
-                        : const Color(0xFFDCFCE7))
-                    : null,
-                title: Text(
-                  '${lang.name} (${lang.nativeName})',
-                  style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    color: isSelected
-                        ? const Color(0xFF16A34A)
-                        : (isDark ? Colors.white : Colors.black87),
-                  ),
-                ),
-                subtitle: Text(
-                  previewText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isSelected
-                        ? (isDark
-                            ? const Color(0xFF6EE7B7)
-                            : const Color(0xFF15803D))
-                        : (isDark ? Colors.white60 : Colors.black54),
-                  ),
-                ),
-                trailing: isSelected
-                    ? const Icon(Icons.check_circle,
-                        color: Color(0xFF16A34A), size: 20)
-                    : null,
-                onTap: () async {
-                  setState(() => _wordsLanguage = lang.code);
-                  Navigator.pop(ctx);
-                  try {
-                    final db = await _dbFuture;
-                    final updated = widget.settings
-                        .copyWith(totalInWordsLanguage: lang.code);
-                    await db.updateBusinessSettings(updated);
-                  } catch (e, st) {
-                    AppLogger.warning('PosTerminal',
-                        'Failed saving words language setting', e, st);
-                  }
-                },
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _loadInitialData() async {
+    _conversionUnitsCache.clear();
     final db = await _dbFuture;
     if (!mounted) return;
     // Await sequentially so sqflite never hits lock-contention watchdog timers in tests.
@@ -1371,7 +1272,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     );
   }
 
-  void _openCustomProductDialog() {
+  Future<void> _openCustomProductDialog() async {
+    final dbUnits = await (await _dbFuture).getUnits();
+    if (!mounted) return;
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -1402,6 +1306,27 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       'Sq Ft',
       'Roll'
     ];
+
+    String? generalError;
+    String? nameError;
+    String? priceError;
+    String? qtyError;
+
+    bool isCustomUnitDecimalAllowed(String unit) {
+      final u = unit.toLowerCase().trim();
+      for (final dbUnit in dbUnits) {
+        final a = dbUnit.actualName.toLowerCase().trim();
+        final s = dbUnit.shortName.toLowerCase().trim();
+        if (u == a || u == s || u == '$a ($s)') {
+          return dbUnit.allowDecimal;
+        }
+      }
+      return u == 'kg' ||
+          u == 'ltr' ||
+          u == 'mtr' ||
+          u == 'sq ft' ||
+          u == 'roll';
+    }
 
     showDialog(
       context: context,
@@ -1454,6 +1379,37 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (generalError != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 9),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: const Color(0xFFEF4444)
+                                  .withValues(alpha: 0.5)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline_rounded,
+                                color: Color(0xFFDC2626), size: 17),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                generalError!,
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFFDC2626)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     Text('Item Description / Name *',
                         style: TextStyle(
                             fontSize: 12,
@@ -1463,12 +1419,21 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     TextField(
                       controller: nameCtrl,
                       autofocus: true,
+                      onChanged: (_) {
+                        if (nameError != null || generalError != null) {
+                          setDlgState(() {
+                            nameError = null;
+                            generalError = null;
+                          });
+                        }
+                      },
                       style: TextStyle(fontSize: 14, color: textPrimary),
                       decoration: InputDecoration(
                         hintText:
                             'e.g. Loose Sugar, Cut Iron 10m, Labor Charge, Custom Part',
                         hintStyle:
                             TextStyle(fontSize: 12, color: textSecondary),
+                        errorText: nameError,
                         filled: true,
                         fillColor: inputBg,
                         border: OutlineInputBorder(
@@ -1484,6 +1449,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     const SizedBox(height: 14),
 
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Column(
@@ -1497,6 +1463,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               const SizedBox(height: 6),
                               TextField(
                                 controller: priceCtrl,
+                                onChanged: (_) {
+                                  if (priceError != null ||
+                                      generalError != null) {
+                                    setDlgState(() {
+                                      priceError = null;
+                                      generalError = null;
+                                    });
+                                  }
+                                },
                                 keyboardType:
                                     const TextInputType.numberWithOptions(
                                         decimal: true),
@@ -1506,6 +1481,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                   hintText: '0.00',
                                   hintStyle: TextStyle(
                                       fontSize: 12, color: textSecondary),
+                                  errorText: priceError,
                                   filled: true,
                                   fillColor: inputBg,
                                   border: OutlineInputBorder(
@@ -1528,7 +1504,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Quantity (Decimals OK) *',
+                              Text(
+                                  isCustomUnitDecimalAllowed(selectedUnit)
+                                      ? 'Quantity (Decimals OK) *'
+                                      : 'Quantity (Whole #) *',
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -1536,15 +1515,39 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               const SizedBox(height: 6),
                               TextField(
                                 controller: qtyCtrl,
+                                onChanged: (val) {
+                                  final decOk =
+                                      isCustomUnitDecimalAllowed(selectedUnit);
+                                  final parsed = double.tryParse(val.trim());
+                                  String? nextErr;
+                                  if (val.trim().isNotEmpty && parsed == null) {
+                                    nextErr = 'Enter a valid number';
+                                  } else if (parsed != null && parsed <= 0) {
+                                    nextErr = 'Must be > 0';
+                                  } else if (!decOk &&
+                                      (val.contains('.') ||
+                                          (parsed != null &&
+                                              parsed !=
+                                                  parsed.roundToDouble()))) {
+                                    nextErr =
+                                        'Decimals not allowed for $selectedUnit';
+                                  }
+                                  setDlgState(() {
+                                    qtyError = nextErr;
+                                    generalError = null;
+                                  });
+                                },
                                 keyboardType:
                                     const TextInputType.numberWithOptions(
                                         decimal: true),
                                 style:
                                     TextStyle(fontSize: 14, color: textPrimary),
                                 decoration: InputDecoration(
-                                  hintText: '1.0',
+                                  hintText: '1',
                                   hintStyle: TextStyle(
                                       fontSize: 12, color: textSecondary),
+                                  errorText: qtyError,
+                                  errorMaxLines: 2,
                                   filled: true,
                                   fillColor: inputBg,
                                   border: OutlineInputBorder(
@@ -1574,13 +1577,19 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                 TextStyle(fontSize: 11, color: textSecondary)),
                         Wrap(
                           spacing: 5,
-                          children: [0.25, 0.5, 1.0, 1.5, 2.5, 5.0].map((q) {
+                          children: (isCustomUnitDecimalAllowed(selectedUnit)
+                                  ? [0.25, 0.5, 1.0, 1.5, 2.5, 5.0]
+                                  : [1.0, 2.0, 3.0, 5.0, 10.0])
+                              .map((q) {
                             return InkWell(
                               onTap: () {
                                 qtyCtrl.text = q == q.toInt()
                                     ? q.toInt().toString()
                                     : q.toString();
-                                setDlgState(() {});
+                                setDlgState(() {
+                                  qtyError = null;
+                                  generalError = null;
+                                });
                               },
                               borderRadius: BorderRadius.circular(4),
                               child: Container(
@@ -1623,7 +1632,19 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       children: commonUnits.map((u) {
                         final isSel = selectedUnit == u;
                         return InkWell(
-                          onTap: () => setDlgState(() => selectedUnit = u),
+                          onTap: () => setDlgState(() {
+                            selectedUnit = u;
+                            final parsed = double.tryParse(qtyCtrl.text.trim());
+                            final decOk = isCustomUnitDecimalAllowed(u);
+                            if (!decOk &&
+                                (qtyCtrl.text.contains('.') ||
+                                    (parsed != null &&
+                                        parsed != parsed.roundToDouble()))) {
+                              qtyError = 'Decimals not allowed for $u';
+                            } else {
+                              qtyError = null;
+                            }
+                          }),
                           borderRadius: BorderRadius.circular(6),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -1660,22 +1681,43 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
               ElevatedButton.icon(
                 onPressed: () {
                   final name = nameCtrl.text.trim();
-                  final price = double.tryParse(priceCtrl.text.trim()) ?? 0.0;
-                  final qty = double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
-                  if (name.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Please enter an item description.')),
-                    );
+                  final price = double.tryParse(priceCtrl.text.trim());
+                  final rawQty = qtyCtrl.text.trim();
+                  final qty = double.tryParse(rawQty);
+                  final decOk = isCustomUnitDecimalAllowed(selectedUnit);
+
+                  String? nextNameErr =
+                      name.isEmpty ? 'Item description is required' : null;
+                  String? nextPriceErr = (price == null || price <= 0)
+                      ? 'Enter a valid price > 0'
+                      : null;
+                  String? nextQtyErr;
+                  if (rawQty.isEmpty) {
+                    nextQtyErr = 'Quantity is required';
+                  } else if (qty == null) {
+                    nextQtyErr = 'Enter a valid number';
+                  } else if (qty <= 0) {
+                    nextQtyErr = 'Must be > 0';
+                  } else if (!decOk &&
+                      (rawQty.contains('.') || qty != qty.roundToDouble())) {
+                    nextQtyErr = 'Decimals not allowed for $selectedUnit';
+                  }
+
+                  if (nextNameErr != null ||
+                      nextPriceErr != null ||
+                      nextQtyErr != null ||
+                      price == null ||
+                      qty == null) {
+                    setDlgState(() {
+                      nameError = nextNameErr;
+                      priceError = nextPriceErr;
+                      qtyError = nextQtyErr;
+                      generalError = null;
+                    });
                     return;
                   }
-                  if (price <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Please enter a valid price.')),
-                    );
-                    return;
-                  }
+                  final double validPrice = price;
+                  final double validQty = qty;
                   Navigator.pop(ctx);
                   final customProduct = Product(
                     id: null,
@@ -1684,15 +1726,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         'OPEN-${DateTime.now().millisecondsSinceEpoch % 100000}',
                     barcode: '',
                     unit: selectedUnit,
-                    purchasePrice: price,
-                    sellingPrice: price,
+                    purchasePrice: validPrice,
+                    sellingPrice: validPrice,
                     stockQuantity: 9999.0,
                   );
                   ref.read(cartProvider.notifier).addCustomItem(
                         CartItem(
                           product: customProduct,
-                          quantity: qty,
-                          unitPrice: price,
+                          quantity: validQty,
+                          unitPrice: validPrice,
                           packDiscount: _isWholesaleMode
                               ? _wholesaleDiscountPercent
                               : 0.0,
@@ -1717,7 +1759,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     );
   }
 
-  void _openQuantityDialog(CartItem item, int index) {
+  Future<void> _openQuantityDialog(CartItem item, int index) async {
+    final conversionUnits = await _getCachedConversionUnits(item.product);
+    if (!mounted) return;
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -1727,14 +1772,34 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
 
+    final s = widget.settings;
+    final String activeUnitName = item.selectedUnitName ??
+        (item.product.unit.isNotEmpty ? item.product.unit : 'Pieces');
+    final double activeMult =
+        item.unitMultiplier > 0 ? item.unitMultiplier : 1.0;
+    final double activeUnitPrice = item.unitPrice;
+
+    Unit? matchedUnit;
+    final targetUnitLower = activeUnitName.toLowerCase().trim();
+    for (final u in conversionUnits) {
+      final a = u.actualName.toLowerCase().trim();
+      final sh = u.shortName.toLowerCase().trim();
+      if (targetUnitLower == a ||
+          targetUnitLower == sh ||
+          targetUnitLower == '$a ($sh)') {
+        matchedUnit = u;
+        break;
+      }
+    }
+
     final initialQty = item.quantity == item.quantity.toInt()
         ? item.quantity.toInt().toString()
         : item.quantity.toString();
     final qtyCtrl = TextEditingController(text: initialQty);
 
-    final rawUnit = item.product.unit.toLowerCase().trim();
+    final rawUnit = activeUnitName.toLowerCase().trim();
 
-    // 1. Weight / Weighed items (تولنے والا وزن - کلو، گرام، من، دھڑی)
+    // 1. Weight / Weighed items (ØªÙˆÙ„Ù†Û’ ÙˆØ§Ù„Ø§ ÙˆØ²Ù† - Ú©Ù„ÙˆØŒ Ú¯Ø±Ø§Ù…ØŒ Ù…Ù†ØŒ Ø¯Ú¾Ú‘ÛŒ)
     final isWeight = rawUnit.contains('kg') ||
         rawUnit.contains('kilo') ||
         rawUnit.contains('gram') ||
@@ -1748,7 +1813,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         rawUnit.contains('bori') ||
         rawUnit.contains('sack');
 
-    // 2. Liquid / Volume items (مائع پیمائش - لیٹر، ملی لیٹر)
+    // 2. Liquid / Volume items (Ù…Ø§Ø¦Ø¹ Ù¾ÛŒÙ…Ø§Ø¦Ø´ - Ù„ÛŒÙ¹Ø±ØŒ Ù…Ù„ÛŒ Ù„ÛŒÙ¹Ø±)
     final isLiquid = rawUnit.contains('liter') ||
         rawUnit.contains('litre') ||
         rawUnit.contains('ltr') ||
@@ -1756,7 +1821,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         rawUnit.contains('gallon') ||
         rawUnit.contains('gal');
 
-    // 3. Length / Fabric / Measurement (پیمائش - میٹر، گز، فٹ، انچ)
+    // 3. Length / Fabric / Measurement (Ù¾ÛŒÙ…Ø§Ø¦Ø´ - Ù…ÛŒÙ¹Ø±ØŒ Ú¯Ø²ØŒ ÙÙ¹ØŒ Ø§Ù†Ú†)
     final isMeasurement = rawUnit.contains('meter') ||
         rawUnit.contains('mtr') ||
         rawUnit == 'm' ||
@@ -1772,271 +1837,200 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         rawUnit.contains('sqm') ||
         rawUnit.contains('marla');
 
+    // Respect exact allowDecimal setting from the matched unit first.
+    final bool allowDecimal =
+        matchedUnit?.allowDecimal ?? (isWeight || isMeasurement || isLiquid);
+
     // Dynamic Headers, Colors, and Presets
     final String dlgTitle;
-    final String dlgSubTitle;
     final IconData dlgIcon;
     final Color dlgColor;
     final String inputLabel;
-    final String badgeLabel;
     final List<Map<String, dynamic>> presets;
-
-    final s = widget.settings;
 
     if (isWeight) {
       dlgTitle = PosLocalization.tr('Adjust Weight', settings: s);
-      dlgSubTitle =
-          '${PosLocalization.tr('Weight Scale', settings: s)} • ${item.product.name}';
       dlgIcon = Icons.scale_rounded;
       dlgColor = const Color(0xFFD97706);
       inputLabel =
-          '${PosLocalization.tr('Adjust Weight', settings: s)} (${item.product.unit.isNotEmpty ? item.product.unit : "Kg"})';
-      badgeLabel = PosLocalization.tr('Weight Scale', settings: s);
-      presets = [
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 0.25, unitCategory: 'weight', settings: s),
-          'val': 0.25
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 0.50, unitCategory: 'weight', settings: s),
-          'val': 0.50
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 0.75, unitCategory: 'weight', settings: s),
-          'val': 0.75
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 1.0, unitCategory: 'weight', settings: s),
-          'val': 1.0
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 1.5, unitCategory: 'weight', settings: s),
-          'val': 1.5
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 2.0, unitCategory: 'weight', settings: s),
-          'val': 2.0
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 2.5, unitCategory: 'weight', settings: s),
-          'val': 2.5
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 5.0, unitCategory: 'weight', settings: s),
-          'val': 5.0
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 10.0, unitCategory: 'weight', settings: s),
-          'val': 10.0
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 20.0, unitCategory: 'weight', settings: s),
-          'val': 20.0
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 40.0, unitCategory: 'weight', settings: s),
-          'val': 40.0
-        },
-      ];
+          '${PosLocalization.tr('Adjust Weight', settings: s)} ($activeUnitName)';
+      presets = allowDecimal
+          ? [
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 0.25, unitCategory: 'weight', settings: s),
+                'val': 0.25
+              },
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 0.50, unitCategory: 'weight', settings: s),
+                'val': 0.50
+              },
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 0.75, unitCategory: 'weight', settings: s),
+                'val': 0.75
+              },
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 1.0, unitCategory: 'weight', settings: s),
+                'val': 1.0
+              },
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 2.0, unitCategory: 'weight', settings: s),
+                'val': 2.0
+              },
+            ]
+          : const [];
     } else if (isMeasurement) {
       dlgTitle = PosLocalization.tr('Adjust Measurement', settings: s);
-      dlgSubTitle =
-          '${PosLocalization.tr('Measurement / Fabric', settings: s)} • ${item.product.name}';
       dlgIcon = Icons.straighten_rounded;
       dlgColor = const Color(0xFF0D9488);
       inputLabel =
-          '${PosLocalization.tr('Adjust Measurement', settings: s)} (${item.product.unit.isNotEmpty ? item.product.unit : "Meter"})';
-      badgeLabel = PosLocalization.tr('Measurement / Fabric', settings: s);
-      presets = [
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 0.50, unitCategory: 'length', settings: s),
-          'val': 0.50
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 1.0, unitCategory: 'length', settings: s),
-          'val': 1.0
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 1.5, unitCategory: 'length', settings: s),
-          'val': 1.5
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 2.0, unitCategory: 'length', settings: s),
-          'val': 2.0
-        },
-        {'label': '2.25', 'val': 2.25},
-        {'label': '2.50', 'val': 2.50},
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 3.0, unitCategory: 'length', settings: s),
-          'val': 3.0
-        },
-        {'label': '4.0', 'val': 4.0},
-        {'label': '4.50', 'val': 4.50},
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 5.0, unitCategory: 'length', settings: s),
-          'val': 5.0
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 10.0, unitCategory: 'length', settings: s),
-          'val': 10.0
-        },
-        {'label': '25.0', 'val': 25.0},
-      ];
+          '${PosLocalization.tr('Adjust Measurement', settings: s)} ($activeUnitName)';
+      presets = allowDecimal
+          ? [
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 0.50, unitCategory: 'length', settings: s),
+                'val': 0.50
+              },
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 1.0, unitCategory: 'length', settings: s),
+                'val': 1.0
+              },
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 2.0, unitCategory: 'length', settings: s),
+                'val': 2.0
+              },
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 5.0, unitCategory: 'length', settings: s),
+                'val': 5.0
+              },
+            ]
+          : const [];
     } else if (isLiquid) {
       dlgTitle = PosLocalization.tr('Adjust Volume', settings: s);
-      dlgSubTitle =
-          '${PosLocalization.tr('Liquid Volume', settings: s)} • ${item.product.name}';
       dlgIcon = Icons.water_drop_outlined;
       dlgColor = const Color(0xFF0284C7);
       inputLabel =
-          '${PosLocalization.tr('Adjust Volume', settings: s)} (${item.product.unit.isNotEmpty ? item.product.unit : "Liter"})';
-      badgeLabel = PosLocalization.tr('Liquid Volume', settings: s);
-      presets = [
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 0.25, unitCategory: 'volume', settings: s),
-          'val': 0.25
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 0.50, unitCategory: 'volume', settings: s),
-          'val': 0.50
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 0.75, unitCategory: 'volume', settings: s),
-          'val': 0.75
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 1.0, unitCategory: 'volume', settings: s),
-          'val': 1.0
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 1.5, unitCategory: 'volume', settings: s),
-          'val': 1.5
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 2.0, unitCategory: 'volume', settings: s),
-          'val': 2.0
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 2.5, unitCategory: 'volume', settings: s),
-          'val': 2.5
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 5.0, unitCategory: 'volume', settings: s),
-          'val': 5.0
-        },
-        {
-          'label': PosLocalization.quickQuantityLabel(
-              val: 10.0, unitCategory: 'volume', settings: s),
-          'val': 10.0
-        },
-        {'label': '16.0', 'val': 16.0},
-      ];
+          '${PosLocalization.tr('Adjust Volume', settings: s)} ($activeUnitName)';
+      presets = allowDecimal
+          ? [
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 0.25, unitCategory: 'volume', settings: s),
+                'val': 0.25
+              },
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 0.50, unitCategory: 'volume', settings: s),
+                'val': 0.50
+              },
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 1.0, unitCategory: 'volume', settings: s),
+                'val': 1.0
+              },
+              {
+                'label': PosLocalization.quickQuantityLabel(
+                    val: 2.0, unitCategory: 'volume', settings: s),
+                'val': 2.0
+              },
+            ]
+          : const [];
     } else {
       // Discrete / Count Units
       dlgTitle = PosLocalization.tr('Adjust Quantity', settings: s);
-      dlgSubTitle =
-          '${PosLocalization.tr('Count / Discrete Item', settings: s)} • ${item.product.name}';
       dlgIcon = Icons.inventory_2_outlined;
       dlgColor = const Color(0xFF4F46E5);
       inputLabel =
-          '${PosLocalization.tr('Adjust Quantity', settings: s)} (${item.product.unit.isNotEmpty ? item.product.unit : "Pieces"})';
-      badgeLabel = PosLocalization.tr('Count / Discrete Item', settings: s);
-      presets = [
-        {'label': '1', 'val': 1.0},
-        {'label': '2', 'val': 2.0},
-        {'label': '3', 'val': 3.0},
-        {'label': '4', 'val': 4.0},
-        {'label': '5', 'val': 5.0},
-        {'label': '6 (½ Dozen)', 'val': 6.0},
-        {'label': '10', 'val': 10.0},
-        {'label': '12 (1 Dozen)', 'val': 12.0},
-        {'label': '20', 'val': 20.0},
-        {'label': '24 (2 Dozen)', 'val': 24.0},
-        {'label': '50 (Pack)', 'val': 50.0},
-        {'label': '100 (Carton)', 'val': 100.0},
-      ];
+          '${PosLocalization.tr('Adjust Quantity', settings: s)} ($activeUnitName)';
+      presets = const [];
     }
+
+    String? validateQtyText(String raw) {
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) {
+        return 'Quantity is required';
+      }
+      final parsed = double.tryParse(trimmed);
+      if (parsed == null) {
+        return 'Enter a valid number';
+      }
+      if (parsed <= 0 && !item.isReturnItem) {
+        return 'Quantity must be greater than 0';
+      }
+      if (!allowDecimal &&
+          (trimmed.contains('.') || parsed != parsed.roundToDouble())) {
+        return 'Decimal values are not allowed for "$activeUnitName"';
+      }
+      return null;
+    }
+
+    String? fieldError = validateQtyText(initialQty);
+    String? generalError;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDlgState) {
-          final curQty = double.tryParse(qtyCtrl.text.trim()) ?? item.quantity;
-          final totalVal = curQty * item.unitPrice;
+          final parsedPreview = double.tryParse(qtyCtrl.text.trim());
+          final previewQty = (fieldError == null && parsedPreview != null)
+              ? parsedPreview
+              : 0.0;
+          final totalVal = previewQty * activeUnitPrice;
 
           return Dialog(
             backgroundColor: cardBg,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: Padding(
-                padding: const EdgeInsets.all(22),
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header
+                    // Header (overflow-safe)
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: dlgColor.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: dlgColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(dlgIcon, color: dlgColor, size: 20),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                dlgTitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: textPrimary),
                               ),
-                              child: Icon(dlgIcon, color: dlgColor, size: 20),
-                            ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  dlgTitle,
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: textPrimary),
-                                ),
-                                Text(
-                                  dlgSubTitle,
-                                  style: TextStyle(
-                                      fontSize: 11, color: textSecondary),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ],
+                              Text(
+                                item.displayName,
+                                style: TextStyle(
+                                    fontSize: 11, color: textSecondary),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
                         ),
                         IconButton(
                           icon:
@@ -2045,11 +2039,46 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
 
-                    // Product & Current Unit Banner
+                    if (generalError != null) ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFFEF4444).withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: const Color(0xFFEF4444)
+                                  .withValues(alpha: 0.35)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline_rounded,
+                                color: Color(0xFFEF4444), size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                generalError!,
+                                style: const TextStyle(
+                                  color: Color(0xFFDC2626),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Compact Unit & Rate Banner (overflow-safe)
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
                         color: isDark
                             ? const Color(0xFF0F172A)
@@ -2058,51 +2087,38 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         border: Border.all(color: borderColor),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                PosLocalization.tr('Unit of Measure',
-                                    settings: widget.settings),
-                                style: TextStyle(
-                                    fontSize: 10, color: textSecondary),
-                              ),
-                              Text(
-                                  item.selectedUnitName ??
-                                      (item.product.unit.isNotEmpty
-                                          ? item.product.unit
-                                          : 'Standard Unit'),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  PosLocalization.tr('Unit',
+                                      settings: widget.settings),
+                                  style: TextStyle(
+                                      fontSize: 10, color: textSecondary),
+                                ),
+                                Text(
+                                  activeUnitName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
-                                      color: textPrimary)),
-                            ],
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: dlgColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                  color: dlgColor.withValues(alpha: 0.3)),
+                                      color: textPrimary),
+                                ),
+                              ],
                             ),
-                            child: Text(badgeLabel,
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: dlgColor)),
                           ),
+                          const SizedBox(width: 10),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text('Rate / Unit',
+                              Text('Rate',
                                   style: TextStyle(
                                       fontSize: 10, color: textSecondary)),
                               Text(
-                                  '${widget.settings.currencySymbol} ${item.unitPrice.toStringAsFixed(2)}',
+                                  '${widget.settings.currencySymbol} ${activeUnitPrice.toStringAsFixed(2)}',
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
@@ -2112,111 +2128,53 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
-
-                    // Active Selling Sub-Unit Switcher Chips
-                    FutureBuilder<List<Unit>>(
-                      future: DatabaseService.initialize().then((db) =>
-                          db.getConversionUnitsForProduct(item.product)),
-                      builder: (ctx, snapshot) {
-                        final uList = snapshot.data ?? [];
-                        if (uList.length <= 1) return const SizedBox.shrink();
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                PosLocalization.tr('Change Active Selling Unit',
-                                    settings: widget.settings),
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: textSecondary),
-                              ),
-                              const SizedBox(height: 6),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: uList.map((u) {
-                                  final isCur = (item.selectedUnitName ??
-                                              item.product.unit)
-                                          .toLowerCase()
-                                          .trim() ==
-                                      u.actualName.toLowerCase().trim();
-                                  final rate =
-                                      item.basePrice * u.baseUnitMultiplier;
-                                  return ChoiceChip(
-                                    label: Text(
-                                      '${u.actualName} (${widget.settings.currencySymbol} ${rate.toStringAsFixed(2)})',
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: isCur
-                                              ? FontWeight.bold
-                                              : FontWeight.normal),
-                                    ),
-                                    selected: isCur,
-                                    selectedColor: dlgColor,
-                                    labelStyle: TextStyle(
-                                        color:
-                                            isCur ? Colors.white : textPrimary),
-                                    onSelected: (selected) {
-                                      if (selected) {
-                                        ref
-                                            .read(cartProvider.notifier)
-                                            .changeItemUnit(
-                                              index,
-                                              u.actualName,
-                                              u.baseUnitMultiplier,
-                                            );
-                                        setDlgState(() {
-                                          item.changeUnit(u.actualName,
-                                              u.baseUnitMultiplier);
-                                        });
-                                      }
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                    const SizedBox(height: 14),
 
                     // Direct input field with Step Buttons [-] and [+]
                     Text(inputLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: textPrimary)),
                     const SizedBox(height: 6),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        IconButton(
-                          tooltip: 'Decrease',
-                          onPressed: () {
-                            double q =
-                                double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
-                            final step =
-                                (!isWeight && !isMeasurement && !isLiquid)
-                                    ? 1.0
-                                    : (isWeight ? 0.25 : 0.5);
-                            q = (q - step).clamp(0.0, 99999.0);
-                            qtyCtrl.text = q == q.toInt()
-                                ? q.toInt().toString()
-                                : q.toString();
-                            setDlgState(() {});
-                          },
-                          icon: const Icon(Icons.remove_circle_outline,
-                              size: 28, color: Colors.red),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: IconButton(
+                            tooltip: 'Decrease',
+                            onPressed: () {
+                              double q =
+                                  double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
+                              final step =
+                                  !allowDecimal ? 1.0 : (isWeight ? 0.25 : 0.5);
+                              q = allowDecimal
+                                  ? (q - step).clamp(0.0, 99999.0)
+                                  : (q.floor() - 1).clamp(1, 99999).toDouble();
+                              final nextText = q == q.toInt()
+                                  ? q.toInt().toString()
+                                  : q.toString();
+                              qtyCtrl.text = nextText;
+                              setDlgState(() {
+                                fieldError = validateQtyText(nextText);
+                                generalError = null;
+                              });
+                            },
+                            icon: const Icon(Icons.remove_circle_outline,
+                                size: 28, color: Colors.red),
+                          ),
                         ),
                         Expanded(
                           child: TextField(
                             controller: qtyCtrl,
                             autofocus: true,
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
+                            keyboardType: allowDecimal
+                                ? const TextInputType.numberWithOptions(
+                                    decimal: true)
+                                : TextInputType.number,
                             style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -2226,38 +2184,50 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               isDense: true,
                               filled: true,
                               fillColor: inputBg,
-                              suffixText: item.product.unit,
+                              suffixText: activeUnitName,
                               suffixStyle: TextStyle(
                                   fontWeight: FontWeight.bold, color: dlgColor),
+                              errorText: fieldError,
+                              errorMaxLines: 2,
                               contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 14, vertical: 12),
                               border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8)),
                             ),
-                            onChanged: (_) => setDlgState(() {}),
+                            onChanged: (val) => setDlgState(() {
+                              fieldError = validateQtyText(val);
+                              generalError = null;
+                            }),
                           ),
                         ),
-                        IconButton(
-                          tooltip: 'Increase',
-                          onPressed: () {
-                            double q =
-                                double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
-                            final step =
-                                (!isWeight && !isMeasurement && !isLiquid)
-                                    ? 1.0
-                                    : (isWeight ? 0.25 : 0.5);
-                            q = q + step;
-                            qtyCtrl.text = q == q.toInt()
-                                ? q.toInt().toString()
-                                : q.toString();
-                            setDlgState(() {});
-                          },
-                          icon: const Icon(Icons.add_circle_outline,
-                              size: 28, color: Colors.green),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: IconButton(
+                            tooltip: 'Increase',
+                            onPressed: () {
+                              double q =
+                                  double.tryParse(qtyCtrl.text.trim()) ?? 0.0;
+                              final step =
+                                  !allowDecimal ? 1.0 : (isWeight ? 0.25 : 0.5);
+                              q = allowDecimal
+                                  ? (q + step)
+                                  : (q.floor() + 1).toDouble();
+                              final nextText = q == q.toInt()
+                                  ? q.toInt().toString()
+                                  : q.toString();
+                              qtyCtrl.text = nextText;
+                              setDlgState(() {
+                                fieldError = validateQtyText(nextText);
+                                generalError = null;
+                              });
+                            },
+                            icon: const Icon(Icons.add_circle_outline,
+                                size: 28, color: Colors.green),
+                          ),
                         ),
                       ],
                     ),
-                    if (isWeight) ...[
+                    if (isWeight && allowDecimal) ...[
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
@@ -2279,18 +2249,12 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           final reading = await WeightScaleService.instance
                               .readScaleWeight();
                           if (reading != null) {
-                            qtyCtrl.text = reading.weight.toString();
-                            setDlgState(() {});
-                            if (ctx.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      'Scale Reading: ${reading.weight} ${reading.unit} (${reading.isStable ? "Stable" : "Unstable"})'),
-                                  backgroundColor: const Color(0xFF059669),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            }
+                            final nextText = reading.weight.toString();
+                            qtyCtrl.text = nextText;
+                            setDlgState(() {
+                              fieldError = validateQtyText(nextText);
+                              generalError = null;
+                            });
                           } else {
                             final ports = await WeightScaleService.instance
                                 .getAvailableComPorts();
@@ -2298,23 +2262,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                 ? 'None detected'
                                 : ports.join(', ');
                             if (ctx.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      'Scale not responding on $portsStr. Use test weight (1.25 kg)?'),
-                                  action: SnackBarAction(
-                                    label: 'Use 1.25',
-                                    textColor: Colors.amber,
-                                    onPressed: () {
-                                      final sim = WeightScaleService.instance
-                                          .generateSimulatedReading();
-                                      qtyCtrl.text = sim.weight.toString();
-                                      setDlgState(() {});
-                                    },
-                                  ),
-                                  duration: const Duration(seconds: 4),
-                                ),
-                              );
+                              setDlgState(() {
+                                generalError =
+                                    'Scale not responding on $portsStr.';
+                              });
                             }
                           }
                         },
@@ -2322,42 +2273,48 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     ],
                     const SizedBox(height: 12),
 
-                    // Smart Context-Aware Quick Presets
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: presets.map((p) {
-                        return InkWell(
-                          onTap: () {
-                            final val = p['val'] as num;
-                            qtyCtrl.text = val == val.toInt()
-                                ? val.toInt().toString()
-                                : val.toString();
-                            setDlgState(() {});
-                          },
-                          borderRadius: BorderRadius.circular(6),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: borderColor),
+                    // Quick presets only for weight / liquid / measurement items with allowDecimal
+                    if (presets.isNotEmpty) ...[
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: presets.take(5).map((p) {
+                          return InkWell(
+                            onTap: () {
+                              final val = p['val'] as num;
+                              final nextText = val == val.toInt()
+                                  ? val.toInt().toString()
+                                  : val.toString();
+                              qtyCtrl.text = nextText;
+                              setDlgState(() {
+                                fieldError = validateQtyText(nextText);
+                                generalError = null;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: borderColor),
+                              ),
+                              child: Text(
+                                p['label'] as String,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: textPrimary),
+                              ),
                             ),
-                            child: Text(
-                              p['label'] as String,
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: textPrimary),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
 
                     // Total Calculation Preview
                     Container(
@@ -2371,13 +2328,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                 const Color(0xFF10B981).withValues(alpha: 0.3)),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Calculated Line Total:',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12,
-                                  color: textPrimary)),
+                          Expanded(
+                            child: Text('Calculated Line Total:',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                    color: textPrimary)),
+                          ),
+                          const SizedBox(width: 8),
                           Text(
                             '${widget.settings.currencySymbol} ${totalVal.toStringAsFixed(2)}',
                             style: const TextStyle(
@@ -2402,9 +2363,24 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         const SizedBox(width: 8),
                         ElevatedButton.icon(
                           onPressed: () {
-                            final newQty =
-                                double.tryParse(qtyCtrl.text.trim()) ??
-                                    item.quantity;
+                            final nextFieldErr = validateQtyText(qtyCtrl.text);
+                            if (nextFieldErr != null) {
+                              setDlgState(() {
+                                fieldError = nextFieldErr;
+                                generalError = null;
+                              });
+                              return;
+                            }
+                            final newQty = double.parse(qtyCtrl.text.trim());
+                            final stockErr = _checkCartBaseQtyError(
+                                item, index, newQty, activeMult);
+                            if (stockErr != null) {
+                              setDlgState(() {
+                                fieldError = null;
+                                generalError = stockErr;
+                              });
+                              return;
+                            }
                             ref
                                 .read(cartProvider.notifier)
                                 .setQuantity(index, newQty);
@@ -2433,83 +2409,297 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     );
   }
 
-  Future<void> _openUnitSelectorForCartItem(CartItem item, int index) async {
-    final db = await DatabaseService.initialize();
-    final units = await db.getConversionUnitsForProduct(item.product);
-    if (!mounted || units.length <= 1) return;
+  String _productUnitCacheKey(Product p) =>
+      '${p.id ?? p.name}|${p.unit}|${p.subUnitIds ?? ''}|${p.secondaryUnit ?? ''}|${p.packSize}';
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Select Unit: ${item.product.name}',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    onPressed: () => Navigator.pop(ctx)),
-              ],
-            ),
-            const Divider(),
-            ...units.map((u) {
-              final isCur = (item.selectedUnitName ?? item.product.unit)
-                      .toLowerCase()
-                      .trim() ==
-                  u.actualName.toLowerCase().trim();
-              final rate = item.basePrice * u.baseUnitMultiplier;
-              return ListTile(
-                dense: true,
-                leading: Icon(
-                    isCur
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked,
-                    color: isCur ? const Color(0xFF10B981) : Colors.grey),
-                title: Text(u.actualName,
-                    style: TextStyle(
-                        fontWeight:
-                            isCur ? FontWeight.bold : FontWeight.normal)),
-                subtitle: Text(
-                    'Multiplier: ${u.baseUnitMultiplier}x  •  Base: ${item.product.unit}'),
-                trailing: Text(
-                  '${widget.settings.currencySymbol} ${rate.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF059669),
-                      fontSize: 13),
-                ),
-                onTap: () {
-                  ref.read(cartProvider.notifier).changeItemUnit(
-                        index,
-                        u.actualName,
-                        u.baseUnitMultiplier,
-                      );
-                  Navigator.pop(ctx);
-                },
-              );
-            }),
-            const SizedBox(height: 8),
-          ],
+  Future<List<Unit>> _getCachedConversionUnits(Product p) async {
+    final key = _productUnitCacheKey(p);
+    final cached = _conversionUnitsCache[key];
+    if (cached != null) return cached;
+    final db = await _dbFuture;
+    final list = await db.getConversionUnitsForProduct(p);
+    if (mounted) {
+      _conversionUnitsCache[key] = list;
+    }
+    return list;
+  }
+
+  double _maxStockForCartItem(CartItem item) {
+    if (item.variationId != null && item.product.variations != null) {
+      final v = item.product.variations!
+          .where((x) => x.id == item.variationId)
+          .cast<ProductVariation?>()
+          .firstOrNull;
+      if (v != null) return v.stockQuantity;
+    }
+    return item.product.stockQuantity;
+  }
+
+  double _cartBaseQtyForId(int? productId, int? variationId,
+      {int? excludeIndex}) {
+    if (productId == null) return 0.0;
+    double sum = 0.0;
+    for (int i = 0; i < _cart.length; i++) {
+      if (excludeIndex != null && i == excludeIndex) continue;
+      final it = _cart[i];
+      if (it.product.id == productId && it.variationId == variationId) {
+        sum += it.quantity * it.unitMultiplier;
+      }
+    }
+    return sum;
+  }
+
+  String? _checkCartBaseQtyError(
+    CartItem item,
+    int index,
+    double newQty,
+    double newMultiplier,
+  ) {
+    if (widget.settings.allowOverselling || item.isReturnItem) return null;
+    final maxStock = _maxStockForCartItem(item);
+    final otherBase = _cartBaseQtyForId(
+      item.product.id,
+      item.variationId,
+      excludeIndex: index,
+    );
+    final mult = newMultiplier > 0 ? newMultiplier : 1.0;
+    final neededBase = otherBase + (newQty * mult);
+    if (neededBase > maxStock + 0.0001) {
+      final availStr = maxStock == maxStock.roundToDouble()
+          ? maxStock.toInt().toString()
+          : maxStock.toStringAsFixed(2);
+      final reqStr = neededBase == neededBase.roundToDouble()
+          ? neededBase.toInt().toString()
+          : neededBase.toStringAsFixed(2);
+      return 'Insufficient stock for ${item.displayName}: available $availStr ${item.product.unit}, needed $reqStr ${item.product.unit}.';
+    }
+    return null;
+  }
+
+  bool _canApplyCartBaseQty(
+    CartItem item,
+    int index,
+    double newQty,
+    double newMultiplier,
+  ) {
+    final err = _checkCartBaseQtyError(item, index, newQty, newMultiplier);
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(err),
+          backgroundColor: const Color(0xFFEF4444),
+          duration: const Duration(seconds: 2),
         ),
-      ),
+      );
+      return false;
+    }
+    return true;
+  }
+
+  void _onCartItemUnitChanged(CartItem item, int index, Unit u) {
+    final curName =
+        (item.selectedUnitName ?? item.product.unit).toLowerCase().trim();
+    if (curName == u.actualName.toLowerCase().trim() &&
+        (item.unitMultiplier - u.baseUnitMultiplier).abs() < 0.0001) {
+      return;
+    }
+    if (!u.allowDecimal && item.quantity != item.quantity.roundToDouble()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Cannot switch to "${u.actualName}": decimal quantity (${item.quantity}) is not allowed for this unit.',
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    if (!_canApplyCartBaseQty(
+        item, index, item.quantity, u.baseUnitMultiplier)) {
+      return;
+    }
+    ref.read(cartProvider.notifier).changeItemUnit(
+          index,
+          u.actualName,
+          u.baseUnitMultiplier,
+        );
+  }
+
+  Widget _buildCartItemUnitDropdown(CartItem item, int index, bool isDark) {
+    final cacheKey = _productUnitCacheKey(item.product);
+    final currentUnitLabel =
+        (item.selectedUnitName ?? item.product.unit).trim();
+
+    return FutureBuilder<List<Unit>>(
+      future: _getCachedConversionUnits(item.product),
+      initialData: _conversionUnitsCache[cacheKey],
+      builder: (ctx, snapshot) {
+        final units = snapshot.data ?? const <Unit>[];
+        if (units.length <= 1) {
+          // Single-unit product: show clean static unit badge (no misleading dropdown arrow)
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                width: 0.8,
+              ),
+            ),
+            child: Text(
+              currentUnitLabel.isNotEmpty ? currentUnitLabel : 'Pc',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color:
+                    isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+              ),
+            ),
+          );
+        }
+
+        // Multi-unit product: Ultimate POS style inline dropdown (no modal dialog!)
+        final group = ref.watch(cartProvider).activeCustomerGroup;
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 118),
+          child: PopupMenuButton<Unit>(
+            tooltip: 'Switch unit (${units.length} available)',
+            position: PopupMenuPosition.under,
+            constraints: const BoxConstraints(
+              minWidth: 240,
+              maxWidth: 320,
+              maxHeight: 300,
+            ),
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              ),
+            ),
+            onSelected: (u) => _onCartItemUnitChanged(item, index, u),
+            itemBuilder: (menuCtx) {
+              return units.map((u) {
+                final isCur = currentUnitLabel.toLowerCase() ==
+                    u.actualName.toLowerCase().trim();
+                final rawRate = item.basePrice * u.baseUnitMultiplier;
+                final rate =
+                    group != null ? group.applyPricing(rawRate) : rawRate;
+                final multLabel = u.baseUnitMultiplier == 1.0
+                    ? 'Base (1x)'
+                    : '${u.baseUnitMultiplier == u.baseUnitMultiplier.roundToDouble() ? u.baseUnitMultiplier.toInt() : u.baseUnitMultiplier}x ${item.product.unit}';
+                return PopupMenuItem<Unit>(
+                  value: u,
+                  height: 44,
+                  child: Row(
+                    children: [
+                      Icon(
+                        isCur
+                            ? Icons.check_circle_rounded
+                            : Icons.radio_button_unchecked,
+                        size: 16,
+                        color: isCur
+                            ? const Color(0xFF10B981)
+                            : (isDark
+                                ? const Color(0xFF64748B)
+                                : const Color(0xFF94A3B8)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              u.actualName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight:
+                                    isCur ? FontWeight.bold : FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
+                              ),
+                            ),
+                            Text(
+                              multLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${widget.settings.currencySymbol} ${rate.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF059669),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.45),
+                  width: 0.9,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      currentUnitLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? const Color(0xFF93C5FD)
+                            : const Color(0xFF2563EB),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 13,
+                    color: isDark
+                        ? const Color(0xFF93C5FD)
+                        : const Color(0xFF2563EB),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -3422,7 +3612,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       ),
                       const SizedBox(height: 6),
                       ...controlledItems.map((c) => Text(
-                          '• ${c.quantity.toInt()}x ${c.displayName}',
+                          'â€¢ ${c.quantity.toInt()}x ${c.displayName}',
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 13))),
                     ],
@@ -3797,7 +3987,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Select Variation • SKU: ${product.sku}',
+                    'Select Variation â€¢ SKU: ${product.sku}',
                     style: TextStyle(
                       fontSize: 12,
                       color: isDark
@@ -3875,7 +4065,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                'SKU: ${v.subSku} • Stock: ${v.stockQuantity % 1 == 0 ? v.stockQuantity.toInt() : v.stockQuantity.toStringAsFixed(1)}',
+                                'SKU: ${v.subSku} â€¢ Stock: ${v.stockQuantity % 1 == 0 ? v.stockQuantity.toInt() : v.stockQuantity.toStringAsFixed(1)}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -3961,7 +4151,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     ),
                   ),
                   Text(
-                    '${product.name} • First-Expiry-First-Out',
+                    '${product.name} â€¢ First-Expiry-First-Out',
                     style: TextStyle(
                       fontSize: 12,
                       color: isDark
@@ -4235,7 +4425,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           content: Text(
             expDays < 0
                 ? 'WARNING: ${product.name} is EXPIRED (${product.expiryDate})!'
-                : 'NOTICE: ${product.name} nearing expiry ($expDays days left • ${product.expiryDate}).',
+                : 'NOTICE: ${product.name} nearing expiry ($expDays days left â€¢ ${product.expiryDate}).',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           backgroundColor:
@@ -4313,7 +4503,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '⚡ Auto-applied ${discPercent.toInt()}% Near-Expiry Clearance Discount for ${product.name} ($expDays days left • $targetExp)!',
+                    'âš¡ Auto-applied ${discPercent.toInt()}% Near-Expiry Clearance Discount for ${product.name} ($expDays days left â€¢ $targetExp)!',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -4390,7 +4580,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '🎉 Bulk Volume Discount: ${volDiscount.toInt()}% OFF applied for ${item.quantity.toInt()}x ${product.name}!',
+                      'ðŸŽ‰ Bulk Volume Discount: ${volDiscount.toInt()}% OFF applied for ${item.quantity.toInt()}x ${product.name}!',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -4426,7 +4616,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '🎁 ${promo.bogoRuleName}: $freeUnits free item(s) discounted on ${product.name}!',
+                      'ðŸŽ ${promo.bogoRuleName}: $freeUnits free item(s) discounted on ${product.name}!',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -4551,7 +4741,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Active Window: ${promo.happyHourStartHour}:00 to ${promo.happyHourEndHour}:00 • Discount: ${promo.happyHourDiscountPercent.toInt()}% OFF',
+                            'Active Window: ${promo.happyHourStartHour}:00 to ${promo.happyHourEndHour}:00 â€¢ Discount: ${promo.happyHourDiscountPercent.toInt()}% OFF',
                             style: TextStyle(
                                 fontSize: 11,
                                 color: isDark
@@ -4571,7 +4761,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             ),
                             child: Text(
                               isHhNow
-                                  ? '🔥 CURRENTLY ACTIVE (Auto-applied to cart)'
+                                  ? 'ðŸ”¥ CURRENTLY ACTIVE (Auto-applied to cart)'
                                   : 'Inactive right now (starts at ${promo.happyHourStartHour}:00)',
                               style: TextStyle(
                                 fontSize: 10,
@@ -4693,7 +4883,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      '• ${t.minQty}${t.maxQty != null ? ' - ${t.maxQty}' : '+'} units in cart line',
+                                      'â€¢ ${t.minQty}${t.maxQty != null ? ' - ${t.maxQty}' : '+'} units in cart line',
                                       style: const TextStyle(fontSize: 11),
                                     ),
                                     Text(
@@ -4795,16 +4985,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   void _tryIncrementCartItem(int index) {
     if (index < 0 || index >= _cart.length) return;
     final item = _cart[index];
-    if (!widget.settings.allowOverselling) {
+    if (!widget.settings.allowOverselling && !item.isReturnItem) {
       final step = (item.quantity < 1 && item.quantity >= 0.25) ? 0.25 : 1.0;
       final addBase = step * item.unitMultiplier;
-      final maxStock = item.product.stockQuantity;
-      final existingBase = _cartBaseQtyFor(item.product, null);
-      if (existingBase + addBase > maxStock && item.variationId == null) {
+      final maxStock = _maxStockForCartItem(item);
+      final existingBase = _cartBaseQtyForId(item.product.id, item.variationId);
+      if (existingBase + addBase > maxStock + 0.0001) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Stock limit reached for ${item.product.name} (${maxStock.toStringAsFixed(maxStock % 1 == 0 ? 0 : 2)} available).',
+              'Stock limit reached for ${item.displayName} (${maxStock.toStringAsFixed(maxStock % 1 == 0 ? 0 : 2)} ${item.product.unit} available).',
             ),
             backgroundColor: const Color(0xFFEF4444),
             duration: const Duration(seconds: 2),
@@ -4844,11 +5034,29 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
   }
 
-  void _addToCartWithQuantity(
+  Future<void> _addToCartWithQuantity(
     Product product,
     double qty, {
     ProductVariation? preselectedVariation,
-  }) {
+  }) async {
+    if (qty != qty.roundToDouble()) {
+      final units = await _getCachedConversionUnits(product);
+      if (units.isNotEmpty && !units.first.allowDecimal) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Decimal quantity ($qty) is not allowed for "${product.name}" (${units.first.actualName}).',
+              ),
+              backgroundColor: const Color(0xFFEF4444),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+    }
+    if (!mounted) return;
     final effectiveStock =
         preselectedVariation?.stockQuantity ?? product.stockQuantity;
     final alreadyInCart = _cartBaseQtyFor(product, preselectedVariation);
@@ -4906,7 +5114,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           content: Text(
             expDays < 0
                 ? 'WARNING: ${product.name} is EXPIRED (${product.expiryDate})!'
-                : 'NOTICE: ${product.name} nearing expiry ($expDays days left • ${product.expiryDate}).',
+                : 'NOTICE: ${product.name} nearing expiry ($expDays days left â€¢ ${product.expiryDate}).',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           backgroundColor:
@@ -4979,7 +5187,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   )
                 : 1.0)
             : scale.value;
-        _addToCartWithQuantity(scaleItem, computedQty * qtyMultiplier);
+        await _addToCartWithQuantity(scaleItem, computedQty * qtyMultiplier);
         _searchController.clear();
         _applyProductFilter(immediate: true);
         _searchFocusNode.requestFocus();
@@ -4988,8 +5196,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           SnackBar(
             content: Text(
               scale.isPriceEmbedded
-                  ? 'Scale Price parsed: ${scaleItem.name} — ${computedQty.toStringAsFixed(3)} ${scaleItem.unit}'
-                  : 'Weight-Scale parsed: ${scaleItem.name} — ${computedQty.toStringAsFixed(3)} kg',
+                  ? 'Scale Price parsed: ${scaleItem.name} â€” ${computedQty.toStringAsFixed(3)} ${scaleItem.unit}'
+                  : 'Weight-Scale parsed: ${scaleItem.name} â€” ${computedQty.toStringAsFixed(3)} kg',
             ),
             backgroundColor: const Color(0xFF059669),
             duration: const Duration(milliseconds: 1500),
@@ -5014,7 +5222,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     dbMatch ??= await db.getProductWithMatchedVariationByCode(cleanCode);
     if (dbMatch != null) {
       if (qtyMultiplier != 1.0) {
-        _addToCartWithQuantity(
+        await _addToCartWithQuantity(
           dbMatch.$1,
           qtyMultiplier,
           preselectedVariation: dbMatch.$2,
@@ -5149,7 +5357,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                         'Exp: ${p.expiryDate}',
                                       if (canViewCost)
                                         'Cost: $currency ${p.purchasePrice.toStringAsFixed(2)}',
-                                    ].join(' • '),
+                                    ].join(' â€¢ '),
                                     style: const TextStyle(fontSize: 11),
                                   ),
                                   trailing: Row(
@@ -5507,7 +5715,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     color: Color(0xFFDC2626), fontWeight: FontWeight.bold)),
             content: Text(
               'Checkout is blocked because the following drug(s) have expired:\n\n'
-              '${expiredItems.map((e) => '• ${e.displayName} (Exp: ${e.expiryDate})').join('\n')}\n\n'
+              '${expiredItems.map((e) => 'â€¢ ${e.displayName} (Exp: ${e.expiryDate})').join('\n')}\n\n'
               'Please remove expired items from the cart to proceed with checkout.',
             ),
             actions: [
@@ -5583,7 +5791,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     if (redeemedPoints > 0 || earnedPoints > 0) {
       final loyaltySummary =
           'Loyalty Rewards: ${redeemedPoints > 0 ? "Redeemed ${redeemedPoints.toInt()} pts (-${widget.settings.currencySymbol}${loyaltyDiscount.toStringAsFixed(2)}). " : ""}Earned +${earnedPoints.toInt()} pts';
-      note = note.isEmpty ? loyaltySummary : '$note • $loyaltySummary';
+      note = note.isEmpty ? loyaltySummary : '$note â€¢ $loyaltySummary';
     }
 
     final totalDiscount = _calculatedDiscount + loyaltyDiscount;
@@ -5874,7 +6082,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     color: Color(0xFFDC2626), fontWeight: FontWeight.bold)),
             content: Text(
               'Quick checkout is blocked because the following drug(s) have expired:\n\n'
-              '${expiredItems.map((e) => '• ${e.displayName} (Exp: ${e.expiryDate})').join('\n')}\n\n'
+              '${expiredItems.map((e) => 'â€¢ ${e.displayName} (Exp: ${e.expiryDate})').join('\n')}\n\n'
               'Please remove expired items from the cart.',
             ),
             actions: [
@@ -6138,8 +6346,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.person_search, size: 16),
-              label: Text(PosLocalization.tr('Select Customer (F3)',
-                  settings: widget.settings)),
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(PosLocalization.tr('Select Customer',
+                      settings: widget.settings)),
+                  const SizedBox(width: 6),
+                  _posShortcutBadge('F3',
+                      onSolid: true,
+                      isDark: Theme.of(context).brightness == Brightness.dark),
+                ],
+              ),
               onPressed: () {
                 Navigator.pop(ctx);
                 _openCustomerSearchModal();
@@ -6390,7 +6607,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final parked = ParkedSale(
       customerId: _selectedCustomer?.id,
       customerName: _selectedCustomer?.name ?? 'Walk-in Customer',
-      note: '$tokenNum • $counterTag',
+      note: '$tokenNum â€¢ $counterTag',
       total: _grandTotal,
       createdAt: now,
       itemsJson: jsonEncode(itemsMap),
@@ -6433,7 +6650,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Sent to Cash Counter ($tokenNum) — Customer can pay at Main Counter!',
+          'Sent to Cash Counter ($tokenNum) â€” Customer can pay at Main Counter!',
         ),
         backgroundColor: const Color(0xFF0D9488),
         duration: const Duration(seconds: 3),
@@ -6870,7 +7087,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            'SKU: ${p.sku}${p.barcode.isNotEmpty ? ' • ${p.barcode}' : ''}',
+                                            'SKU: ${p.sku}${p.barcode.isNotEmpty ? ' â€¢ ${p.barcode}' : ''}',
                                             style: TextStyle(
                                               fontSize: 11,
                                               color: textSecondary,
@@ -7401,7 +7618,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                         fontSize: 16,
                                         fontWeight: FontWeight.w900)),
                                 Text(
-                                    'Customer Facing Display • ${_selectedCustomer?.name ?? 'Walk-in Customer'}',
+                                    'Customer Facing Display â€¢ ${_selectedCustomer?.name ?? 'Walk-in Customer'}',
                                     style: const TextStyle(
                                         fontSize: 12, color: Colors.grey)),
                               ],
@@ -7665,7 +7882,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                  'SKU: ${foundVar?.subSku ?? prod.sku} • Unit: ${prod.unit}',
+                                  'SKU: ${foundVar?.subSku ?? prod.sku} â€¢ Unit: ${prod.unit}',
                                   style: const TextStyle(
                                       fontSize: 12, color: Colors.grey)),
                               if ((prod.rackLocation ?? '').isNotEmpty)
@@ -7784,13 +8001,24 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'POS Terminal Shortcuts [F1 / ?]',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 17,
-                                      color: textPrimary),
-                                  overflow: TextOverflow.ellipsis,
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        PosLocalization.tr(
+                                            'POS Terminal Shortcuts',
+                                            settings: widget.settings),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 17,
+                                            color: textPrimary),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _posShortcutBadge('F1 / ?', isDark: isDark),
+                                  ],
                                 ),
                                 Text(
                                   isCustomizing
@@ -8288,7 +8516,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               isDark: isDark,
                             ),
 
-                            // [ ↶ ] Undo / Clear
+                            // [ â†¶ ] Undo / Clear
                             _topIconBtn(
                               icon: Icons.undo,
                               onTap: _clearCart,
@@ -8380,7 +8608,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               isDark: isDark,
                             ),
 
-                            // [ ⌧ ] Close
+                            // [ âŒ§ ] Close
                             _topIconBtn(
                               icon: Icons.highlight_off,
                               onTap: _clearCart,
@@ -8394,7 +8622,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               icon: Icons.price_check_rounded,
                               onTap: _openPriceCheckDialog,
                               color: const Color(0xFF0284C7),
-                              tooltip: 'Quick Price & Stock Check (Ctrl+L)',
+                              tooltip:
+                                  '${PosLocalization.tr('Quick Price & Stock Check', settings: widget.settings)} [Ctrl+L]',
                               isDark: isDark,
                             ),
 
@@ -8441,7 +8670,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               isDark: isDark,
                             ),
 
-                            // [ ️ ] Screen
+                            // [ ï¸ ] Screen
                             _topIconBtn(
                               icon: Icons.desktop_windows_outlined,
                               onTap: _openCustomerFacingDisplay,
@@ -8453,12 +8682,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               icon: Icons.point_of_sale_rounded,
                               onTap: _openCashDrawer,
                               color: const Color(0xFF10B981),
-                              tooltip: 'Open Cash Drawer [Ctrl+D]',
+                              tooltip:
+                                  '${PosLocalization.tr('Open Cash Drawer', settings: widget.settings)} [Ctrl+D]',
                               isDark: isDark,
                             ),
                             const SizedBox(width: 6),
 
-                            // [ ⊞ / ] Toggle Grid / List Layout
+                            // [ âŠž / ] Toggle Grid / List Layout
                             if (_showProductPanel) ...[
                               _topIconBtn(
                                 icon: _isGridView
@@ -8598,12 +8828,19 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               ),
                               icon: const Icon(Icons.history_rounded,
                                   size: 15, color: Color(0xFF4F46E5)),
-                              label: Text(
-                                  PosLocalization.tr('Recent Sales [F9]',
-                                      settings: widget.settings),
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold)),
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                      PosLocalization.tr('Recent Sales',
+                                          settings: widget.settings),
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 6),
+                                  _posShortcutBadge('F9', isDark: isDark),
+                                ],
+                              ),
                               onPressed: _openRecentTransactionsModal,
                             ),
                             const SizedBox(width: 6),
@@ -8622,12 +8859,19 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                   Icons.account_balance_wallet_outlined,
                                   size: 15,
                                   color: Color(0xFF10B981)),
-                              label: Text(
-                                  PosLocalization.tr('Till [F10]',
-                                      settings: widget.settings),
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold)),
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                      PosLocalization.tr('Till',
+                                          settings: widget.settings),
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 6),
+                                  _posShortcutBadge('F10', isDark: isDark),
+                                ],
+                              ),
                               onPressed: () {
                                 showDialog(
                                   context: context,
@@ -8652,12 +8896,20 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               ),
                               icon:
                                   const Icon(Icons.keyboard_outlined, size: 14),
-                              label: Text(
-                                  PosLocalization.tr('Shortcuts [F1]',
-                                      settings: widget.settings),
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold)),
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                      PosLocalization.tr('Shortcuts',
+                                          settings: widget.settings),
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 6),
+                                  _posShortcutBadge('F1',
+                                      onSolid: true, isDark: isDark),
+                                ],
+                              ),
                               onPressed: _showShortcutsDialog,
                             ),
                           ],
@@ -8703,7 +8955,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           label: SizedBox(
                             width: double.infinity,
                             child: Text(
-                              'Cart (${cartState.items.length}) • $currency${_grandTotal.toStringAsFixed(0)}',
+                              'Cart (${cartState.items.length}) â€¢ $currency${_grandTotal.toStringAsFixed(0)}',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 12.5),
@@ -9095,7 +9347,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                               // [ + ] Quick Add Customer blue button
                                               Tooltip(
                                                 message:
-                                                    'Add New Customer (F6)',
+                                                    '${PosLocalization.tr('Add New Customer', settings: widget.settings)} [F6]',
                                                 child: InkWell(
                                                   onTap:
                                                       _openQuickCustomerModal,
@@ -9395,7 +9647,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                         settings:
                                                             widget.settings)
                                                     : PosLocalization.tr(
-                                                        'Retail Mode (F12)',
+                                                        'Retail Mode',
                                                         settings:
                                                             widget.settings),
                                                 style: TextStyle(
@@ -9406,6 +9658,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                       : textPrimary,
                                                 ),
                                               ),
+                                              const SizedBox(width: 6),
+                                              _posShortcutBadge('F12',
+                                                  onSolid: _isWholesaleMode,
+                                                  isDark: isDark),
                                             ],
                                           ),
                                         ),
@@ -9789,7 +10045,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                         runSpacing: 2,
                                                         children: [
                                                           Text(
-                                                            '${item.product.sku} • ${item.product.stockQuantity.toInt()} left',
+                                                            '${item.product.sku} â€¢ ${item.product.stockQuantity.toInt()} left',
                                                             style: TextStyle(
                                                                 fontSize: 11,
                                                                 color:
@@ -10229,88 +10485,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                         ),
                                                       ),
                                                       const SizedBox(height: 3),
-                                                      ConstrainedBox(
-                                                        constraints:
-                                                            const BoxConstraints(
-                                                                maxWidth: 105),
-                                                        child: FittedBox(
-                                                          fit: BoxFit.scaleDown,
-                                                          child: InkWell(
-                                                            onTap: () =>
-                                                                _openUnitSelectorForCartItem(
-                                                                    item,
-                                                                    index),
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        4),
-                                                            child: Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .symmetric(
-                                                                      horizontal:
-                                                                          6,
-                                                                      vertical:
-                                                                          2),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: isDark
-                                                                    ? const Color(
-                                                                        0xFF334155)
-                                                                    : const Color(
-                                                                        0xFFEFF6FF),
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            4),
-                                                                border: Border.all(
-                                                                    color: const Color(
-                                                                            0xFF3B82F6)
-                                                                        .withValues(
-                                                                            alpha:
-                                                                                0.4),
-                                                                    width: 0.8),
-                                                              ),
-                                                              child: Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
-                                                                children: [
-                                                                  Flexible(
-                                                                    child: Text(
-                                                                      item.selectedUnitName ??
-                                                                          item.product
-                                                                              .unit,
-                                                                      maxLines:
-                                                                          1,
-                                                                      overflow:
-                                                                          TextOverflow
-                                                                              .ellipsis,
-                                                                      style:
-                                                                          const TextStyle(
-                                                                        fontSize:
-                                                                            10,
-                                                                        fontWeight:
-                                                                            FontWeight.bold,
-                                                                        color: Color(
-                                                                            0xFF2563EB),
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  const SizedBox(
-                                                                      width: 2),
-                                                                  const Icon(
-                                                                      Icons
-                                                                          .keyboard_arrow_down_rounded,
-                                                                      size: 12,
-                                                                      color: Color(
-                                                                          0xFF2563EB)),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
+                                                      _buildCartItemUnitDropdown(
+                                                          item, index, isDark),
                                                     ],
                                                   ),
                                                 ),
@@ -10501,7 +10677,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                 onEditDiscount: _showOrderDiscountDialog,
                                 onEditTax: _showOrderTaxDialog,
                                 onEditShipping: _showShippingDialog,
-                                onWordsLanguageTap: _showWordsLanguageDialog,
                                 onCancel: _clearCart,
                                 onSaveDraft: _saveDraft,
                                 onParkSale: _suspendSale,
@@ -10835,7 +11010,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                         size: 18),
                                                     label: Text(
                                                       PosLocalization.tr(
-                                                          '+ Add First Product',
+                                                          'Add First Product',
                                                           settings:
                                                               widget.settings),
                                                       style: const TextStyle(
@@ -10981,40 +11156,48 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                       MainAxisAlignment
                                                                           .spaceBetween,
                                                                   children: [
-                                                                    Container(
-                                                                      padding: const EdgeInsets
-                                                                          .symmetric(
-                                                                          horizontal:
-                                                                              4,
-                                                                          vertical:
-                                                                              1.5),
-                                                                      decoration:
-                                                                          BoxDecoration(
-                                                                        color: isOutOfStock
-                                                                            ? (isDark
-                                                                                ? const Color(0xFF450A0A)
-                                                                                : const Color(0xFFFEE2E2))
-                                                                            : (isLowStock ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7)) : (isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7))),
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(3),
-                                                                      ),
+                                                                    Flexible(
                                                                       child:
-                                                                          Text(
-                                                                        isOutOfStock
-                                                                            ? 'Out of stock'
-                                                                            : '${p.stockQuantity % 1 == 0 ? p.stockQuantity.toInt() : p.stockQuantity.toStringAsFixed(1)} ${PosLocalization.tr('in stock', settings: widget.settings)}',
-                                                                        style:
-                                                                            TextStyle(
-                                                                          fontSize:
-                                                                              8.5,
-                                                                          fontWeight:
-                                                                              FontWeight.bold,
+                                                                          Container(
+                                                                        padding: const EdgeInsets
+                                                                            .symmetric(
+                                                                            horizontal:
+                                                                                4,
+                                                                            vertical:
+                                                                                1.5),
+                                                                        decoration:
+                                                                            BoxDecoration(
                                                                           color: isOutOfStock
-                                                                              ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                              : (isLowStock ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)) : (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A))),
+                                                                              ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
+                                                                              : (isLowStock ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7)) : (isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7))),
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(3),
+                                                                        ),
+                                                                        child:
+                                                                            Text(
+                                                                          isOutOfStock
+                                                                              ? 'Out of stock'
+                                                                              : '${p.stockQuantity % 1 == 0 ? p.stockQuantity.toInt() : p.stockQuantity.toStringAsFixed(1)} ${PosLocalization.tr('in stock', settings: widget.settings)}',
+                                                                          maxLines:
+                                                                              1,
+                                                                          overflow:
+                                                                              TextOverflow.ellipsis,
+                                                                          style:
+                                                                              TextStyle(
+                                                                            fontSize:
+                                                                                8.5,
+                                                                            fontWeight:
+                                                                                FontWeight.bold,
+                                                                            color: isOutOfStock
+                                                                                ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                                                                : (isLowStock ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)) : (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A))),
+                                                                          ),
                                                                         ),
                                                                       ),
                                                                     ),
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            4),
                                                                     if (p.unit
                                                                         .isNotEmpty)
                                                                       Flexible(
@@ -11585,8 +11768,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     children: [
                       _shortcutPill(
                           _shortcutBindings['help'] ?? 'F1',
-                          PosLocalization.tr('Shortcuts Help (?)',
-                              settings: widget.settings),
+                          '${PosLocalization.tr('Shortcuts Help', settings: widget.settings)} (?)',
                           isDark),
                       const SizedBox(width: 10),
                       _shortcutPill(
@@ -11661,22 +11843,67 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     );
   }
 
+  Widget _posShortcutBadge(
+    String keyLabel, {
+    bool onSolid = false,
+    Color? fgColor,
+    required bool isDark,
+  }) {
+    final fg = onSolid
+        ? Colors.white
+        : (fgColor ?? (isDark ? Colors.white : const Color(0xFF334155)));
+    final bg = onSolid
+        ? Colors.white.withValues(alpha: 0.20)
+        : (fgColor != null
+            ? fgColor.withValues(alpha: 0.12)
+            : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)));
+    final border = onSolid
+        ? Colors.white.withValues(alpha: 0.35)
+        : (fgColor != null
+            ? fgColor.withValues(alpha: 0.35)
+            : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)));
+
+    return Directionality(
+      textDirection: ui.TextDirection.ltr,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: border, width: 0.8),
+        ),
+        child: Text(
+          keyLabel,
+          style: TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w800,
+            color: fg,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _shortcutPill(String keyLabel, String actionLabel, bool isDark) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            keyLabel,
-            style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : const Color(0xFF0F172A)),
+        Directionality(
+          textDirection: ui.TextDirection.ltr,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              keyLabel,
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A)),
+            ),
           ),
         ),
         const SizedBox(width: 4),
@@ -11847,7 +12074,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   ),
                   decoration: InputDecoration(
                     hintText: PosLocalization.tr(
-                        'Scan barcode / search item / 2*SKU [Esc]',
+                        'Scan barcode / search item / 2*SKU',
                         settings: widget.settings),
                     hintStyle: TextStyle(
                       fontSize: 13,
@@ -11855,8 +12082,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     ),
                     prefixIcon: const Icon(Icons.search_rounded,
                         size: 20, color: Color(0xFF4F46E5)),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_searchController.text.isNotEmpty)
+                          IconButton(
                             icon: const Icon(Icons.clear, size: 16),
                             onPressed: () {
                               _searchController.clear();
@@ -11864,8 +12094,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               _applyProductFilter(immediate: true);
                             },
                             tooltip: 'Clear',
-                          )
-                        : null,
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: _posShortcutBadge('Esc', isDark: isDark),
+                        ),
+                      ],
+                    ),
                     border: InputBorder.none,
                     filled: false,
                     enabledBorder: InputBorder.none,
@@ -11898,7 +12133,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         ),
         const SizedBox(width: 6),
         Tooltip(
-          message: 'Add Custom Item [F11]',
+          message:
+              '${PosLocalization.tr('Add Custom Item', settings: widget.settings)} [F11]',
           child: InkWell(
             onTap: _openCustomProductDialog,
             borderRadius: BorderRadius.circular(8),

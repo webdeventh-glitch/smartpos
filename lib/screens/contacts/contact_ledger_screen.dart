@@ -166,6 +166,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
     );
 
     PrintService.openPrintWindow(
+      context: context,
+      settings: widget.settings,
       htmlContent: html,
       title: '${contact.name}_Official_Ledger',
     );
@@ -669,7 +671,10 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                 customerPreviousBalance: _closingBalance,
               );
               PrintService.openPrintWindow(
-                  htmlContent: invoiceHtml, title: 'Invoice_${sale.invoiceNo}');
+                  context: context,
+                  settings: widget.settings,
+                  htmlContent: invoiceHtml,
+                  title: 'Invoice_${sale.invoiceNo}');
             },
           ),
         ],

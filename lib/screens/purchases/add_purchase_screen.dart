@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../utils/currency_formatter.dart';
 import '../../utils/serial_helper.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import 'product_search_dialog.dart';
 import 'quick_add_supplier_dialog.dart';
 import 'quick_add_product_dialog.dart';
@@ -44,6 +46,8 @@ class _PurchaseLineItem {
   String startSerial = '';
   String endSerial = '';
   int warrantyMonths = 144;
+  String? qtyError;
+  String? bonusError;
 
   final TextEditingController qtyCtrl;
   final TextEditingController bonusCtrl;
@@ -114,6 +118,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
   List<Product> _allProducts = [];
   List<BusinessLocation> _locations = [];
   List<PaymentAccount> _paymentAccounts = [];
+  List<Unit> _dbUnits = [];
+  String? _generalError;
 
   final List<_PurchaseLineItem> _lineItems = [];
 
@@ -127,6 +133,11 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
 
   // Search & Barcode
   final TextEditingController _barcodeSearchCtrl = TextEditingController();
+  final FocusNode _barcodeSearchFocusNode = FocusNode();
+  final LayerLink _productDropdownLink = LayerLink();
+  final GlobalKey _productBoxKey = GlobalKey();
+  final Object _productDropdownTapGroup = Object();
+  OverlayEntry? _productDropdownOverlay;
 
   // Modifiers & Taxes
   String _discountType = 'none'; // 'none', 'fixed', 'percentage'
@@ -155,7 +166,14 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
   }
 
   @override
+  void reassemble() {
+    _closeProductDropdown();
+    super.reassemble();
+  }
+
+  @override
   void dispose() {
+    _closeProductDropdown();
     for (final item in _lineItems) {
       item.dispose();
     }
@@ -164,6 +182,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     _payTermNumberCtrl.dispose();
     _documentCtrl.dispose();
     _barcodeSearchCtrl.dispose();
+    _barcodeSearchFocusNode.dispose();
     _discountAmountCtrl.dispose();
     _shippingDetailsCtrl.dispose();
     _shippingChargesCtrl.dispose();
@@ -180,6 +199,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     final prods = await db.getProducts();
     final locs = await db.getBusinessLocations();
     final accounts = await db.getPaymentAccounts();
+    final units = await db.getUnits();
     final autoRef = await db.generateNextPurchaseRef();
 
     if (mounted) {
@@ -188,6 +208,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         _allProducts = prods;
         _locations = locs;
         _paymentAccounts = accounts;
+        _dbUnits = units;
         _refNoCtrl.text = autoRef;
 
         if (locs.isNotEmpty) _selectedLocation = locs.first;
@@ -372,11 +393,13 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     }
   }
 
-  void _recalcPaidAmount({bool forceFull = false}) {
+  void _recalcPaidAmount({bool forceFull = false, bool notify = true}) {
     if (forceFull || _paidAmountCtrl.text.trim().isEmpty) {
       _paidAmountCtrl.text = _grandTotal.toStringAsFixed(2);
     }
-    setState(() {});
+    if (notify) {
+      setState(() {});
+    }
   }
 
   // ================= Item Operations =================
@@ -389,7 +412,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         it.qtyCtrl.text = it.quantity % 1 == 0
             ? it.quantity.toInt().toString()
             : it.quantity.toStringAsFixed(1);
-        _recalcPaidAmount(forceFull: true);
+        _recalcPaidAmount(forceFull: true, notify: false);
       });
       return;
     }
@@ -406,30 +429,299 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
       profitMarginPercent: margin,
       sellingPrice: selling,
       batchNumber: p.batchNumber ?? '',
-      expDate: p.expiryDate ?? '',
+      expDate: p.isExpirable ? (p.expiryDate ?? '') : '',
     );
 
     setState(() {
       _lineItems.add(item);
-      _recalcPaidAmount(forceFull: true);
+      _recalcPaidAmount(forceFull: true, notify: false);
     });
+  }
+
+  void _closeProductDropdown() {
+    final entry = _productDropdownOverlay;
+    _productDropdownOverlay = null;
+    if (entry != null && entry.mounted) {
+      entry.remove();
+    }
+  }
+
+  /// Optimal String Alignment distance so minor typos (e.g. "login" vs "longi")
+  /// still surface matching catalog products in the search dropdown.
+  int _osaDistance(String a, String b) {
+    final m = a.length;
+    final n = b.length;
+    if (m == 0) return n;
+    if (n == 0) return m;
+    final d = List.generate(m + 1, (_) => List<int>.filled(n + 1, 0));
+    for (var i = 0; i <= m; i++) {
+      d[i][0] = i;
+    }
+    for (var j = 0; j <= n; j++) {
+      d[0][j] = j;
+    }
+    for (var i = 1; i <= m; i++) {
+      for (var j = 1; j <= n; j++) {
+        final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+        var val = d[i - 1][j] + 1;
+        if (d[i][j - 1] + 1 < val) val = d[i][j - 1] + 1;
+        if (d[i - 1][j - 1] + cost < val) val = d[i - 1][j - 1] + cost;
+        if (i > 1 &&
+            j > 1 &&
+            a[i - 1] == b[j - 2] &&
+            a[i - 2] == b[j - 1] &&
+            d[i - 2][j - 2] + 1 < val) {
+          val = d[i - 2][j - 2] + 1;
+        }
+        d[i][j] = val;
+      }
+    }
+    return d[m][n];
+  }
+
+  List<Product> _findMatchingProducts(String query) {
+    final clean = query.trim().toLowerCase();
+    if (clean.isEmpty) return [];
+
+    final tokens =
+        clean.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+    final scored = <({Product p, int score})>[];
+
+    for (final p in _allProducts) {
+      final name = p.name.toLowerCase();
+      final sku = p.sku.toLowerCase();
+      final barcode = p.barcode.toLowerCase();
+      final combined = '$name $sku $barcode';
+
+      if (barcode == clean || sku == clean || name == clean) {
+        scored.add((p: p, score: 0));
+      } else if (name.startsWith(clean) ||
+          sku.startsWith(clean) ||
+          barcode.startsWith(clean)) {
+        scored.add((p: p, score: 1));
+      } else if (name.contains(clean) ||
+          sku.contains(clean) ||
+          barcode.contains(clean)) {
+        scored.add((p: p, score: 2));
+      } else if (tokens.every((t) => combined.contains(t))) {
+        scored.add((p: p, score: 3));
+      } else if (clean.length >= 4 && !clean.contains(' ')) {
+        final words =
+            combined.split(RegExp(r'[\s\-_/]+')).where((w) => w.length >= 3);
+        var bestDist = 99;
+        for (final w in words) {
+          if ((w.length - clean.length).abs() <= 2) {
+            final dist = _osaDistance(clean, w);
+            if (dist < bestDist) bestDist = dist;
+          }
+        }
+        if (bestDist <= 2) {
+          scored.add((p: p, score: 4 + bestDist));
+        }
+      }
+    }
+
+    scored.sort((a, b) => a.score.compareTo(b.score));
+    return scored.map((e) => e.p).toList();
+  }
+
+  void _showOrUpdateProductDropdown() {
+    if (!mounted) return;
+    final q = _barcodeSearchCtrl.text.trim();
+    if (q.isEmpty) {
+      _closeProductDropdown();
+      return;
+    }
+
+    if (_productDropdownOverlay != null) {
+      _productDropdownOverlay!.markNeedsBuild();
+      return;
+    }
+
+    final boxContext = _productBoxKey.currentContext;
+    final box = boxContext?.findRenderObject() as RenderBox?;
+    final width = box?.size.width ?? 480.0;
+    final fieldHeight = box?.size.height ?? 44.0;
+    final topLeft = box?.localToGlobal(Offset.zero) ?? Offset.zero;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final spaceBelow = screenHeight - (topLeft.dy + fieldHeight);
+    final spaceAbove = topLeft.dy;
+    final openUpward = spaceBelow < 180 && spaceAbove > spaceBelow;
+    final maxMenuHeight =
+        ((openUpward ? spaceAbove : spaceBelow) - 16).clamp(140.0, 320.0);
+
+    _productDropdownOverlay = OverlayEntry(
+      builder: (overlayCtx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final bg = isDark ? const Color(0xFF1E293B) : Colors.white;
+        final borderCol =
+            isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+        final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+        final textSecondary =
+            isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+        final matches = _findMatchingProducts(_barcodeSearchCtrl.text);
+
+        return Positioned(
+          width: width,
+          child: CompositedTransformFollower(
+            link: _productDropdownLink,
+            showWhenUnlinked: false,
+            targetAnchor: openUpward ? Alignment.topLeft : Alignment.bottomLeft,
+            followerAnchor:
+                openUpward ? Alignment.bottomLeft : Alignment.topLeft,
+            offset: Offset(0, openUpward ? -4 : 4),
+            child: TapRegion(
+              groupId: _productDropdownTapGroup,
+              onTapOutside: (_) => _closeProductDropdown(),
+              child: CallbackShortcuts(
+                bindings: {
+                  const SingleActivator(LogicalKeyboardKey.escape):
+                      _closeProductDropdown,
+                },
+                child: Material(
+                  elevation: 10,
+                  borderRadius: BorderRadius.circular(10),
+                  color: bg,
+                  child: Container(
+                    constraints: BoxConstraints(maxHeight: maxMenuHeight),
+                    decoration: BoxDecoration(
+                      color: bg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: borderCol),
+                    ),
+                    child: matches.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              PosLocalization.tr(
+                                'No matching products found',
+                                settings: widget.settings,
+                              ),
+                              style:
+                                  TextStyle(fontSize: 13, color: textSecondary),
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            shrinkWrap: true,
+                            itemCount: matches.length,
+                            separatorBuilder: (_, __) => Divider(
+                              height: 1,
+                              color: borderCol.withValues(alpha: 0.4),
+                            ),
+                            itemBuilder: (_, idx) {
+                              final p = matches[idx];
+                              final stockColor = p.stockQuantity <= 0
+                                  ? const Color(0xFFEF4444)
+                                  : (p.stockQuantity <= p.alertQuantity
+                                      ? const Color(0xFFD97706)
+                                      : const Color(0xFF10B981));
+                              return InkWell(
+                                onTap: () {
+                                  _barcodeSearchCtrl.clear();
+                                  _closeProductDropdown();
+                                  _addProductToBill(p);
+                                  if (mounted &&
+                                      _barcodeSearchFocusNode.canRequestFocus) {
+                                    _barcodeSearchFocusNode.requestFocus();
+                                  }
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 9),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              p.name,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                                color: textPrimary,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'SKU: ${p.sku}${p.barcode.isNotEmpty ? ' • ${p.barcode}' : ''}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: textSecondary,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: stockColor.withValues(
+                                              alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          'Stock: ${p.stockQuantity % 1 == 0 ? p.stockQuantity.toInt() : p.stockQuantity.toStringAsFixed(1)}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: stockColor,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        CurrencyFormatter.exact(
+                                          p.purchasePrice,
+                                          currency:
+                                              '${widget.settings.currencySymbol} ',
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                          color: isDark
+                                              ? const Color(0xFF93C5FD)
+                                              : const Color(0xFF4F46E5),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_productDropdownOverlay!);
   }
 
   void _onQuickSearch(String query) {
     final clean = query.trim().toLowerCase();
     if (clean.isEmpty) return;
 
-    final match = _allProducts.cast<Product?>().firstWhere(
-          (p) =>
-              p!.barcode.toLowerCase() == clean ||
-              p.sku.toLowerCase() == clean ||
-              p.name.toLowerCase() == clean ||
-              p.name.toLowerCase().contains(clean),
-          orElse: () => null,
-        );
-    if (match != null) {
-      _addProductToBill(match);
+    final matches = _findMatchingProducts(query);
+    if (matches.isNotEmpty) {
+      _addProductToBill(matches.first);
       _barcodeSearchCtrl.clear();
+      _closeProductDropdown();
+      setState(() {});
+      _barcodeSearchFocusNode.requestFocus();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -820,38 +1112,75 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     );
   }
 
+  bool _allowsDecimalForProduct(Product product) {
+    final target = product.unit.toLowerCase().trim();
+    for (final u in _dbUnits) {
+      final a = u.actualName.toLowerCase().trim();
+      final s = u.shortName.toLowerCase().trim();
+      if (target == a || target == s || target == '$a ($s)') {
+        return u.allowDecimal;
+      }
+    }
+    return target.contains('kg') ||
+        target.contains('kilo') ||
+        target.contains('gram') ||
+        target.contains('gm') ||
+        target.contains('liter') ||
+        target.contains('litre') ||
+        target.contains('ltr') ||
+        target.contains('ml') ||
+        target.contains('meter') ||
+        target.contains('mtr');
+  }
+
   // ================= Save Purchase =================
   Future<void> _savePurchase({bool andPrint = false}) async {
+    setState(() => _generalError = null);
+
     if (_selectedSupplier == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please select a supplier.'),
-            backgroundColor: Colors.orange),
-      );
+      setState(() => _generalError = 'Please select a supplier.');
       return;
     }
 
     if (_lineItems.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please add at least one product item to restock.'),
-            backgroundColor: Colors.orange),
-      );
+      setState(() =>
+          _generalError = 'Please add at least one product item to restock.');
       return;
     }
 
-    final invalidQtyItem = _lineItems.cast<_PurchaseLineItem?>().firstWhere(
-          (it) => it!.quantity <= 0,
-          orElse: () => null,
-        );
-    if (invalidQtyItem != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Invalid quantity for "${invalidQtyItem.product.name}". Quantity must be greater than 0.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+    bool hasLineFieldError = false;
+    for (final it in _lineItems) {
+      final allowDec = _allowsDecimalForProduct(it.product);
+      final rawQty = it.qtyCtrl.text.trim();
+      final parsedQty = double.tryParse(rawQty);
+      if (rawQty.isEmpty || parsedQty == null || parsedQty <= 0) {
+        it.qtyError = 'Qty > 0';
+        hasLineFieldError = true;
+      } else if (!allowDec &&
+          (rawQty.contains('.') || parsedQty != parsedQty.roundToDouble())) {
+        it.qtyError = 'No decimals';
+        hasLineFieldError = true;
+      } else {
+        it.qtyError = null;
+      }
+
+      final rawBonus = it.bonusCtrl.text.trim();
+      final parsedBonus = rawBonus.isEmpty ? 0.0 : double.tryParse(rawBonus);
+      if (rawBonus.isNotEmpty && (parsedBonus == null || parsedBonus < 0)) {
+        it.bonusError = 'Invalid';
+        hasLineFieldError = true;
+      } else if (rawBonus.isNotEmpty &&
+          !allowDec &&
+          (rawBonus.contains('.') ||
+              parsedBonus! != parsedBonus.roundToDouble())) {
+        it.bonusError = 'No decimals';
+        hasLineFieldError = true;
+      } else {
+        it.bonusError = null;
+      }
+    }
+    if (hasLineFieldError) {
+      setState(() {});
       return;
     }
 
@@ -860,13 +1189,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
           orElse: () => null,
         );
     if (invalidCostItem != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Invalid purchase cost for "${invalidCostItem.product.name}". Cost cannot be negative.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      setState(() => _generalError =
+          'Invalid purchase cost for "${invalidCostItem.product.name}". Cost cannot be negative.');
       return;
     }
 
@@ -875,36 +1199,19 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
           orElse: () => null,
         );
     if (belowCostItem != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Loss Guard Warning: "${belowCostItem.product.name}" selling price (${widget.settings.currencySymbol}${belowCostItem.sellingPrice.toStringAsFixed(2)}) is less than purchase cost (${widget.settings.currencySymbol}${belowCostItem.netUnitCost.toStringAsFixed(2)})! Please increase selling price to avoid losses.',
-          ),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      setState(() => _generalError =
+          'Loss Guard Warning: "${belowCostItem.product.name}" selling price (${widget.settings.currencySymbol}${belowCostItem.sellingPrice.toStringAsFixed(2)}) is less than purchase cost (${widget.settings.currencySymbol}${belowCostItem.netUnitCost.toStringAsFixed(2)})! Please increase selling price to avoid losses.');
       return;
     }
 
     if (_amountPaid < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Paid amount cannot be negative.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      setState(() => _generalError = 'Paid amount cannot be negative.');
       return;
     }
 
     if (_amountPaid > _grandTotal + 0.01) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Paid amount (${widget.settings.currencySymbol}$_amountPaid) exceeds grand total (${widget.settings.currencySymbol}$_grandTotal).'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      setState(() => _generalError =
+          'Paid amount (${widget.settings.currencySymbol}$_amountPaid) exceeds grand total (${widget.settings.currencySymbol}$_grandTotal).');
       return;
     }
 
@@ -1216,6 +1523,39 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                 ),
                 const SizedBox(height: 18),
 
+                if (_generalError != null) ...[
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color:
+                              const Color(0xFFEF4444).withValues(alpha: 0.35)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline_rounded,
+                            color: Color(0xFFEF4444), size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _generalError!,
+                            style: const TextStyle(
+                              color: Color(0xFFDC2626),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 // ================= CARD 1: General Details =================
                 Container(
                   decoration: BoxDecoration(
@@ -1381,32 +1721,67 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: TextField(
-                                controller: _barcodeSearchCtrl,
-                                onSubmitted: _onQuickSearch,
-                                style:
-                                    TextStyle(fontSize: 13, color: textPrimary),
-                                decoration: InputDecoration(
-                                  hintText:
-                                      'Enter Product name / SKU / Scan barcode (Press Enter to add)...',
-                                  hintStyle: TextStyle(
-                                      fontSize: 13, color: textSecondary),
-                                  prefixIcon: const Icon(
-                                      Icons.qr_code_scanner_rounded,
-                                      size: 19),
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 11),
-                                  filled: true,
-                                  fillColor: cardBg,
-                                  border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide:
-                                          BorderSide(color: borderColor)),
-                                  enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide:
-                                          BorderSide(color: borderColor)),
+                              child: TapRegion(
+                                groupId: _productDropdownTapGroup,
+                                child: CompositedTransformTarget(
+                                  link: _productDropdownLink,
+                                  child: TextField(
+                                    key: _productBoxKey,
+                                    controller: _barcodeSearchCtrl,
+                                    focusNode: _barcodeSearchFocusNode,
+                                    onSubmitted: _onQuickSearch,
+                                    onChanged: (val) {
+                                      setState(() {});
+                                      if (val.trim().isEmpty) {
+                                        _closeProductDropdown();
+                                      } else {
+                                        _showOrUpdateProductDropdown();
+                                      }
+                                    },
+                                    style: TextStyle(
+                                        fontSize: 13, color: textPrimary),
+                                    decoration: InputDecoration(
+                                      hintText:
+                                          'Enter Product name / SKU / Scan barcode (Press Enter to add)...',
+                                      hintStyle: TextStyle(
+                                          fontSize: 13, color: textSecondary),
+                                      prefixIcon: const Icon(
+                                          Icons.qr_code_scanner_rounded,
+                                          size: 19),
+                                      suffixIcon:
+                                          _barcodeSearchCtrl.text.isNotEmpty
+                                              ? IconButton(
+                                                  icon: const Icon(Icons.clear,
+                                                      size: 16),
+                                                  tooltip: PosLocalization.tr(
+                                                    'Clear',
+                                                    settings: widget.settings,
+                                                  ),
+                                                  onPressed: () {
+                                                    _barcodeSearchCtrl.clear();
+                                                    _closeProductDropdown();
+                                                    setState(() {});
+                                                  },
+                                                )
+                                              : null,
+                                      isDense: true,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 14, vertical: 11),
+                                      filled: true,
+                                      fillColor: cardBg,
+                                      border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide:
+                                              BorderSide(color: borderColor)),
+                                      enabledBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide:
+                                              BorderSide(color: borderColor)),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -1601,25 +1976,47 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                               horizontal: 6, vertical: 6),
                                           child: TextFormField(
                                             controller: it.qtyCtrl,
-                                            keyboardType: const TextInputType
-                                                .numberWithOptions(
-                                                decimal: true),
+                                            keyboardType:
+                                                _allowsDecimalForProduct(
+                                                        it.product)
+                                                    ? const TextInputType
+                                                        .numberWithOptions(
+                                                        decimal: true)
+                                                    : TextInputType.number,
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.bold,
                                                 color: textPrimary),
                                             decoration: inputDeco.copyWith(
+                                              errorText: it.qtyError,
+                                              errorMaxLines: 2,
                                               contentPadding:
                                                   const EdgeInsets.symmetric(
                                                       horizontal: 6,
                                                       vertical: 8),
                                             ),
                                             onChanged: (val) {
+                                              final allowDec =
+                                                  _allowsDecimalForProduct(
+                                                      it.product);
+                                              final trimmed = val.trim();
                                               final qty =
-                                                  double.tryParse(val.trim()) ??
-                                                      1.0;
-                                              it.quantity = qty > 0 ? qty : 1.0;
+                                                  double.tryParse(trimmed);
+                                              if (trimmed.isEmpty ||
+                                                  qty == null ||
+                                                  qty <= 0) {
+                                                it.qtyError = 'Qty > 0';
+                                              } else if (!allowDec &&
+                                                  (trimmed.contains('.') ||
+                                                      qty !=
+                                                          qty.roundToDouble())) {
+                                                it.qtyError = 'No decimals';
+                                              } else {
+                                                it.qtyError = null;
+                                                it.quantity = qty;
+                                              }
+                                              _generalError = null;
                                               _recalcPaidAmount(
                                                   forceFull: true);
                                             },
@@ -1632,9 +2029,13 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                               horizontal: 6, vertical: 6),
                                           child: TextFormField(
                                             controller: it.bonusCtrl,
-                                            keyboardType: const TextInputType
-                                                .numberWithOptions(
-                                                decimal: true),
+                                            keyboardType:
+                                                _allowsDecimalForProduct(
+                                                        it.product)
+                                                    ? const TextInputType
+                                                        .numberWithOptions(
+                                                        decimal: true)
+                                                    : TextInputType.number,
                                             textAlign: TextAlign.center,
                                             style: const TextStyle(
                                                 fontSize: 13,
@@ -1642,17 +2043,36 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                                 color: Color(0xFF059669)),
                                             decoration: inputDeco.copyWith(
                                               hintText: '0',
+                                              errorText: it.bonusError,
+                                              errorMaxLines: 2,
                                               contentPadding:
                                                   const EdgeInsets.symmetric(
                                                       horizontal: 6,
                                                       vertical: 8),
                                             ),
                                             onChanged: (val) {
-                                              final b =
-                                                  double.tryParse(val.trim()) ??
-                                                      0.0;
-                                              it.bonusQty = b > 0 ? b : 0.0;
-                                              setState(() {});
+                                              final allowDec =
+                                                  _allowsDecimalForProduct(
+                                                      it.product);
+                                              final trimmed = val.trim();
+                                              final b = trimmed.isEmpty
+                                                  ? 0.0
+                                                  : double.tryParse(trimmed);
+                                              if (trimmed.isNotEmpty &&
+                                                  (b == null || b < 0)) {
+                                                it.bonusError = 'Invalid';
+                                              } else if (trimmed.isNotEmpty &&
+                                                  !allowDec &&
+                                                  (trimmed.contains('.') ||
+                                                      b! !=
+                                                          b.roundToDouble())) {
+                                                it.bonusError = 'No decimals';
+                                              } else {
+                                                it.bonusError = null;
+                                                it.bonusQty = b ?? 0.0;
+                                              }
+                                              setState(
+                                                  () => _generalError = null);
                                             },
                                           ),
                                         ),
@@ -1930,55 +2350,83 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                         Padding(
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 6, vertical: 6),
-                                          child: Column(
-                                            children: [
-                                              InkWell(
-                                                onTap: () =>
-                                                    _pickLineDate(it, true),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                                child: Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 3),
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                        color: borderColor),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            4),
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      const Icon(
-                                                          Icons
-                                                              .event_busy_rounded,
-                                                          size: 12,
-                                                          color: Color(
-                                                              0xFFEF4444)),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        it.expDate.isNotEmpty
-                                                            ? it.expDate
-                                                            : 'Set Expiry',
-                                                        style: TextStyle(
-                                                            fontSize: 11,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: it.expDate
-                                                                    .isNotEmpty
-                                                                ? textPrimary
-                                                                : textSecondary),
+                                          child: (it.product.isExpirable ||
+                                                  it.expDate.isNotEmpty)
+                                              ? Column(
+                                                  children: [
+                                                    InkWell(
+                                                      onTap: () =>
+                                                          _pickLineDate(
+                                                              it, true),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4),
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal: 6,
+                                                                vertical: 3),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          border: Border.all(
+                                                              color:
+                                                                  borderColor),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(4),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            const Icon(
+                                                                Icons
+                                                                    .event_busy_rounded,
+                                                                size: 12,
+                                                                color: Color(
+                                                                    0xFFEF4444)),
+                                                            const SizedBox(
+                                                                width: 4),
+                                                            Flexible(
+                                                              child: Text(
+                                                                it.expDate
+                                                                        .isNotEmpty
+                                                                    ? it.expDate
+                                                                    : 'Set Expiry',
+                                                                maxLines: 1,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize: 11,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  color: it
+                                                                          .expDate
+                                                                          .isNotEmpty
+                                                                      ? textPrimary
+                                                                      : textSecondary,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
-                                                    ],
+                                                    ),
+                                                  ],
+                                                )
+                                              : Center(
+                                                  child: Text(
+                                                    '—',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: textSecondary,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ],
-                                          ),
                                         ),
 
                                         // 11: Delete Action
@@ -2641,30 +3089,26 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                                   fontWeight: FontWeight.w600,
                                                   color: textPrimary)),
                                           const SizedBox(height: 5),
-                                          DropdownButtonFormField<
+                                          SearchableDropdownField<
                                               PaymentAccount>(
-                                            isExpanded: true,
-                                            dropdownColor: cardBg,
-                                            decoration: inputDeco,
-                                            style: TextStyle(
-                                                fontSize: 13,
-                                                color: textPrimary),
-                                            initialValue:
+                                            selectedItem:
                                                 _selectedPaymentAccount,
-                                            items: _paymentAccounts
-                                                .map((a) => DropdownMenuItem(
-                                                      value: a,
-                                                      child: Text(
-                                                        '${a.name} ($currency${a.currentBalance.toStringAsFixed(0)})',
-                                                        style: TextStyle(
-                                                            fontSize: 12,
-                                                            color: textPrimary),
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-                                                    ))
-                                                .toList(),
+                                            items: _paymentAccounts,
+                                            labelBuilder: (a) =>
+                                                '${a.name} ($currency${a.currentBalance.toStringAsFixed(0)})',
+                                            subtitleBuilder: (a) => a
+                                                    .accountType.isNotEmpty
+                                                ? a.accountType.toUpperCase()
+                                                : null,
+                                            placeholder:
+                                                'Select Payment Account...',
+                                            searchHint:
+                                                'Search payment account...',
+                                            prefixIcon: Icons
+                                                .account_balance_wallet_outlined,
+                                            height: 40,
+                                            allowClear: true,
+                                            clearLabel: 'None / Default',
                                             onChanged: (val) => setState(() =>
                                                 _selectedPaymentAccount = val),
                                           ),
@@ -2832,23 +3276,23 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
           ],
         ),
         const SizedBox(height: 5),
-        DropdownButtonFormField<Contact>(
-          isExpanded: true,
-          dropdownColor: cardBg,
-          decoration: inputDeco,
-          style: TextStyle(fontSize: 13, color: textPrimary),
-          initialValue: _selectedSupplier,
-          items: _suppliers
-              .map((s) => DropdownMenuItem(
-                    value: s,
-                    child: Text(
-                      '${s.name} ${s.balance > 0 ? "(Due: $currency${s.balance.toStringAsFixed(0)})" : ""}',
-                      style: TextStyle(fontSize: 13, color: textPrimary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ))
-              .toList(),
+        SearchableDropdownField<Contact>(
+          selectedItem: _selectedSupplier,
+          items: _suppliers,
+          labelBuilder: (s) =>
+              '${s.name}${s.balance > 0 ? " (Due: $currency${s.balance.toStringAsFixed(0)})" : ""}',
+          subtitleBuilder: (s) => [
+            if (s.phone.isNotEmpty) 'Ph: ${s.phone}',
+            if (s.address.isNotEmpty) s.address,
+          ].join(' • '),
+          filter: (s, q) =>
+              s.name.toLowerCase().contains(q) ||
+              s.phone.toLowerCase().contains(q) ||
+              s.address.toLowerCase().contains(q),
+          placeholder: 'Select Supplier...',
+          searchHint: 'Search supplier by name or phone...',
+          prefixIcon: Icons.storefront_outlined,
+          height: 40,
           onChanged: (val) => setState(() => _selectedSupplier = val),
         ),
         if (_selectedSupplier != null &&
@@ -2964,19 +3408,25 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
             style: TextStyle(
                 fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
         const SizedBox(height: 5),
-        DropdownButtonFormField<BusinessLocation>(
-          isExpanded: true,
-          dropdownColor: cardBg,
-          decoration: inputDeco,
-          style: TextStyle(fontSize: 13, color: textPrimary),
-          initialValue: _selectedLocation,
-          items: _locations
-              .map((loc) => DropdownMenuItem(
-                    value: loc,
-                    child: Text(loc.name,
-                        style: TextStyle(fontSize: 13, color: textPrimary)),
-                  ))
-              .toList(),
+        SearchableDropdownField<BusinessLocation>(
+          selectedItem: _selectedLocation,
+          items: _locations,
+          labelBuilder: (loc) => loc.name,
+          subtitleBuilder: (loc) {
+            final parts = [
+              if (loc.city.isNotEmpty) loc.city,
+              if (loc.landmark.isNotEmpty) loc.landmark,
+            ];
+            return parts.isEmpty ? null : parts.join(' • ');
+          },
+          filter: (loc, q) =>
+              loc.name.toLowerCase().contains(q) ||
+              loc.city.toLowerCase().contains(q) ||
+              loc.landmark.toLowerCase().contains(q),
+          placeholder: 'Select Business Location...',
+          searchHint: 'Search location...',
+          prefixIcon: Icons.location_on_outlined,
+          height: 40,
           onChanged: (val) => setState(() => _selectedLocation = val),
         ),
       ],

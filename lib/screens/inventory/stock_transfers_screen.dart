@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
+import '../../widgets/searchable_select_dialog.dart';
 
 class StockTransfersScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -287,33 +288,14 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                 children: [
                                   _fieldLabel('Transfer From (Source)',
                                       isRequired: true),
-                                  DropdownButtonFormField<BusinessLocation>(
-                                    initialValue: fromLoc,
-                                    decoration: InputDecoration(
-                                      isDense: true,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 11),
-                                      filled: true,
-                                      fillColor: const Color(0xFFF8FAFC),
-                                      border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          borderSide: const BorderSide(
-                                              color: Color(0xFFCBD5E1))),
-                                      enabledBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          borderSide: const BorderSide(
-                                              color: Color(0xFFE2E8F0))),
-                                    ),
-                                    items: _locations
-                                        .map((loc) => DropdownMenuItem(
-                                            value: loc,
-                                            child: Text(loc.name,
-                                                style: const TextStyle(
-                                                    fontSize: 13))))
-                                        .toList(),
+                                  SearchableDropdownField<BusinessLocation>(
+                                    selectedItem: fromLoc,
+                                    items: _locations,
+                                    labelBuilder: (loc) => loc.name,
+                                    placeholder: 'Select Source...',
+                                    searchHint: 'Search location...',
+                                    prefixIcon: Icons.location_on_outlined,
+                                    height: 40,
                                     onChanged: (val) =>
                                         setDlgState(() => fromLoc = val),
                                   ),
@@ -327,33 +309,14 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                 children: [
                                   _fieldLabel('Transfer To (Destination)',
                                       isRequired: true),
-                                  DropdownButtonFormField<BusinessLocation>(
-                                    initialValue: toLoc,
-                                    decoration: InputDecoration(
-                                      isDense: true,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 11),
-                                      filled: true,
-                                      fillColor: const Color(0xFFF8FAFC),
-                                      border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          borderSide: const BorderSide(
-                                              color: Color(0xFFCBD5E1))),
-                                      enabledBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          borderSide: const BorderSide(
-                                              color: Color(0xFFE2E8F0))),
-                                    ),
-                                    items: _locations
-                                        .map((loc) => DropdownMenuItem(
-                                            value: loc,
-                                            child: Text(loc.name,
-                                                style: const TextStyle(
-                                                    fontSize: 13))))
-                                        .toList(),
+                                  SearchableDropdownField<BusinessLocation>(
+                                    selectedItem: toLoc,
+                                    items: _locations,
+                                    labelBuilder: (loc) => loc.name,
+                                    placeholder: 'Select Destination...',
+                                    searchHint: 'Search location...',
+                                    prefixIcon: Icons.location_on_outlined,
+                                    height: 40,
                                     onChanged: (val) =>
                                         setDlgState(() => toLoc = val),
                                   ),
@@ -364,30 +327,22 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                         ),
                         const SizedBox(height: 14),
                         _fieldLabel('Product to Transfer', isRequired: true),
-                        DropdownButtonFormField<Product>(
-                          initialValue: selectedProduct,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 11),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide:
-                                    const BorderSide(color: Color(0xFFCBD5E1))),
-                            enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide:
-                                    const BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                          items: _products
-                              .map((p) => DropdownMenuItem(
-                                  value: p,
-                                  child: Text(
-                                      '${p.name} (Stock: ${p.stockQuantity.toInt()})',
-                                      style: const TextStyle(fontSize: 13))))
-                              .toList(),
+                        SearchableDropdownField<Product>(
+                          selectedItem: selectedProduct,
+                          items: _products,
+                          labelBuilder: (p) =>
+                              '${p.name} (Stock: ${p.stockQuantity.toInt()})',
+                          subtitleBuilder: (p) => p.sku.isNotEmpty
+                              ? 'SKU: ${p.sku}${p.barcode.isNotEmpty ? ' • ${p.barcode}' : ''}'
+                              : null,
+                          filter: (p, q) =>
+                              p.name.toLowerCase().contains(q) ||
+                              p.sku.toLowerCase().contains(q) ||
+                              p.barcode.toLowerCase().contains(q),
+                          placeholder: 'Search & select product...',
+                          searchHint: 'Search product by name, SKU, barcode...',
+                          prefixIcon: Icons.inventory_2_outlined,
+                          height: 40,
                           onChanged: (val) {
                             setDlgState(() {
                               selectedProduct = val;
@@ -861,58 +816,35 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                         ),
                         const SizedBox(height: 14),
                         _fieldLabel('Business Location', isRequired: true),
-                        DropdownButtonFormField<BusinessLocation>(
-                          initialValue: location,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 11),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide:
-                                    const BorderSide(color: Color(0xFFCBD5E1))),
-                            enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide:
-                                    const BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                          items: _locations
-                              .map((loc) => DropdownMenuItem(
-                                  value: loc,
-                                  child: Text(loc.name,
-                                      style: const TextStyle(fontSize: 13))))
-                              .toList(),
+                        SearchableDropdownField<BusinessLocation>(
+                          selectedItem: location,
+                          items: _locations,
+                          labelBuilder: (loc) => loc.name,
+                          placeholder: 'Select Location...',
+                          searchHint: 'Search location...',
+                          prefixIcon: Icons.location_on_outlined,
+                          height: 40,
                           onChanged: (val) => setDlgState(() => location = val),
                         ),
                         const SizedBox(height: 14),
                         _fieldLabel('Product to Adjust / Shrink',
                             isRequired: true),
-                        DropdownButtonFormField<Product>(
-                          initialValue: selectedProduct,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 11),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide:
-                                    const BorderSide(color: Color(0xFFCBD5E1))),
-                            enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide:
-                                    const BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                          items: _products
-                              .map((p) => DropdownMenuItem(
-                                  value: p,
-                                  child: Text(
-                                      '${p.name} (Stock: ${p.stockQuantity.toInt()})',
-                                      style: const TextStyle(fontSize: 13))))
-                              .toList(),
+                        SearchableDropdownField<Product>(
+                          selectedItem: selectedProduct,
+                          items: _products,
+                          labelBuilder: (p) =>
+                              '${p.name} (Stock: ${p.stockQuantity.toInt()})',
+                          subtitleBuilder: (p) => p.sku.isNotEmpty
+                              ? 'SKU: ${p.sku}${p.barcode.isNotEmpty ? ' • ${p.barcode}' : ''}'
+                              : null,
+                          filter: (p, q) =>
+                              p.name.toLowerCase().contains(q) ||
+                              p.sku.toLowerCase().contains(q) ||
+                              p.barcode.toLowerCase().contains(q),
+                          placeholder: 'Search & select product...',
+                          searchHint: 'Search product by name, SKU, barcode...',
+                          prefixIcon: Icons.inventory_2_outlined,
+                          height: 40,
                           onChanged: (val) {
                             setDlgState(() {
                               selectedProduct = val;

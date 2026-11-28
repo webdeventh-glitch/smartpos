@@ -30,21 +30,74 @@ class ProductRepository extends BaseRepository {
     await db.delete('units', where: 'id = ?', whereArgs: [id]);
   }
 
+  bool _inferAllowDecimal(String rawUnit) {
+    final u = rawUnit.toLowerCase().trim();
+    return u.contains('kg') ||
+        u.contains('kilo') ||
+        u.contains('gram') ||
+        u.contains('gm') ||
+        u == 'g' ||
+        u.contains('mann') ||
+        u.contains('maund') ||
+        u.contains('dhari') ||
+        u.contains('pao') ||
+        u.contains('ton') ||
+        u.contains('liter') ||
+        u.contains('litre') ||
+        u.contains('ltr') ||
+        u.contains('ml') ||
+        u.contains('meter') ||
+        u.contains('mtr') ||
+        u == 'm' ||
+        u.contains('foot') ||
+        u.contains('feet') ||
+        u.contains('ft') ||
+        u.contains('yard') ||
+        u.contains('yd') ||
+        u.contains('gaz') ||
+        u.contains('sq') ||
+        u.contains('hour') ||
+        u == 'hr';
+  }
+
   /// Returns all available selling units and sub-units for a product (Base unit + Sub-units)
   Future<List<Unit>> getConversionUnitsForProduct(Product product) async {
     final allUnits = await getUnits();
     final rawUnit = product.unit.toLowerCase().trim();
 
-    // 1. Find matching base unit in DB if exists
-    Unit? matchedBase;
-    for (final u in allUnits) {
-      if (u.actualName.toLowerCase().trim() == rawUnit ||
-          u.shortName.toLowerCase().trim() == rawUnit ||
-          rawUnit.contains(u.actualName.toLowerCase().trim()) ||
-          rawUnit.contains(u.shortName.toLowerCase().trim())) {
-        matchedBase = u;
-        break;
+    // 1. Find matching base unit in DB with prioritized exact matching first
+    // (prevents substring collisions like "Box (12 Pcs)" matching "Pc" before "Box (12 Pcs)")
+    Unit? findFirst(bool Function(Unit u) test) {
+      for (final u in allUnits) {
+        if (test(u)) return u;
       }
+      return null;
+    }
+
+    Unit? matchedBase;
+    if (rawUnit.isNotEmpty) {
+      matchedBase = findFirst(
+        (u) =>
+            '${u.actualName} (${u.shortName})'.toLowerCase().trim() == rawUnit,
+      );
+      matchedBase ??= findFirst(
+        (u) =>
+            u.actualName.toLowerCase().trim() == rawUnit ||
+            u.shortName.toLowerCase().trim() == rawUnit,
+      );
+      matchedBase ??= findFirst(
+        (u) =>
+            u.baseUnitId == null &&
+            (rawUnit.contains(u.actualName.toLowerCase().trim()) ||
+                (u.shortName.trim().length >= 2 &&
+                    rawUnit.contains(u.shortName.toLowerCase().trim()))),
+      );
+      matchedBase ??= findFirst(
+        (u) =>
+            rawUnit.contains(u.actualName.toLowerCase().trim()) ||
+            (u.shortName.trim().length >= 2 &&
+                rawUnit.contains(u.shortName.toLowerCase().trim())),
+      );
     }
 
     final results = <Unit>[];
@@ -59,20 +112,25 @@ class ProductRepository extends BaseRepository {
       id: matchedBase?.id,
       actualName: baseName,
       shortName: baseShort,
-      allowDecimal: matchedBase?.allowDecimal ?? true,
+      allowDecimal: matchedBase?.allowDecimal ?? _inferAllowDecimal(baseName),
       baseUnitMultiplier: 1.0,
       category: matchedBase?.category ?? 'count',
     ));
 
+    // Explicit "none" means this product is sold strictly in its primary unit only
+    final rawSubIds = product.subUnitIds?.trim() ?? '';
+    if (rawSubIds.toLowerCase() == 'none') {
+      return results;
+    }
+
     // Check if product has specifically allowed sub-units (Ultimate POS sub_unit_ids style)
-    final allowedSubUnitIds =
-        (product.subUnitIds != null && product.subUnitIds!.trim().isNotEmpty)
-            ? product.subUnitIds!
-                .split(',')
-                .map((s) => int.tryParse(s.trim()))
-                .whereType<int>()
-                .toSet()
-            : null;
+    final allowedSubUnitIds = rawSubIds.isNotEmpty
+        ? rawSubIds
+            .split(',')
+            .map((s) => int.tryParse(s.trim()))
+            .whereType<int>()
+            .toSet()
+        : null;
 
     // 2. Add units that reference this base unit in DB
     if (matchedBase != null && matchedBase.id != null) {
@@ -297,36 +355,6 @@ class ProductRepository extends BaseRepository {
               allowDecimal: true,
               baseUnitMultiplier: 50.0));
         }
-      } else if (rawUnit.contains('pc') ||
-          rawUnit.contains('piece') ||
-          rawUnit.contains('each') ||
-          rawUnit.contains('item')) {
-        results.add(Unit(
-            actualName: 'Half Dozen (6 Pcs)',
-            shortName: 'Half Doz',
-            allowDecimal: false,
-            baseUnitMultiplier: 6.0));
-        results.add(Unit(
-            actualName: 'Dozen (12 Pcs)',
-            shortName: 'Dozen',
-            allowDecimal: false,
-            baseUnitMultiplier: 12.0));
-        results.add(Unit(
-            actualName: 'Box (24 Pcs)',
-            shortName: 'Box',
-            allowDecimal: false,
-            baseUnitMultiplier: 24.0));
-        results.add(Unit(
-            actualName: 'Crate (30 Pcs)',
-            shortName: 'Crate',
-            allowDecimal: false,
-            baseUnitMultiplier: 30.0));
-        results.add(Unit(
-            actualName: 'Carton (72 Pcs)',
-            shortName: 'Ctn',
-            allowDecimal: false,
-            baseUnitMultiplier: 72.0,
-            category: 'count'));
       } else if (rawUnit.contains('hour') ||
           rawUnit == 'hr' ||
           rawUnit.contains('ghanta')) {

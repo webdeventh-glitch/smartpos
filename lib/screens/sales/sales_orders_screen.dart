@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import '../../services/localization_service.dart';
 
 /// Step 6.1: Sales Orders Management Screen (Ordered -> Partial -> Completed).
@@ -147,21 +148,20 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 2,
-                          child: DropdownButtonFormField<Contact>(
-                            initialValue: selectedCustomer,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              labelText: PosLocalization.tr('Customer'),
-                              isDense: true,
-                              border: const OutlineInputBorder(),
-                            ),
-                            items: customers
-                                .map((c) => DropdownMenuItem(
-                                      value: c,
-                                      child: Text(c.name,
-                                          overflow: TextOverflow.ellipsis),
-                                    ))
-                                .toList(),
+                          child: SearchableDropdownField<Contact>(
+                            label: PosLocalization.tr('Customer'),
+                            selectedItem: selectedCustomer,
+                            items: customers,
+                            labelBuilder: (c) => c.name,
+                            subtitleBuilder: (c) =>
+                                c.phone.isNotEmpty ? c.phone : null,
+                            filter: (c, q) =>
+                                c.name.toLowerCase().contains(q) ||
+                                c.phone.toLowerCase().contains(q),
+                            placeholder: 'Select Customer...',
+                            searchHint: 'Search customer...',
+                            prefixIcon: Icons.person_outline_rounded,
+                            height: 40,
                             onChanged: (v) =>
                                 setDlg(() => selectedCustomer = v),
                           ),
@@ -169,26 +169,18 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    DropdownButtonFormField<CommissionAgent?>(
-                      initialValue: selectedAgent,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText:
-                            PosLocalization.tr('Commission Agent (Optional)'),
-                        isDense: true,
-                        border: const OutlineInputBorder(),
-                      ),
-                      items: [
-                        DropdownMenuItem<CommissionAgent?>(
-                          value: null,
-                          child: Text(PosLocalization.tr('None')),
-                        ),
-                        ...agents.map((a) => DropdownMenuItem<CommissionAgent?>(
-                              value: a,
-                              child: Text(
-                                  '${a.name} (${a.commissionPercent.toStringAsFixed(1)}%)'),
-                            )),
-                      ],
+                    SearchableDropdownField<CommissionAgent>(
+                      label: PosLocalization.tr('Commission Agent (Optional)'),
+                      selectedItem: selectedAgent,
+                      items: agents,
+                      labelBuilder: (a) =>
+                          '${a.name} (${a.commissionPercent.toStringAsFixed(1)}%)',
+                      placeholder: PosLocalization.tr('None'),
+                      searchHint: 'Search agent...',
+                      prefixIcon: Icons.badge_outlined,
+                      height: 40,
+                      allowClear: true,
+                      clearLabel: PosLocalization.tr('None'),
                       onChanged: (v) => setDlg(() => selectedAgent = v),
                     ),
                     const SizedBox(height: 12),
@@ -196,21 +188,20 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                       children: [
                         Expanded(
                           flex: 3,
-                          child: DropdownButtonFormField<Product>(
-                            initialValue: pickerProduct,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              labelText: PosLocalization.tr('Select Product'),
-                              isDense: true,
-                              border: const OutlineInputBorder(),
-                            ),
-                            items: products
-                                .map((p) => DropdownMenuItem(
-                                      value: p,
-                                      child: Text('${p.name} (${p.sku})',
-                                          overflow: TextOverflow.ellipsis),
-                                    ))
-                                .toList(),
+                          child: SearchableDropdownField<Product>(
+                            label: PosLocalization.tr('Select Product'),
+                            selectedItem: pickerProduct,
+                            items: products,
+                            labelBuilder: (p) => '${p.name} (${p.sku})',
+                            filter: (p, q) =>
+                                p.name.toLowerCase().contains(q) ||
+                                p.sku.toLowerCase().contains(q) ||
+                                p.barcode.toLowerCase().contains(q),
+                            placeholder: 'Search & select product...',
+                            searchHint:
+                                'Search product by name, SKU, barcode...',
+                            prefixIcon: Icons.inventory_2_outlined,
+                            height: 40,
                             onChanged: (v) {
                               setDlg(() {
                                 pickerProduct = v;

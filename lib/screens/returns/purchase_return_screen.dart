@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
+import '../../widgets/searchable_select_dialog.dart';
 
 class PurchaseReturnScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -143,16 +144,19 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _label('Supplier / Distributor *', isDark),
-                            DropdownButtonFormField<Contact>(
-                              initialValue: selectedSupplier,
-                              isExpanded: true,
-                              decoration: const InputDecoration(isDense: true),
-                              items: _suppliers
-                                  .map((s) => DropdownMenuItem(
-                                      value: s,
-                                      child: Text(s.name,
-                                          overflow: TextOverflow.ellipsis)))
-                                  .toList(),
+                            SearchableDropdownField<Contact>(
+                              selectedItem: selectedSupplier,
+                              items: _suppliers,
+                              labelBuilder: (s) => s.name,
+                              subtitleBuilder: (s) =>
+                                  s.phone.isNotEmpty ? s.phone : null,
+                              filter: (s, q) =>
+                                  s.name.toLowerCase().contains(q) ||
+                                  s.phone.toLowerCase().contains(q),
+                              placeholder: 'Select Supplier...',
+                              searchHint: 'Search supplier...',
+                              prefixIcon: Icons.storefront_outlined,
+                              height: 40,
                               onChanged: (v) =>
                                   setDlgState(() => selectedSupplier = v),
                             ),
@@ -176,17 +180,20 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                   ),
                   const SizedBox(height: 14),
                   _label('Select Medicine / Item to Return *', isDark),
-                  DropdownButtonFormField<Product>(
-                    initialValue: selectedProduct,
-                    isExpanded: true,
-                    decoration: const InputDecoration(isDense: true),
-                    items: _products
-                        .take(100)
-                        .map((p) => DropdownMenuItem(
-                            value: p,
-                            child: Text(
-                                '${p.name} (${p.batchNumber ?? "No Batch"} - Exp: ${p.expiryDate ?? "N/A"}) - Stock: ${p.stockQuantity}')))
-                        .toList(),
+                  SearchableDropdownField<Product>(
+                    selectedItem: selectedProduct,
+                    items: _products,
+                    labelBuilder: (p) =>
+                        '${p.name} (${p.batchNumber ?? "No Batch"} - Exp: ${p.expiryDate ?? "N/A"}) - Stock: ${p.stockQuantity}',
+                    filter: (p, q) =>
+                        p.name.toLowerCase().contains(q) ||
+                        p.sku.toLowerCase().contains(q) ||
+                        p.barcode.toLowerCase().contains(q) ||
+                        (p.batchNumber ?? '').toLowerCase().contains(q),
+                    placeholder: 'Search & select item...',
+                    searchHint: 'Search by name, SKU, barcode, batch...',
+                    prefixIcon: Icons.inventory_2_outlined,
+                    height: 40,
                     onChanged: (v) {
                       setDlgState(() {
                         selectedProduct = v;

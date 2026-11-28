@@ -404,7 +404,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                     const SizedBox(width: 8),
                     IconButton(
                       icon: const Icon(Icons.close_rounded, size: 20),
-                      tooltip: PosLocalization.tr('Close (ESC)'),
+                      tooltip: '${PosLocalization.tr('Close')} (ESC)',
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],

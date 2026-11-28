@@ -427,6 +427,7 @@ class _SmartAppBarState extends State<SmartAppBar> {
                             mainAxisSize: MainAxisSize.max,
                             children: [
                               Flexible(
+                                flex: 3,
                                 child: Text(
                                   widget.settings.businessName,
                                   maxLines: 1,
@@ -442,39 +443,46 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF064E3B)
-                                          .withValues(alpha: 0.4)
-                                      : const Color(0xFFECFDF5),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                      color: isDark
-                                          ? const Color(0xFF059669)
-                                          : const Color(0xFFA7F3D0)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const CircleAvatar(
-                                        radius: 3,
-                                        backgroundColor: Color(0xFF10B981)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      PosLocalization.tr('Live',
-                                          settings: widget.settings),
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
+                              Flexible(
+                                flex: 2,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF064E3B)
+                                            .withValues(alpha: 0.4)
+                                        : const Color(0xFFECFDF5),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
                                         color: isDark
-                                            ? const Color(0xFF34D399)
-                                            : const Color(0xFF059669),
+                                            ? const Color(0xFF059669)
+                                            : const Color(0xFFA7F3D0)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const CircleAvatar(
+                                          radius: 3,
+                                          backgroundColor: Color(0xFF10B981)),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          PosLocalization.tr('Live',
+                                              settings: widget.settings),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? const Color(0xFF34D399)
+                                                : const Color(0xFF059669),
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -749,15 +757,7 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                 const SizedBox(width: 5),
                                 Text(
                                   isRegisterOpen
-                                      ? PosLocalization.trParams(
-                                          'Cash: {amount}',
-                                          {
-                                            'amount': CurrencyFormatter.exact(
-                                                inHand,
-                                                currency: '$currency ')
-                                          },
-                                          settings: widget.settings,
-                                        )
+                                      ? '${PosLocalization.tr('Cash', settings: widget.settings)}: ${CurrencyFormatter.exact(inHand, currency: '$currency ')}'
                                       : PosLocalization.tr('Register Closed',
                                           settings: widget.settings),
                                   style: TextStyle(

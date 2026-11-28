@@ -12,6 +12,7 @@ import 'payment_reminder_dialog.dart';
 import '../../services/print_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
 import '../../widgets/record_contact_payment_dialog.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../../services/localization_service.dart';
 
@@ -213,21 +214,23 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             ),
                           )
                         else
-                          DropdownButtonFormField<int?>(
-                            initialValue: selectedPriceGroupId,
-                            decoration: InputDecoration(
-                              labelText: PosLocalization.tr(
-                                  'Linked Selling Price Group'),
-                              isDense: true,
-                            ),
-                            items: priceGroups
-                                .map((pg) => DropdownMenuItem<int?>(
-                                      value: pg.id,
-                                      child: Text(pg.name),
-                                    ))
-                                .toList(),
-                            onChanged: (v) =>
-                                setFormState(() => selectedPriceGroupId = v),
+                          SearchableDropdownField<SellingPriceGroup>(
+                            label: PosLocalization.tr(
+                                'Linked Selling Price Group'),
+                            selectedItem: selectedPriceGroupId == null
+                                ? null
+                                : priceGroups
+                                    .where(
+                                        (pg) => pg.id == selectedPriceGroupId)
+                                    .firstOrNull,
+                            items: priceGroups,
+                            labelBuilder: (pg) => pg.name,
+                            placeholder: 'Select Price Group...',
+                            searchHint: 'Search price group...',
+                            prefixIcon: Icons.sell_outlined,
+                            height: 40,
+                            onChanged: (v) => setFormState(
+                                () => selectedPriceGroupId = v?.id),
                           ),
                       ],
                     ),

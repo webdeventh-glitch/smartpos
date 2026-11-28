@@ -309,15 +309,7 @@ class _PayDueDialogState extends State<PayDueDialog> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          PosLocalization.trParams(
-                            'Total: {currency}{total} | Paid: {currency}{paid}',
-                            {
-                              'currency': currency,
-                              'total': widget.totalAmount.toStringAsFixed(2),
-                              'paid': widget.paidAmount.toStringAsFixed(2),
-                            },
-                            settings: widget.settings,
-                          ),
+                          '${PosLocalization.tr('Total', settings: widget.settings)}: $currency${widget.totalAmount.toStringAsFixed(2)} | ${PosLocalization.tr('Paid', settings: widget.settings)}: $currency${widget.paidAmount.toStringAsFixed(2)}',
                           style: TextStyle(
                             fontSize: 11,
                             color: isDark

@@ -108,7 +108,54 @@ class PosLocalization {
     }
 
     // Bilingual output: "Primary (Secondary)"
-    return '$primaryText ($secondaryText)';
+    // Strip shortcuts ([F1], (F12), [Esc], (?)) and symbols ((+), (-), +, :, *, etc.)
+    // from secondary translation so shortcuts and symbols are never shown twice.
+    final cleanSecondary =
+        _stripSecondaryShortcutsAndSymbols(secondaryText, primaryText);
+    if (cleanSecondary.isEmpty ||
+        cleanSecondary.toLowerCase() == primaryText.toLowerCase()) {
+      return primaryText;
+    }
+    return '$primaryText ($cleanSecondary)';
+  }
+
+  static final RegExp _shortcutTokenRx = RegExp(
+    r'\s*(?:\[(?:F\d+|Esc|Enter|Tab|Del|Ins|Ctrl\+[A-Z0-9]+|Alt\+[A-Z0-9]+)\]|\((?:F\d+|Esc|\?)\))',
+    caseSensitive: false,
+  );
+  static final RegExp _leadingShortcutRx = RegExp(
+    r'^(?:F\d+|Esc|Ctrl\+[A-Z0-9]+|Alt\+[A-Z0-9]+)\s+',
+    caseSensitive: false,
+  );
+  static final RegExp _symbolTagRx = RegExp(r'\s*\((?:\+|\-)\)');
+  static final RegExp _leadingSymbolRx = RegExp(r'^[\+\-•●]\s*');
+
+  static String _stripSecondaryShortcutsAndSymbols(
+      String secondaryText, String primaryText) {
+    var s = secondaryText.trim();
+    s = s.replaceAll(_shortcutTokenRx, '');
+    if (_leadingShortcutRx.hasMatch(primaryText)) {
+      s = s.replaceFirst(_leadingShortcutRx, '');
+    }
+    s = s.replaceAll(_symbolTagRx, '');
+    s = s.replaceAll(_leadingSymbolRx, '');
+    if (primaryText.contains('*') && s.endsWith('*')) {
+      s = s.substring(0, s.length - 1).trimRight();
+    }
+    if ((primaryText.endsWith(':') ||
+            primaryText.endsWith('?') ||
+            primaryText.endsWith('!')) &&
+        (s.endsWith(':') ||
+            s.endsWith('?') ||
+            s.endsWith('؟') ||
+            s.endsWith('!'))) {
+      s = s.substring(0, s.length - 1).trimRight();
+    }
+    // Strip redundant English trailing token like "/ Khata" if already in primary
+    if (primaryText.contains('/ Khata') && s.endsWith('/ Khata')) {
+      s = s.substring(0, s.length - '/ Khata'.length).trimRight();
+    }
+    return s.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
   }
 
   /// Returns only the primary language text (never combined with secondary),
@@ -348,12 +395,62 @@ class PosLocalization {
     if (dict != null && dict.containsKey(key)) {
       return dict[key];
     }
-    final clean = key.replaceAll('*', '').trim();
-    if (dict != null && dict.containsKey(clean)) {
-      final res = dict[clean]!;
+    final cleanStar = key.replaceAll('*', '').trim();
+    if (dict != null && dict.containsKey(cleanStar)) {
+      final res = dict[cleanStar]!;
       return key.contains('*') ? '$res *' : res;
     }
-    return I18nExtra.lookup(lang, key);
+    if (lang == 'en') {
+      return I18nExtra.lookup(lang, key);
+    }
+    // Fallback lookup for non-English languages when caller passes clean base key
+    // (e.g. 'DISCOUNT' -> 'DISCOUNT(-)') or shortcut-suffixed key (e.g. 'Cash [F2]' -> 'Cash').
+    final baseKey = key
+        .replaceAll(_shortcutTokenRx, '')
+        .replaceAll(_symbolTagRx, '')
+        .replaceAll(_leadingSymbolRx, '')
+        .trim();
+    if (baseKey.isNotEmpty && baseKey != key) {
+      if (dict != null && dict.containsKey(baseKey)) {
+        return dict[baseKey];
+      }
+      final extraBase = I18nExtra.lookup(lang, baseKey);
+      if (extraBase != null) return extraBase;
+    }
+    final directExtra = I18nExtra.lookup(lang, key);
+    if (directExtra != null) return directExtra;
+    if (dict != null) {
+      for (final suffix in const [
+        '(-)',
+        '(+)',
+        ' [F2]',
+        ' [F4]',
+        ' [F6]',
+        ' [F7]',
+        ' [F8]',
+        ' [F9]',
+        ' [F10]',
+        ' [F1]',
+        ' (F12)',
+        ' (F2)',
+        ' (F3)',
+        ' (?)',
+        ' [Esc]'
+      ]) {
+        final k = '$key$suffix';
+        if (dict.containsKey(k)) {
+          return dict[k]!
+              .replaceAll(_shortcutTokenRx, '')
+              .replaceAll(_symbolTagRx, '')
+              .trim();
+        }
+      }
+      final plusK = '+ $key';
+      if (dict.containsKey(plusK)) {
+        return dict[plusK]!.replaceAll(_leadingSymbolRx, '').trim();
+      }
+    }
+    return null;
   }
 
   // ================= DICTIONARIES =================
@@ -422,9 +519,9 @@ class PosLocalization {
       'PRICE INC. TAX': 'PRICE INC. TAX',
       'SUBTOTAL': 'SUBTOTAL',
       'ITEMS': 'ITEMS',
-      'DISCOUNT(-)': 'DISCOUNT(-)',
-      'ORDER TAX(+)': 'ORDER TAX(+)',
-      'SHIPPING(+)': 'SHIPPING(+)',
+      'DISCOUNT': 'DISCOUNT',
+      'ORDER TAX': 'ORDER TAX',
+      'SHIPPING': 'SHIPPING',
       'TOTAL PAYABLE': 'TOTAL PAYABLE',
       'No products in cart': 'No products in cart',
       'Scan barcode or select products on the right':
@@ -436,12 +533,12 @@ class PosLocalization {
       'Quotation': 'Quotation',
       'Suspend': 'Suspend',
       'Credit Sale': 'Credit Sale',
-      'Recent Sales [F9]': 'Recent Sales [F9]',
+      'Recent Sales': 'Recent Sales',
       'Card': 'Card',
       'Multiple Pay': 'Multiple Pay',
       'Cash': 'Cash',
-      'Retail Mode (F12)': 'Retail Mode (F12)',
-      '+ Custom Item': '+ Custom Item',
+      'Retail Mode': 'Retail Mode',
+      'Custom Item': 'Custom Item',
       'Undo': 'Undo',
       'Redo': 'Redo',
       'Multi-Unit & Decimal Scale Enabled':
@@ -450,8 +547,7 @@ class PosLocalization {
       'Featured Products': 'Featured Products',
       'Grid': 'Grid',
       'List': 'List',
-      'Search product / barcode / 2*SKU [Esc]':
-          'Search product / barcode / 2*SKU [Esc]',
+      'Search product / barcode / 2*SKU': 'Search product / barcode / 2*SKU',
       'No products found in catalog': 'No products found in catalog',
       'Walk-in Customer': 'Walk-in Customer',
       'Reset to Walk-in Customer': 'Reset to Walk-in Customer',
@@ -468,7 +564,7 @@ class PosLocalization {
           'Credit Sale Not Allowed for Walk-in Customer',
       'Walk-in cash customers do not have a credit ledger account. Credit sales require a registered customer.':
           'Walk-in cash customers do not have a credit ledger account. Credit sales require a registered customer.',
-      'Select Customer (F3)': 'Select Customer (F3)',
+      'Select Customer': 'Select Customer',
       'Adjust Weight': 'Adjust Weight',
       'Adjust Volume': 'Adjust Volume',
       'Adjust Measurement': 'Adjust Measurement',
@@ -642,7 +738,7 @@ class PosLocalization {
       'New Product': 'New Product',
       'Sales List': 'Sales List',
       'Refresh Data': 'Refresh Data',
-      'Cash Register (F2)': 'Cash Register (F2)',
+      'Cash Register': 'Cash Register',
       'Stock Audit': 'Stock Audit',
       'Sales Orders': 'Sales Orders',
       'Purchase Orders': 'Purchase Orders',
@@ -671,18 +767,9 @@ class PosLocalization {
       'Launch Setup Wizard': 'Launch Setup Wizard',
       'Location': 'Location',
       'General Walk-in Shopper': 'General Walk-in Shopper',
-      'Search (F3)': 'Search (F3)',
-      'Wholesale Mode (F12)': 'Wholesale Mode (F12)',
-      'Till [F10]': 'Till [F10]',
-      'F1 Shortcuts Help (?)': 'F1 Shortcuts Help (?)',
-      'F2 Cash Checkout': 'F2 Cash Checkout',
-      'F3 Customer': 'F3 Customer',
-      'F4 Hold Bill': 'F4 Hold Bill',
-      'F7 Partial / Split Pay': 'F7 Partial / Split Pay',
-      'F8 Reset Order': 'F8 Reset Order',
-      'F10 Shift Reconciliation': 'F10 Shift Reconciliation',
-      'Ctrl+Z Undo Cart': 'Ctrl+Z Undo Cart',
-      'Esc Search Focus': 'Esc Search Focus',
+      'Search': 'Search',
+      'Wholesale Mode': 'Wholesale Mode',
+      'Till': 'Till',
       'Smart POS Engine • Multi-Industry': 'Smart POS Engine • Multi-Industry',
       'in stock': 'in stock',
       'stk': 'stk',
@@ -708,16 +795,15 @@ class PosLocalization {
           'Workstation auto-locks after inactivity',
       'Smart POS Enterprise Edition • 256-bit Local AES Encryption':
           'Smart POS Enterprise Edition • 256-bit Local AES Encryption',
-      'Scan barcode / search item / 2*SKU [Esc]':
-          'Scan barcode / search item / 2*SKU [Esc]',
-      '+ Add Expense': '+ Add Expense',
+      'Scan barcode / search item / 2*SKU':
+          'Scan barcode / search item / 2*SKU',
       'Shortcuts': 'Shortcuts',
       'Pack': 'Pack',
       'Bottle': 'Bottle',
       'Box': 'Box',
       'Bag': 'Bag',
       'Pc': 'Pc',
-      'Shortcuts Help (?)': 'Shortcuts Help (?)',
+      'Shortcuts Help': 'Shortcuts Help',
       'Cash Checkout': 'Cash Checkout',
       'Hold Bill': 'Hold Bill',
       'Partial / Split Pay': 'Partial / Split Pay',
@@ -726,7 +812,10 @@ class PosLocalization {
       'Undo Cart': 'Undo Cart',
       'Search Focus': 'Search Focus',
       'Smart POS • Touch Mode Active': 'Smart POS • Touch Mode Active',
-      'Shortcuts [F1]': 'Shortcuts [F1]',
+      'POS Terminal Shortcuts': 'POS Terminal Shortcuts',
+      'Add Custom Item': 'Add Custom Item',
+      'Quick Price & Stock Check': 'Quick Price & Stock Check',
+      'Open Cash Drawer': 'Open Cash Drawer',
       'Wholesale Tier (Active)': 'Wholesale Tier (Active)',
       'Out of Stock': 'Out of Stock',
       'Unit': 'Unit',
@@ -974,9 +1063,9 @@ class PosLocalization {
       'PRICE INC. TAX': 'قیمت بلحاظ ٹیکس',
       'SUBTOTAL': 'کل رقم',
       'ITEMS': 'کل اشیاء',
-      'DISCOUNT(-)': 'رعایت(-)',
-      'ORDER TAX(+)': 'ٹیکس(+)',
-      'SHIPPING(+)': 'کرایہ(+)',
+      'DISCOUNT': 'رعایت',
+      'ORDER TAX': 'ٹیکس',
+      'SHIPPING': 'کرایہ',
       'TOTAL PAYABLE': 'کل واجب الادا',
       'No products in cart': 'کارٹ خالی ہے',
       'Scan barcode or select products on the right':
@@ -987,13 +1076,15 @@ class PosLocalization {
       'Draft': 'ڈرافٹ',
       'Quotation': 'کوٹیشن',
       'Suspend': 'عارضی محفوظ',
+      'Park': 'عارضی محفوظ',
       'Credit Sale': 'ادھار سیل',
-      'Recent Sales [F9]': 'حالیہ سیلز [F9]',
+      'Credit / Khata': 'ادھار / کریڈٹ',
+      'Recent Sales': 'حالیہ سیلز',
       'Card': 'کارڈ',
       'Multiple Pay': 'ملٹی ادائیگی',
       'Cash': 'نقد وصولی',
-      'Retail Mode (F12)': 'ریٹیل موڈ (F12)',
-      '+ Custom Item': '+ متفرق آئٹم',
+      'Retail Mode': 'ریٹیل موڈ',
+      'Custom Item': 'متفرق آئٹم',
       'Undo': 'واپس',
       'Redo': 'دوبارہ',
       'Multi-Unit & Decimal Scale Enabled': 'ملٹی یونٹ و ترازو اسکیل فعال ہے',
@@ -1001,8 +1092,7 @@ class PosLocalization {
       'Featured Products': 'نمایاں پروڈکٹس',
       'Grid': 'گرڈ',
       'List': 'لسٹ',
-      'Search product / barcode / 2*SKU [Esc]':
-          'پروڈکٹ / بارکوڈ / SKU تلاش کریں [Esc]',
+      'Search product / barcode / 2*SKU': 'پروڈکٹ / بارکوڈ / SKU تلاش کریں',
       'No products found in catalog': 'کیٹلاگ میں کوئی پروڈکٹ موجود نہیں ہے',
       'Walk-in Customer': 'عام گاہک (واک اِن)',
       'Reset to Walk-in Customer': 'واک اِن کسٹمر پر ری سیٹ کریں',
@@ -1018,7 +1108,7 @@ class PosLocalization {
           'واک اِن کسٹمر کو ادھار سیل ممنوع ہے',
       'Walk-in cash customers do not have a credit ledger account. Credit sales require a registered customer.':
           'واک اِن کسٹمر کا کھاتہ درج نہیں ہوتا۔ کریڈٹ سیل کے لیے رجسٹرڈ کسٹمر منتخب کریں۔',
-      'Select Customer (F3)': 'کسٹمر کھاتہ منتخب کریں (F3)',
+      'Select Customer': 'کسٹمر کھاتہ منتخب کریں',
       'Adjust Weight': 'وزن درج کریں',
       'Adjust Volume': 'حجم / لیٹر درج کریں',
       'Adjust Measurement': 'پیمائش درج کریں',
@@ -1100,9 +1190,10 @@ class PosLocalization {
       'No products in catalog yet': 'کیٹلاگ میں ابھی کوئی پروڈکٹ موجود نہیں ہے',
       'Add products with selling price and initial stock to start billing immediately!':
           'فوری بلنگ شروع کرنے کے لیے پروڈکٹ اور اسٹاک شامل کریں!',
-      '+ Add First Product': '+ پہلی پروڈکٹ شامل کریں',
-      '+ Receive Payment': '+ رقم وصول کریں',
-      '+ Pay Supplier': '+ سپلائر کو ادائیگی',
+      'Add First Product': 'پہلی پروڈکٹ شامل کریں',
+      '+ Add First Product': 'پہلی پروڈکٹ شامل کریں',
+      '+ Receive Payment': 'رقم وصول کریں',
+      '+ Pay Supplier': 'سپلائر کو ادائیگی',
       'Customer': 'گاہک',
       'Supplier': 'سپلائر',
       'Opening Balance': 'سابقہ بقایا',
@@ -1182,7 +1273,7 @@ class PosLocalization {
       'New Product': 'نیا پروڈکٹ',
       'Sales List': 'سیلز لسٹ',
       'Refresh Data': 'ریفریش ڈیٹا',
-      'Cash Register (F2)': 'کیش رجسٹر (F2)',
+      'Cash Register': 'کیش رجسٹر',
       'Stock Audit': 'اسٹاک آڈٹ',
       'Sales Orders': 'سیلز آرڈرز',
       'Purchase Orders': 'پرچیز آرڈرز',
@@ -1211,18 +1302,9 @@ class PosLocalization {
       'Launch Setup Wizard': 'سیٹ اپ وزرڈ کھولیں',
       'Location': 'برانچ / مقام',
       'General Walk-in Shopper': 'عام واک اِن گاہک',
-      'Search (F3)': 'تلاش (F3)',
-      'Wholesale Mode (F12)': 'ہول سیل موڈ (F12)',
-      'Till [F10]': 'کیش دراز [F10]',
-      'F1 Shortcuts Help (?)': 'F1 شارٹ کٹ گائیڈ',
-      'F2 Cash Checkout': 'F2 نقد بل',
-      'F3 Customer': 'F3 گاہک',
-      'F4 Hold Bill': 'F4 بل ہولڈ',
-      'F7 Partial / Split Pay': 'F7 جزوی بل',
-      'F8 Reset Order': 'F8 کینسل',
-      'F10 Shift Reconciliation': 'F10 شفٹ حساب',
-      'Ctrl+Z Undo Cart': 'Ctrl+Z واپس',
-      'Esc Search Focus': 'Esc تلاش',
+      'Search': 'تلاش',
+      'Wholesale Mode': 'ہول سیل موڈ',
+      'Till': 'کیش دراز',
       'Smart POS Engine • Multi-Industry': 'سمارٹ پی او ایس انجن',
       'in stock': 'اسٹاک میں موجود',
       'stk': 'عدد',
@@ -1248,15 +1330,14 @@ class PosLocalization {
           'غیر سرگرمی پر ورک اسٹیشن خودکار لاک ہوجاتا ہے',
       'Smart POS Enterprise Edition • 256-bit Local AES Encryption':
           'سمارٹ پی او ایس انٹرپرائز ایڈیشن • 256-بٹ لوکل AES انکرپشن',
-      'Scan barcode / search item / 2*SKU [Esc]':
-          'بارکوڈ اسکین یا آئٹم تلاش کریں [Esc]',
+      'Scan barcode / search item / 2*SKU': 'بارکوڈ اسکین یا آئٹم تلاش کریں',
       'Shortcuts': 'شارٹ کٹس',
       'Pack': 'پیکٹ',
       'Bottle': 'بوتل',
       'Box': 'ڈبہ',
       'Bag': 'تھیلا',
       'Pc': 'عدد',
-      'Shortcuts Help (?)': 'شارٹ کٹ گائیڈ',
+      'Shortcuts Help': 'شارٹ کٹ گائیڈ',
       'Cash Checkout': 'نقد بل',
       'Hold Bill': 'بل ہولڈ',
       'Partial / Split Pay': 'جزوی بل',
@@ -1265,7 +1346,10 @@ class PosLocalization {
       'Undo Cart': 'واپس',
       'Search Focus': 'تلاش',
       'Smart POS • Touch Mode Active': 'ٹچ موڈ فعال',
-      'Shortcuts [F1]': 'شارٹ کٹس [F1]',
+      'POS Terminal Shortcuts': 'شارٹ کٹ کلیدیں',
+      'Add Custom Item': 'متفرق آئٹم شامل کریں',
+      'Quick Price & Stock Check': 'فوری قیمت و اسٹاک چیک',
+      'Open Cash Drawer': 'کیش دراز کھولیں',
       'Wholesale Tier (Active)': 'ہول سیل ریٹ (فعال)',
       'Out of Stock': 'ختم ہو چکا ہے',
       'Unit': 'یونٹ',
@@ -1496,9 +1580,9 @@ class PosLocalization {
       'PRICE INC. TAX': 'قیمت با مالیات',
       'SUBTOTAL': 'جمع ردیف',
       'ITEMS': 'تعداد اقلام',
-      'DISCOUNT(-)': 'تخفیف(-)',
-      'ORDER TAX(+)': 'مالیات(+)',
-      'SHIPPING(+)': 'هزینه حمل(+)',
+      'DISCOUNT': 'تخفیف',
+      'ORDER TAX': 'مالیات',
+      'SHIPPING': 'هزینه حمل',
       'TOTAL PAYABLE': 'مبلغ کل پرداختی',
       'No products in cart': 'سبد خرید خالی است',
       'Scan barcode or select products on the right':
@@ -1510,12 +1594,12 @@ class PosLocalization {
       'Quotation': 'پیش‌فاکتور',
       'Suspend': 'معلق کردن',
       'Credit Sale': 'فروش نسیه',
-      'Recent Sales [F9]': 'فروش‌های اخیر [F9]',
+      'Recent Sales': 'فروش‌های اخیر',
       'Card': 'کارت‌خوان',
       'Multiple Pay': 'پرداخت ترکیبی',
       'Cash': 'نقد',
-      'Retail Mode (F12)': 'حالت خرده‌فروشی (F12)',
-      '+ Custom Item': '+ آیتم دلخواه',
+      'Retail Mode': 'حالت خرده‌فروشی',
+      'Custom Item': 'آیتم دلخواه',
       'Undo': 'بازگردانی',
       'Redo': 'تکرار',
       'Multi-Unit & Decimal Scale Enabled':
@@ -1524,8 +1608,7 @@ class PosLocalization {
       'Featured Products': 'کالاهای منتخب',
       'Grid': 'شبکه‌ای',
       'List': 'فهرست',
-      'Search product / barcode / 2*SKU [Esc]':
-          'جستجوی کالا / بارکد / کد کالا [Esc]',
+      'Search product / barcode / 2*SKU': 'جستجوی کالا / بارکد / کد کالا',
       'No products found in catalog': 'هیچ کالایی در انبار یافت نشد',
       'Walk-in Customer': 'مشتری حضوری',
       'Reset to Walk-in Customer': 'بازنشانی به مشتری حضوری',
@@ -1542,7 +1625,7 @@ class PosLocalization {
           'فروش نسیه به مشتری گذری مجاز نمی‌باشد',
       'Walk-in cash customers do not have a credit ledger account. Credit sales require a registered customer.':
           'مشتریان گذری فاقد حساب دفتری هستند. فروش نسیه نیاز به انتخاب مشتری ثبت‌شده دارد.',
-      'Select Customer (F3)': 'انتخاب حساب مشتری (F3)',
+      'Select Customer': 'انتخاب حساب مشتری',
       'Adjust Weight': 'تنظیم وزن',
       'Adjust Volume': 'تنظیم حجم',
       'Adjust Measurement': 'تنظیم متراژ',
@@ -1897,9 +1980,9 @@ class PosLocalization {
       'PRICE INC. TAX': 'السعر شامل الضريبة',
       'SUBTOTAL': 'المجموع الفرعي',
       'ITEMS': 'عدد الأصناف',
-      'DISCOUNT(-)': 'الخصم(-)',
-      'ORDER TAX(+)': 'الضريبة(+)',
-      'SHIPPING(+)': 'الشحن(+)',
+      'DISCOUNT': 'الخصم',
+      'ORDER TAX': 'الضريبة',
+      'SHIPPING': 'الشحن',
       'TOTAL PAYABLE': 'الإجمالي المستحق',
       'No products in cart': 'سلة المشتريات فارغة',
       'Scan barcode or select products on the right':
@@ -1911,12 +1994,12 @@ class PosLocalization {
       'Quotation': 'عرض أسعار',
       'Suspend': 'تعليق الفاتورة',
       'Credit Sale': 'بيع آجل (على الحساب)',
-      'Recent Sales [F9]': 'المبيعات الأخيرة [F9]',
+      'Recent Sales': 'المبيعات الأخيرة',
       'Card': 'بطاقة بنكية',
       'Multiple Pay': 'دفع متعدد',
       'Cash': 'نقداً',
-      'Retail Mode (F12)': 'وضع التجزئة (F12)',
-      '+ Custom Item': '+ صنف مخصص',
+      'Retail Mode': 'وضع التجزئة',
+      'Custom Item': 'صنف مخصص',
       'Undo': 'تراجع',
       'Redo': 'إعادة',
       'Multi-Unit & Decimal Scale Enabled':
@@ -1925,7 +2008,7 @@ class PosLocalization {
       'Featured Products': 'منتجات مميزة',
       'Grid': 'شبكة',
       'List': 'قائمة',
-      'Search product / barcode / 2*SKU [Esc]': 'ابحث عن منتج / باركود [Esc]',
+      'Search product / barcode / 2*SKU': 'ابحث عن منتج / باركود',
       'No products found in catalog': 'لم يتم العثور على منتجات في المستودع',
       'Walk-in Customer': 'عميل نقدي عام',
       'Reset to Walk-in Customer': 'إعادة تعيين إلى عميل عام',
@@ -1942,7 +2025,7 @@ class PosLocalization {
           'البيع الآجل غير مسموح للعميل النقدي',
       'Walk-in cash customers do not have a credit ledger account. Credit sales require a registered customer.':
           'العميل النقدي ليس لديه حساب آجل. يلزم اختيار عميل مسجل لإجراء البيع بالآجل.',
-      'Select Customer (F3)': 'اختر حساب العميل (F3)',
+      'Select Customer': 'اختر حساب العميل',
       'Adjust Weight': 'تعديل الوزن',
       'Adjust Volume': 'تعديل الحجم',
       'Adjust Measurement': 'تعديل المقاس والقياس',
@@ -2286,9 +2369,9 @@ class PosLocalization {
       'No products in catalog yet': 'په کیټلاګ کې توکي نشته',
       'Add products with selling price and initial stock to start billing immediately!':
           'د سمدستي بل جوړولو لپاره توکي او موجودي اضافه کړئ!',
-      '+ Add First Product': '+ لومړنی توکی اضافه کړئ',
-      '+ Receive Payment': '+ پیسې ترلاسه کول',
-      '+ Pay Supplier': '+ سپلائر ته تادیه',
+      'Add First Product': 'لومړنی توکی اضافه کړئ',
+      'Receive Payment': 'پیسې ترلاسه کول',
+      'Pay Supplier': 'سپلائر ته تادیه',
       'Customer': 'پیرودونکی',
       'Supplier': 'عرضه کوونکی',
       'Opening Balance': 'پخوانی پاتې حساب',

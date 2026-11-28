@@ -1,12 +1,12 @@
 /// Auto-generated UR extended dictionary for SmartPOS.
 const Map<String, String> i18nExtraUr = {
-  '+ Add New': '+ شامل کریں نیا',
-  '+ Allowances': '+ Allowances',
-  '+ Feed Consumed': '+ Feed Consumed',
-  '+ Folio Charge': '+ Folio Charge',
-  '+ Mortality': '+ Mortality',
-  '+ Pay': '+ Pay',
-  '+ Receive': '+ Receive',
+  '+ Add New': 'شامل کریں نیا',
+  '+ Allowances': 'Allowances',
+  '+ Feed Consumed': 'Feed Consumed',
+  '+ Folio Charge': 'Folio Charge',
+  '+ Mortality': 'Mortality',
+  '+ Pay': 'Pay',
+  '+ Receive': 'Receive',
   '- Deductions': '- Deductions',
   '1-Tap Apply': '1-Tap لاگو کریں',
   '1. Count': '1. گنتی',
@@ -62,7 +62,7 @@ const Map<String, String> i18nExtraUr = {
   'API Secret / Password': 'API Secret / پاس ورڈ',
   'Abnormal (Theft, Accident)': 'Abnormal (Theft, Accident)',
   'About Developer & Support (Webdeventh)': 'About ڈویلپر & سپورٹ (Webdeventh)',
-  'About Smart POS & Developer Support': 'About Smart POS & ڈویلپر سپورٹ',
+  'About Smart POS & Developer Support': 'اسمارٹ پی او ایس اور ڈویلپر سپورٹ',
   'Absent / Unpaid': 'Absent / غیر ادا شدہ',
   'Accent Color:': 'Accent رنگ:',
   'Access Denied': 'Access Denied',
@@ -281,12 +281,11 @@ const Map<String, String> i18nExtraUr = {
   'Capability Profile (ESC/POS)': 'Capability پروفائل (ESC/POS)',
   'Card / Online Terminal': 'Card / آن لائن Terminal',
   'Card / POS': 'Card / POS',
-  'Card [F8]': 'Card [F8]',
   'Cards View': 'Cards دیکھیں',
   'Carried forward from previous period': 'Carried forward from سابقہ period',
+  'Cash': 'نقد',
   'Cash Drawer / Register': 'نقد دراز / رجسٹر',
   'Cash Register': 'نقد رجسٹر',
-  'Cash [F2]': 'نقد [F2]',
   'Cash: {amount}': 'نقد: {amount}',
   'Cashier / Counter': 'Cashier / Counter',
   'Categories & Sub-Categories': 'کیٹیگریز & Sub-Categories',
@@ -329,7 +328,7 @@ const Map<String, String> i18nExtraUr = {
   'Client Machine Hardware ID:': 'Client Machine Hardware ID:',
   'Clock-In Time': 'Clock-In وقت',
   'Clock-Out Time': 'Clock-Out وقت',
-  'Close (ESC)': 'بند کریں (ESC)',
+  'Close': 'بند کریں',
   'Close Passbook': 'بند کریں Passbook',
   'Close fiscal years, snapshot balance sheets, carry forward ledgers, and audit agency books':
       'مالی سال بند کریں، بیلنس شیٹ محفوظ کریں، کھاتے آگے منتقل کریں اور حسابات کا آڈٹ کریں',
@@ -373,7 +372,7 @@ const Map<String, String> i18nExtraUr = {
   'Copied Diagnostic Info': 'کاپی ہو گیا Diagnostic Info',
   'Copied!': 'کاپی ہو گیا!',
   'Copy All Logs': 'کاپی تمام لاگز',
-  'Copy Diagnostic Info for Support': 'کاپی Diagnostic Info for سپورٹ',
+  'Copy Diagnostic Info for Support': 'سپورٹ کی تفصیلات کاپی کریں',
   'Copy MAC': 'کاپی MAC',
   'Copy Phone': 'کاپی فون',
   'Copy Text': 'کاپی Text',
@@ -403,9 +402,7 @@ const Map<String, String> i18nExtraUr = {
   'Create Purchase Order (PO)': 'بنائیں خریداری آرڈر (PO)',
   'Create new customer and assign to current cart':
       'بنائیں نیا گاہک and assign to موجودہ cart',
-  'Credit / Khata / Udhaar Sale [F6]':
-      'ادھار / کریڈٹ / Khata / Udhaar فروخت [F6]',
-  'Credit / Khata [F6]': 'ادھار / کریڈٹ / Khata [F6]',
+  'Credit / Khata / Udhaar Sale': 'ادھار / کریڈٹ / Khata / Udhaar فروخت',
   'Current Month Payroll Register': 'موجودہ Month تنخواہ رجسٹر رجسٹر',
   'Current Password': 'موجودہ پاس ورڈ',
   'Current: {business}': 'موجودہ: {business}',
@@ -437,8 +434,7 @@ const Map<String, String> i18nExtraUr = {
   'Days of Week (leave empty for all days)':
       'دن of Week (leave empty for تمام دن)',
   'Dead Stock (Slow)': 'Dead اسٹاک (Slow)',
-  'Debit / Credit Card Payment [F8]':
-      'ڈیبٹ / بنام / ادھار / کریڈٹ Card ادائیگی [F8]',
+  'Debit / Credit Card Payment': 'ڈیبٹ / بنام / ادھار / کریڈٹ Card ادائیگی',
   'Debit Note / Purchase Return': 'ڈیبٹ / بنام Note / خریداری واپسی',
   'Deduct & Attach': 'Deduct & Attach',
   'Deduct Raw Material Product (Optional)':
@@ -568,7 +564,7 @@ const Map<String, String> i18nExtraUr = {
   'Entered amount exceeds the outstanding balance ({currency}{due}).':
       'Entered رقم exceeds the outstanding بیلنس ({currency}{due}).',
   'Enterprise Multi-Industry Point of Sale & ERP Systems':
-      'Enterprise Multi-Industry Point of فروخت & ERP Systems',
+      'انٹرپرائز ملٹی انڈسٹری پوائنٹ آف سیل اور ای آر پی سسٹم',
   'Error processing payment: {error}': 'خرابی processing ادائیگی: {error}',
   'Errors & Crashes': 'Errors & Crashes',
   'Estimate': 'Estimate',
@@ -821,7 +817,6 @@ const Map<String, String> i18nExtraUr = {
   'Move inventory between branches or warehouses':
       'Move انوینٹری between branches or warehouses',
   'Multi-Industry Business Hub': 'Multi-Industry کاروبار Hub',
-  'Multiple Pay [F7]': 'Multiple Pay [F7]',
   'My Profile & Roles': 'My پروفائل & Roles',
   'N/A': 'N/A',
   'NET PROFIT': 'خالص منافع',
@@ -1005,7 +1000,6 @@ const Map<String, String> i18nExtraUr = {
   'Pallet / Lot & Serial Range Tracking': 'پیلیٹ / لاٹ & سیریل Range Tracking',
   'Pallet / Lot No.': 'پیلیٹ / لاٹ کوئی نہیں.',
   'Paper Size': 'Paper سائز',
-  'Park [F4]': 'Park [F4]',
   'Partial': 'جزوی',
   'Parts Attached to Job:': 'Parts Attached to جاب:',
   'Parts Used: {parts}': 'Parts Used: {parts}',
@@ -1613,7 +1607,7 @@ const Map<String, String> i18nExtraUr = {
   'Verify & Activate Software': 'تصدیق کریں & فعال کریں Software',
   'Verify & Receive Stock at Destination':
       'تصدیق کریں & Receive اسٹاک at Destination',
-  'View Error Logs': 'دیکھیں خرابی لاگز',
+  'View Error Logs': 'ایرَر لاگز دیکھیں',
   'Visit Site': 'Visit Site',
   'Volume': 'حجم / مائع',
   'Warnings': 'Warnings',
@@ -1726,7 +1720,7 @@ const Map<String, String> i18nExtraUr = {
   '{title} Locked': '{title} مقفل',
   '{type} • {server}': '{type} • {server}',
   '© 2026 Webdeventh. All Rights Reserved.':
-      '© 2026 Webdeventh. تمام Rights Reserved.',
+      '© 2026 Webdeventh۔ جملہ حقوق محفوظ ہیں۔',
   '• All ending balances will be locked and carried forward as opening balances for the new fiscal year.\\n• A permanent audit certificate will be recorded in the system database.':
       '• تمام اختتامی بیلنس لاک کر کے نئے مالی سال کے اوپننگ بیلنس کے طور پر آگے منتقل کر دیے جائیں گے۔\\n• سسٹم ڈیٹا بیس میں مستقل آڈٹ سرٹیفکیٹ محفوظ ہو جائے گا۔',
   '● LIVE LEDGER AUDIT': '● لائیو کھاتہ آڈٹ',

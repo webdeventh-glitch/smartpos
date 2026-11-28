@@ -37,6 +37,7 @@ class ReceiptDialog extends StatefulWidget {
 
 class _ReceiptDialogState extends State<ReceiptDialog> {
   late String _paperSize;
+  bool _isPrinting = false;
 
   @override
   void initState() {
@@ -675,43 +676,104 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
                       ),
-                      icon: const Icon(Icons.print_rounded, size: 16),
+                      icon: _isPrinting
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.print_rounded, size: 16),
                       label: Text(
-                        isUltraNarrow
-                            ? PosLocalization.tr('Print',
+                        _isPrinting
+                            ? PosLocalization.tr('Printing...',
                                 settings: widget.settings)
-                            : '${PosLocalization.tr('Print', settings: widget.settings)} ($_paperSize)',
+                            : (isUltraNarrow
+                                ? PosLocalization.tr('Print',
+                                    settings: widget.settings)
+                                : '${PosLocalization.tr('Print', settings: widget.settings)} ($_paperSize)'),
                         maxLines: 1,
                         softWrap: false,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 13),
                       ),
-                      onPressed: () async {
-                        final html = PrintService.generateSaleInvoiceHtml(
-                          sale: widget.sale,
-                          settings: widget.settings,
-                          tenderedAmount: widget.tenderedAmount,
-                          changeReturn: widget.changeReturn,
-                          paperSizeOverride: _paperSize,
-                          customerPreviousBalance:
-                              widget.customerPreviousBalance,
-                        );
-                        await PrintService.openPrintWindow(
-                          htmlContent: html,
-                          title: 'Invoice_${widget.sale.invoiceNo}',
-                        );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  'Invoice #${widget.sale.invoiceNo} dispatched to Windows Print Manager!'),
-                              backgroundColor: const Color(0xFF10B981),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                      },
+                      onPressed: _isPrinting
+                          ? null
+                          : () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              setState(() => _isPrinting = true);
+                              try {
+                                final html =
+                                    PrintService.generateSaleInvoiceHtml(
+                                  sale: widget.sale,
+                                  settings: widget.settings,
+                                  tenderedAmount: widget.tenderedAmount,
+                                  changeReturn: widget.changeReturn,
+                                  paperSizeOverride: _paperSize,
+                                  customerPreviousBalance:
+                                      widget.customerPreviousBalance,
+                                );
+                                final paperOverride = _paperSize.contains('58')
+                                    ? '58mm'
+                                    : (_paperSize.contains('80')
+                                        ? '80mm'
+                                        : 'a4');
+                                final res =
+                                    await PrintService.printHtmlDocument(
+                                  context: context,
+                                  settings: widget.settings,
+                                  htmlContent: html,
+                                  title: 'Invoice_${widget.sale.invoiceNo}',
+                                  paperSize: _paperSize,
+                                  pdfFallback: () async {
+                                    final db =
+                                        await DatabaseService.initialize();
+                                    final layout =
+                                        await db.getDefaultInvoiceLayout();
+                                    final prodImages =
+                                        await db.getProductImagePathsByIds(
+                                      (widget.sale.items ?? const <SaleItem>[])
+                                          .map((i) => i.productId)
+                                          .whereType<int>(),
+                                    );
+                                    return PdfExportService.generateSalePdf(
+                                      sale: widget.sale,
+                                      settings: widget.settings,
+                                      layout: layout,
+                                      paperSizeOverride: paperOverride,
+                                      customerPreviousBalance:
+                                          widget.customerPreviousBalance,
+                                      productImagePathsById: prodImages,
+                                    );
+                                  },
+                                );
+                                if (!context.mounted) return;
+                                if (res.printed) {
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          'Invoice #${widget.sale.invoiceNo} sent to printer!'),
+                                      backgroundColor: const Color(0xFF10B981),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                } else if (res.error != null) {
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          Text('Print failed: ${res.error}'),
+                                      backgroundColor: const Color(0xFFEF4444),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() => _isPrinting = false);
+                                }
+                              }
+                            },
                     );
 
                     final completeBtn = ElevatedButton.icon(

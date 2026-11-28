@@ -8,6 +8,7 @@ import '../../services/auth_service.dart';
 import '../../services/messaging_service.dart';
 import '../../services/pdf_export_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
+import '../../widgets/searchable_select_dialog.dart';
 import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import '../pos/receipt_dialog.dart';
@@ -1167,26 +1168,24 @@ class _SalesListScreenState extends State<SalesListScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: DropdownButtonFormField<int?>(
-                            initialValue: _selectedLocationId,
-                            dropdownColor:
-                                isDark ? const Color(0xFF1E293B) : Colors.white,
-                            decoration: const InputDecoration(
-                                labelText: 'Business Location', isDense: true),
-                            items: [
-                              const DropdownMenuItem<int?>(
-                                  value: null, child: Text('All Locations')),
-                              ..._locations.map(
-                                (loc) => DropdownMenuItem<int?>(
-                                  value: loc.id,
-                                  child: Text(loc.name,
-                                      overflow: TextOverflow.ellipsis),
-                                ),
-                              ),
-                            ],
+                          child: SearchableDropdownField<BusinessLocation>(
+                            label: 'Business Location',
+                            selectedItem: _selectedLocationId == null
+                                ? null
+                                : _locations
+                                    .where((l) => l.id == _selectedLocationId)
+                                    .firstOrNull,
+                            items: _locations,
+                            labelBuilder: (loc) => loc.name,
+                            placeholder: 'All Locations',
+                            searchHint: 'Search location...',
+                            prefixIcon: Icons.location_on_outlined,
+                            height: 40,
+                            allowClear: true,
+                            clearLabel: 'All Locations',
                             onChanged: (val) {
                               setState(() {
-                                _selectedLocationId = val;
+                                _selectedLocationId = val?.id;
                                 _currentPage = 1;
                               });
                               _load(refreshTabCounts: false);
@@ -1195,26 +1194,29 @@ class _SalesListScreenState extends State<SalesListScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: DropdownButtonFormField<int?>(
-                            initialValue: _selectedCustomerId,
-                            dropdownColor:
-                                isDark ? const Color(0xFF1E293B) : Colors.white,
-                            decoration: const InputDecoration(
-                                labelText: 'Customer', isDense: true),
-                            items: [
-                              const DropdownMenuItem<int?>(
-                                  value: null, child: Text('All Customers')),
-                              ..._customers.map(
-                                (cust) => DropdownMenuItem<int?>(
-                                  value: cust.id,
-                                  child: Text(cust.name,
-                                      overflow: TextOverflow.ellipsis),
-                                ),
-                              ),
-                            ],
+                          child: SearchableDropdownField<Contact>(
+                            label: 'Customer',
+                            selectedItem: _selectedCustomerId == null
+                                ? null
+                                : _customers
+                                    .where((c) => c.id == _selectedCustomerId)
+                                    .firstOrNull,
+                            items: _customers,
+                            labelBuilder: (cust) => cust.name,
+                            subtitleBuilder: (cust) =>
+                                cust.phone.isNotEmpty ? cust.phone : null,
+                            filter: (cust, q) =>
+                                cust.name.toLowerCase().contains(q) ||
+                                cust.phone.toLowerCase().contains(q),
+                            placeholder: 'All Customers',
+                            searchHint: 'Search customer...',
+                            prefixIcon: Icons.person_outline_rounded,
+                            height: 40,
+                            allowClear: true,
+                            clearLabel: 'All Customers',
                             onChanged: (val) {
                               setState(() {
-                                _selectedCustomerId = val;
+                                _selectedCustomerId = val?.id;
                                 _currentPage = 1;
                               });
                               _load(refreshTabCounts: false);
